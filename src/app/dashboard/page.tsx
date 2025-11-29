@@ -28,6 +28,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { tripHistory } from '@/lib/data'; // Using mock data for now
+import { TripCard } from '@/components/trip-card';
 
 export default function DashboardPage() {
   const [bookingType, setBookingType] = useState<'carrier' | 'scheduled' | 'date'>('scheduled');
@@ -150,9 +151,9 @@ export default function DashboardPage() {
                           </AccordionTrigger>
                           <AccordionContent>
                              <div className="space-y-4 p-2">
-                                <p className="text-center text-muted-foreground">
-                                  سيتم عرض بطاقات الرحلات هنا لاحقًا.
-                                </p>
+                                {trips.map(trip => (
+                                  <TripCard key={trip.id} trip={trip} />
+                                ))}
                              </div>
                           </AccordionContent>
                         </AccordionItem>
