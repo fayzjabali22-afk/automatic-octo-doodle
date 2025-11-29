@@ -43,7 +43,7 @@ const menuItems = [
   },
   {
     href: '/history',
-    label: 'Ride History',
+    label: 'Trip History',
     icon: History,
   },
   {
@@ -82,7 +82,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarFooter className="group-data-[collapsible=icon]:hidden">
           <Separator />
           <p className="px-2 text-xs text-muted-foreground">
-            &copy; 2024 Fayz RideShare
+            &copy; 2024 Safar Carrier
           </p>
         </SidebarFooter>
       </Sidebar>

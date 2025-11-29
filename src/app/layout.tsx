@@ -3,8 +3,8 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Fayz RideShare',
-  description: 'A modern ridesharing PWA built with Next.js and Firebase.',
+  title: 'Safar Carrier',
+  description: 'An international transport management PWA built with Next.js and Firebase.',
 };
 
 export default function RootLayout({
