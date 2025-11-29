@@ -52,35 +52,63 @@ export default function HistoryPage() {
           <CardDescription>View your past and current international trips.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Trip ID</TableHead>
-                <TableHead>Origin</TableHead>
-                <TableHead>Destination</TableHead>
-                <TableHead>Departure Date</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {trips.map((trip) => (
-                <TableRow key={trip.id}>
-                  <TableCell className="font-medium">{trip.id}</TableCell>
-                  <TableCell>{trip.origin}</TableCell>
-                  <TableCell>{trip.destination}</TableCell>
-                  <TableCell>{trip.departure}</TableCell>
-                  <TableCell>
-                    <Badge variant={
-                      trip.status === 'Completed' ? 'default' :
-                      trip.status === 'In-Transit' ? 'secondary' :
-                      trip.status === 'Cancelled' ? 'destructive' :
-                      'outline'
-                    }>{trip.status}</Badge>
-                  </TableCell>
+          {/* For larger screens, use a table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Trip ID</TableHead>
+                  <TableHead>Origin</TableHead>
+                  <TableHead>Destination</TableHead>
+                  <TableHead>Departure Date</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {trips.map((trip) => (
+                  <TableRow key={trip.id}>
+                    <TableCell className="font-medium">{trip.id}</TableCell>
+                    <TableCell>{trip.origin}</TableCell>
+                    <TableCell>{trip.destination}</TableCell>
+                    <TableCell>{trip.departure}</TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        trip.status === 'Completed' ? 'default' :
+                        trip.status === 'In-Transit' ? 'secondary' :
+                        trip.status === 'Cancelled' ? 'destructive' :
+                        'outline'
+                      }>{trip.status}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {/* For mobile screens, use a list of cards */}
+          <div className="md:hidden space-y-4">
+            {trips.map((trip) => (
+              <Card key={trip.id} className="w-full">
+                <CardContent className="p-4 grid gap-2">
+                    <div className="flex justify-between items-center">
+                        <span className="font-medium text-lg">{trip.id}</span>
+                        <Badge variant={
+                          trip.status === 'Completed' ? 'default' :
+                          trip.status === 'In-Transit' ? 'secondary' :
+                          trip.status === 'Cancelled' ? 'destructive' :
+                          'outline'
+                        }>{trip.status}</Badge>
+                    </div>
+                    <div className="text-muted-foreground text-sm">
+                        <p>From: {trip.origin}</p>
+                        <p>To: {trip.destination}</p>
+                    </div>
+                    <div className="text-sm pt-2">
+                        <p>Departure: {trip.departure}</p>
+                    </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </AppLayout>
