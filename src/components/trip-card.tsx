@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Clock, DollarSign, MapPin, Users, Calendar } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import Link from 'next/link';
 
 interface TripCardProps {
   trip: Trip;
@@ -61,7 +62,9 @@ export function TripCard({ trip }: TripCardProps) {
                 <Users className="h-4 w-4"/>
                 <span>4 مقاعد متاحة</span>
             </div>
-            <Button size="sm">تفاصيل</Button>
+            <Button asChild size="sm">
+              <Link href="/login">تفاصيل</Link>
+            </Button>
         </div>
       </CardContent>
     </Card>

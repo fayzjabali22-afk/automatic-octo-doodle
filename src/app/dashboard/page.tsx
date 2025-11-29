@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { tripHistory } from '@/lib/data'; // Using mock data for now
 import { TripCard } from '@/components/trip-card';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const [bookingType, setBookingType] = useState<'carrier' | 'scheduled' | 'date'>('scheduled');
@@ -171,7 +172,9 @@ export default function DashboardPage() {
 
               <div className="flex justify-between mt-4">
                   <Button variant="outline">إلغاء العملية</Button>
-                  <Button>تكملة الحجز</Button>
+                  <Button asChild>
+                    <Link href="/login">تكملة الحجز</Link>
+                  </Button>
               </div>
             </div>
           </CardContent>
