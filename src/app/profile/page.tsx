@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AppLayout } from '@/components/app-layout';
-import { userProfile } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -21,34 +20,30 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
 
 const profileFormSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters.'),
+  firstName: z.string().min(2, 'First name must be at least 2 characters.'),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters.'),
   email: z.string().email('Invalid email address.'),
-  paymentMethod: z.enum(['Credit Card', 'PayPal', 'Cash']),
-  preferredVehicle: z.enum(['Standard', 'Luxury', 'SUV']),
+  phoneNumber: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 export default function ProfilePage() {
   const { toast } = useToast();
+  const { user } = useUser();
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: userProfile.name,
-      email: userProfile.email,
-      paymentMethod: userProfile.preferences.paymentMethod,
-      preferredVehicle: userProfile.preferences.preferredVehicle,
+      firstName: '',
+      lastName: '',
+      email: user?.email || '',
+      phoneNumber: user?.phoneNumber || ''
     },
   });
 
@@ -74,32 +69,43 @@ export default function ProfilePage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <div className="flex items-center space-x-6">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage
-                    src={userProfile.profilePictureUrl}
-                    alt={userProfile.name}
-                  />
+                  {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || ''} />}
                   <AvatarFallback>
-                    {userProfile.name
-                      .split(' ')
-                      .map((n) => n[0])
-                      .join('')}
+                    {user?.displayName
+                      ? user.displayName.split(' ').map((n) => n[0]).join('')
+                      : user?.email?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <Button variant="outline">Change Photo</Button>
               </div>
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Your name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Your first name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Your last name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="email"
@@ -107,52 +113,21 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Your email" {...field} />
+                      <Input type="email" placeholder="Your email" {...field} disabled />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
+               <FormField
                 control={form.control}
-                name="paymentMethod"
+                name="phoneNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Payment Method</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a payment method" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <SelectItem value="Credit Card">Credit Card</SelectItem>
-                            <SelectItem value="PayPal">PayPal</SelectItem>
-                            <SelectItem value="Cash">Cash</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="preferredVehicle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Preferred Vehicle</FormLabel>
-                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a vehicle type" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <SelectItem value="Standard">Standard</SelectItem>
-                            <SelectItem value="Luxury">Luxury</SelectItem>
-                            <SelectItem value="SUV">SUV</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="Your phone number" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

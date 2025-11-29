@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   History,
-  LayoutDashboard,
   LogOut,
   MapPin,
   Settings,
@@ -17,8 +16,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarFooter,
-  SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
 import {
@@ -32,8 +29,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Logo } from './logo';
-import { cn } from '@/lib/utils';
-import { userProfile } from '@/lib/data';
+import { useUser } from '@/firebase';
 
 const menuItems = [
   {
@@ -55,6 +51,7 @@ const menuItems = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user } = useUser();
 
   return (
     <SidebarProvider>
@@ -79,16 +76,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter className="group-data-[collapsible=icon]:hidden">
-          <Separator />
-          <p className="px-2 text-xs text-muted-foreground">
-            &copy; 2024 Safar Carrier
-          </p>
-        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
-          <SidebarTrigger className="md:hidden" />
           <div className="flex-1">
             <h1 className="text-lg font-semibold md:text-xl font-headline">
               {menuItems.find((item) => item.href === pathname)?.label || 'Dashboard'}
@@ -98,12 +88,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar>
-                  <AvatarImage src={userProfile.profilePictureUrl} alt={userProfile.name} />
+                  {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || ''} />}
                   <AvatarFallback>
-                    {userProfile.name
-                      .split(' ')
-                      .map((n) => n[0])
-                      .join('')}
+                    {user?.displayName
+                      ? user.displayName.split(' ').map((n) => n[0]).join('')
+                      : user?.email?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -131,8 +120,4 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </SidebarInset>
     </SidebarProvider>
   );
-}
-
-function Separator() {
-  return <div className="mx-2 my-1 h-px bg-border" />;
 }

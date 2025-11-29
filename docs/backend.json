@@ -26,161 +26,64 @@
         "phoneNumber": {
           "type": "string",
           "description": "The phone number of the user."
-        },
-        "ridePreferences": {
-          "type": "string",
-          "description": "User's preferences for rides (e.g., music, conversation)."
         }
       },
       "required": [
         "id",
         "firstName",
         "lastName",
-        "email",
-        "phoneNumber"
+        "email"
       ]
     },
-    "RideRequest": {
+    "Trip": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "RideRequest",
+      "title": "Trip",
       "type": "object",
-      "description": "Represents a ride request made by a user.",
+      "description": "Represents an international transport trip.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the ride request."
+          "description": "Unique identifier for the trip."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N RideRequest)"
+          "description": "ID of the user who created the trip."
         },
-        "pickupLocation": {
+        "origin": {
           "type": "string",
-          "description": "The pickup location for the ride."
+          "description": "The starting point of the trip."
         },
-        "dropoffLocation": {
+        "destination": {
           "type": "string",
-          "description": "The drop-off location for the ride."
+          "description": "The final destination of the trip."
         },
-        "requestTime": {
+        "departureDate": {
           "type": "string",
-          "description": "The time the ride was requested.",
-          "format": "date-time"
+          "format": "date-time",
+          "description": "The date and time of departure."
+        },
+        "arrivalDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The estimated date and time of arrival."
         },
         "status": {
           "type": "string",
-          "description": "The current status of the ride request (e.g., pending, accepted, completed)."
+          "enum": ["Planned", "In-Transit", "Completed", "Cancelled"],
+          "description": "The current status of the trip."
         },
-        "driverId": {
-          "type": "string",
-          "description": "Reference to DriverProfile. (Relationship: DriverProfile 1:N RideRequest)"
-        },
-        "fare": {
-          "type": "number",
-          "description": "The calculated fare for the ride."
+        "cargoDetails": {
+            "type": "string",
+            "description": "Details about the cargo being transported."
         }
       },
       "required": [
         "id",
         "userId",
-        "pickupLocation",
-        "dropoffLocation",
-        "requestTime",
+        "origin",
+        "destination",
+        "departureDate",
         "status"
-      ]
-    },
-    "RideHistory": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "RideHistory",
-      "type": "object",
-      "description": "Represents the history of rides for a user.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ride history entry."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N RideHistory)"
-        },
-        "rideRequestId": {
-          "type": "string",
-          "description": "Reference to RideRequest. (Relationship: RideRequest 1:1 RideHistory)"
-        },
-        "startTime": {
-          "type": "string",
-          "description": "The time the ride started.",
-          "format": "date-time"
-        },
-        "endTime": {
-          "type": "string",
-          "description": "The time the ride ended.",
-          "format": "date-time"
-        },
-        "rating": {
-          "type": "number",
-          "description": "The rating given to the ride by the user."
-        },
-        "comments": {
-          "type": "string",
-          "description": "Any comments or feedback provided by the user about the ride."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "rideRequestId",
-        "startTime",
-        "endTime"
-      ]
-    },
-    "DriverProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "DriverProfile",
-      "type": "object",
-      "description": "Represents a driver profile in the system.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the driver profile."
-        },
-        "firstName": {
-          "type": "string",
-          "description": "The first name of the driver."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The last name of the driver."
-        },
-        "email": {
-          "type": "string",
-          "description": "The email address of the driver.",
-          "format": "email"
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "The phone number of the driver."
-        },
-        "vehicleInformation": {
-          "type": "string",
-          "description": "Information about the driver's vehicle (e.g., make, model, license plate)."
-        },
-        "location": {
-          "type": "string",
-          "description": "The current location of the driver."
-        },
-        "isAvailable": {
-          "type": "boolean",
-          "description": "Indicates whether the driver is currently available to accept ride requests."
-        }
-      },
-      "required": [
-        "id",
-        "firstName",
-        "lastName",
-        "email",
-        "phoneNumber",
-        "vehicleInformation"
       ]
     }
   },
@@ -199,7 +102,7 @@
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores user profiles, secured by user ID. Includes denormalized 'userId' for authorization independence.",
+          "description": "Stores user profiles, secured by user ID.",
           "params": [
             {
               "name": "userId",
@@ -209,54 +112,21 @@
         }
       },
       {
-        "path": "/ride_requests/{rideRequestId}",
+        "path": "/trips/{tripId}",
         "definition": {
-          "entityName": "RideRequest",
+          "entityName": "Trip",
           "schema": {
-            "$ref": "#/backend/entities/RideRequest"
+            "$ref": "#/backend/entities/Trip"
           },
-          "description": "Stores ride requests, accessible by the requesting user or assigned driver. Includes denormalized 'userId' and 'driverId' for authorization independence.",
+          "description": "Stores trip details, accessible by the creating user.",
           "params": [
             {
-              "name": "rideRequestId",
-              "description": "The unique identifier for the ride request."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/ride_history/{rideHistoryId}",
-        "definition": {
-          "entityName": "RideHistory",
-          "schema": {
-            "$ref": "#/backend/entities/RideHistory"
-          },
-          "description": "Stores ride history entries.  Includes denormalized 'userId' and 'rideRequestId' for authorization independence.",
-          "params": [
-            {
-              "name": "rideHistoryId",
-              "description": "The unique identifier for the ride history entry."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/drivers/{driverId}",
-        "definition": {
-          "entityName": "DriverProfile",
-          "schema": {
-            "$ref": "#/backend/entities/DriverProfile"
-          },
-          "description": "Stores driver profiles, secured by driver ID. Includes denormalized 'driverId' for authorization independence.",
-          "params": [
-            {
-              "name": "driverId",
-              "description": "The unique identifier for the driver."
+              "name": "tripId",
+              "description": "The unique identifier for the trip."
             }
           ]
         }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to support a ride-sharing application ('Fayz RideShare') focusing on international transport management. The structure prioritizes authorization independence, clarity, and scalability using the principles outlined in the prompt.  \n\n**Authorization Independence:** User and driver profiles are stored separately, and ride requests contain both `userId` and `driverId`, facilitating rule creation without needing `get()` calls to other documents. Ride histories also contain redundant user and ride request information for the same reason.\n\n**Structural Segregation:** User profiles and driver profiles are kept in separate collections (`users`, `drivers`), ensuring that the rules applied to one do not affect the other.  Ride requests are segregated into their own collection (`ride_requests`). Ride histories are stored in their own collection to easily query and manage historical ride data.\n\n**Access Modeling:**\n*   **User-Owned Data:** User profiles are stored under `/users/{userId}`, enabling easy, path-based ownership rules. Similarly, driver profiles are stored under `/drivers/{driverId}`.\n*   **Collaborative Data (N/A):**  There is no collaborative data that is shared with the Membership Map.\n\n**QAPs (Rules are not Filters):** The structure enables secure listing.  For instance, listing ride requests is secured by checking the request's `userId` or `driverId` against `request.auth.uid`, ensuring users or drivers can only see requests associated with them.\n\n**Denormalization:** The structure uses denormalization to enhance security rule simplicity and performance.  For example, `RideRequest` includes both `userId` and `driverId`, precluding the need to fetch these details from other documents during security rule evaluation.\n\nThis structure ensures that security rules are simple, robust, and easily debuggable, facilitating the development of a scalable and secure ride-sharing application."
+    ]
   }
 }

@@ -1,160 +1,22 @@
-/**
- * Core Philosophy: This ruleset enforces a strict, user-centric security model for a ride-sharing application.
- * Each user and driver has complete control over their own profile and related data. Access to shared documents,
- * such as ride requests, is limited to the specific participants involved (the rider and the driver). The default
- * posture is deny-all, ensuring no unauthorized access.
- *
- * Data Structure: The data is organized into four distinct top-level collections:
- * - /users/{userId}: Stores private user profiles.
- * - /drivers/{driverId}: Stores driver profiles, which are publicly readable but privately managed.
- * - /ride_requests/{rideRequestId}: Contains documents for individual ride requests, accessible by the user and assigned driver.
- * - /ride_history/{rideHistoryId}: Archives completed rides, accessible only to the user who took the ride.
- *
- * Key Security Decisions:
- * - User and Driver profiles are segregated into separate top-level collections (`/users`, `/drivers`).
- * - User profiles (`/users`) are strictly private and can only be read or written by the owner.
- * - Driver profiles (`/drivers`) can be read by any authenticated user but can only be modified by the driver owner.
- * - Listing documents in collections with mixed ownership (`/ride_requests`, `/ride_history`, `/drivers`) is disabled to prevent data scraping and privacy leaks.
- * - All state-changing operations (update, delete) must verify that the target document already exists.
- *
- * Denormalization for Authorization:
- * To ensure fast and simple authorization checks, data is denormalized. For example, `ride_requests` documents
- * contain both a `userId` and a `driverId` field directly. This avoids costly and slow `get()` calls to other
- * documents during rule evaluation, allowing for direct checks like `isOwner(resource.data.userId)`.
- *
- * Structural Segregation:
- * Private user data and driver data are kept in separate collections. This clear separation allows for distinct
- * and robust security rules for each entity type without the risk of policies overlapping or creating security gaps.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    //-------------------------------------------------------------------------
-    // Helper Functions
-    //-------------------------------------------------------------------------
-
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the currently authenticated user's UID matches the provided userId.
-     * This is the primary function for verifying document ownership.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
-    /**
-     * Checks if the target document exists before an operation.
-     * CRITICAL for all update and delete operations to prevent unintended side effects.
-     */
-    function docExists() {
-      return resource != null;
-    }
     
-    /**
-     * A composite check for update/delete operations, ensuring the user is the
-     * owner and the document already exists.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && docExists();
-    }
-    
-    /**
-     * Checks if the user is either the rider or the driver for a given ride document.
-     * The `ride` parameter should be a document resource (e.g., resource.data).
-     */
-    function isRideParticipant(ride) {
-      return isSignedIn() && (request.auth.uid == ride.userId || request.auth.uid == ride.driverId);
-    }
-    
-    //-------------------------------------------------------------------------
-    // User Profiles (/users)
-    //-------------------------------------------------------------------------
-
-    /**
-     * @description Manages user profiles. Only the user who owns the profile can read, create, update, or delete it.
-     * @path /users/{userId}
-     * @allow (get) A user with UID 'user123' can read their own profile at `/users/user123`.
-     * @deny  (get) A user with UID 'user456' cannot read the profile at `/users/user123`.
-     * @allow (create) A new user with UID 'user123' can create their own profile at `/users/user123`.
-     * @deny  (create) A user with UID 'user456' cannot create a profile for 'user123' at `/users/user123`.
-     * @principle Restricts access to a user's own data tree and enforces relational integrity on creation.
-     */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // Disallow listing user profiles to protect user privacy.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow read, write: if isOwner(userId);
     }
 
-    //-------------------------------------------------------------------------
-    // Driver Profiles (/drivers)
-    //-------------------------------------------------------------------------
-
-    /**
-     * @description Manages driver profiles. Any authenticated user can read a driver's profile, but only the driver can modify it.
-     * @path /drivers/{driverId}
-     * @allow (get) Any signed-in user can read the profile at `/drivers/driverABC`.
-     * @deny  (list) No user can list all documents in the `/drivers` collection to prevent scraping.
-     * @allow (update) A user with UID 'driverABC' can update their own profile at `/drivers/driverABC`.
-     * @deny  (update) A user with UID 'user123' cannot update the profile at `/drivers/driverABC`.
-     * @principle Enforces document ownership for writes while allowing public reads for signed-in users.
-     */
-    match /drivers/{driverId} {
-      allow get: if isSignedIn();
-      allow list: if false; // Disallow listing to prevent scraping of driver data.
-      allow create: if isOwner(driverId) && request.resource.data.id == driverId;
-      allow update: if isExistingOwner(driverId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(driverId);
-    }
-
-    //-------------------------------------------------------------------------
-    // Ride Requests (/ride_requests)
-    //-------------------------------------------------------------------------
-    
-    /**
-     * @description Manages ride requests. A request can be created by a user for themselves. It can be read or updated by either the user or the assigned driver.
-     * @path /ride_requests/{rideRequestId}
-     * @allow (create) A user with UID 'user123' can create a ride request where the `userId` field is 'user123'.
-     * @deny  (create) A user with UID 'user123' cannot create a request where the `userId` field is 'user456'.
-     * @allow (get) User 'user123' or Driver 'driverABC' can read a request they are a part of.
-     * @deny  (list) No user can list all ride requests in the collection to protect privacy.
-     * @principle Secures shared documents by checking for membership in a denormalized participants list (`userId`, `driverId`).
-     */
-    match /ride_requests/{rideRequestId} {
-      allow get: if docExists() && isRideParticipant(resource.data);
-      allow list: if false; // Disallow listing all requests to protect user privacy and trip details.
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if docExists() && isRideParticipant(resource.data) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(resource.data.userId); // Only the user who created it can delete/cancel it.
-    }
-
-    //-------------------------------------------------------------------------
-    // Ride History (/ride_history)
-    //-------------------------------------------------------------------------
-
-    /**
-     * @description Manages ride history. Only the user who took the ride can access their history. History entries are immutable.
-     * @path /ride_history/{rideHistoryId}
-     * @allow (get) A user with UID 'user123' can read their own history entry if `resource.data.userId` is 'user123'.
-     * @deny  (get) User 'user456' cannot read a history entry belonging to 'user123'.
-     * @allow (create) A user can create a history entry for themselves.
-     * @deny  (update) Ride history is considered a permanent record and cannot be changed after creation.
-     * @principle Enforces strict document ownership based on an internal field (`userId`).
-     */
-    match /ride_history/{rideHistoryId} {
-      allow get: if isOwner(resource.data.userId);
-      allow list: if false; // Disallow listing all history to protect user privacy.
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId; // Allow updates for rating/comments. Enforce immutability of owner.
-      allow delete: if false; // Ride history is a permanent record and should not be deleted by users.
+    match /trips/{tripId} {
+      allow read, create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
     }
   }
 }
