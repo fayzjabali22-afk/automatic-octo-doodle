@@ -40,7 +40,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Notification } from '@/lib/data';
-import { Bell, FileText, CheckCircle, PackageOpen, X } from 'lucide-react';
+import { Bell, CheckCircle, PackageOpen, X, Ship } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
@@ -79,7 +79,6 @@ const dummyOffers = [
 
 export default function HistoryPage() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const router = useRouter();
   const [openAccordion, setOpenAccordion] = useState<string | undefined>();
 
@@ -94,14 +93,6 @@ export default function HistoryPage() {
   const confirmedTrips: Trip[] | null = dummyConfirmedTrips;
   const isLoadingConfirmed = false;
   
-  // Real Firestore data fetching (commented out)
-  /*
-  const awaitingOffersQuery = useMemoFirebase(() => !firestore || !user ? null : query(collection(firestore, 'trips'), where('userId', '==', user.uid), where('status', '==', 'Awaiting-Offers')), [firestore, user]);
-  const confirmedTripsQuery = useMemoFirebase(() => !firestore || !user ? null : query(collection(firestore, 'trips'), where('userId', '==', user.uid), where('status', 'in', ['Planned', 'In-Transit', 'Completed', 'Cancelled'])), [firestore, user]);
-  const { data: awaitingTrips, isLoading: isLoadingAwaiting } = useCollection<Trip>(awaitingOffersQuery as Query<Trip> | null);
-  const { data: confirmedTrips, isLoading: isLoadingConfirmed } = useCollection<Trip>(confirmedTripsQuery as Query<Trip> | null);
-  */
-
   const notifications: Notification[] = []; // Dummy notifications
   const notificationCount = notifications?.length || 0;
 
@@ -111,10 +102,15 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (isLoadingAwaiting || isLoadingConfirmed) return;
-    if (awaitingTrips && awaitingTrips.length > 0) setOpenAccordion('awaiting');
-    else if (confirmedTrips && confirmedTrips.length > 0) setOpenAccordion('confirmed');
-    else setOpenAccordion(undefined);
+    if (awaitingTrips && awaitingTrips.length > 0) {
+        setOpenAccordion('awaiting');
+    } else if (confirmedTrips && confirmedTrips.length > 0) {
+        setOpenAccordion('confirmed');
+    } else {
+        setOpenAccordion(undefined);
+    }
   }, [awaitingTrips, confirmedTrips, isLoadingAwaiting, isLoadingConfirmed]);
+
 
   const handleOpenOffers = (trip: Trip) => {
     setSelectedTrip(trip);
@@ -133,56 +129,71 @@ export default function HistoryPage() {
   );
 
   const TripList = ({ trips, onActionClick, actionLabel }: { trips: Trip[] | null, onActionClick: (trip: Trip) => void, actionLabel: string }) => (
-    <div className="md:hidden space-y-4">
-      {trips?.map((trip) => (
-        <Card key={trip.id} className="w-full">
-          <CardContent className="p-4 grid gap-3">
-            <div className="flex justify-between items-center">
-              <span className="font-medium text-lg">{trip.id.substring(0, 7).toUpperCase()}</span>
-              <Badge variant={statusVariantMap[trip.status] || 'outline'}>{statusMap[trip.status] || trip.status}</Badge>
-            </div>
-            <div className="text-muted-foreground text-sm">
-              <p>من: {trip.origin}</p>
-              <p>إلى: {trip.destination}</p>
-            </div>
-            <div className="flex justify-between items-center pt-2">
-              <p className="text-sm">المغادرة: {new Date(trip.departureDate).toLocaleDateString()}</p>
-              <Button variant="outline" size="sm" onClick={() => onActionClick(trip)}>{actionLabel}</Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <>
+      {(!trips || trips.length === 0) ? (
+        <p className="text-center text-muted-foreground py-4">لا توجد بيانات لعرضها.</p>
+      ) : (
+        <div className="md:hidden space-y-4">
+          {trips.map((trip) => (
+            <Card key={trip.id} className="w-full">
+              <CardContent className="p-4 grid gap-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-lg">{trip.id.substring(0, 7).toUpperCase()}</span>
+                  <Badge variant={statusVariantMap[trip.status] || 'outline'}>{statusMap[trip.status] || trip.status}</Badge>
+                </div>
+                <div className="text-muted-foreground text-sm">
+                  <p>من: {trip.origin}</p>
+                  <p>إلى: {trip.destination}</p>
+                </div>
+                <div className="flex justify-between items-center pt-2">
+                  <p className="text-sm">المغادرة: {new Date(trip.departureDate).toLocaleDateString()}</p>
+                  <Button variant="outline" size="sm" onClick={() => onActionClick(trip)}>{actionLabel}</Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </>
   );
 
   const TripTable = ({ trips, onActionClick, actionLabel }: { trips: Trip[] | null, onActionClick: (trip: Trip) => void, actionLabel: string }) => (
-    <div className="hidden md:block border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>معرّف الطلب</TableHead>
-            <TableHead>الانطلاق</TableHead>
-            <TableHead>الوجهة</TableHead>
-            <TableHead>تاريخ المغادرة</TableHead>
-            <TableHead>الحالة</TableHead>
-            <TableHead>الإجراء</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {trips?.map((trip) => (
-            <TableRow key={trip.id}>
-              <TableCell className="font-medium">{trip.id.substring(0, 7).toUpperCase()}</TableCell>
-              <TableCell>{trip.origin}</TableCell>
-              <TableCell>{trip.destination}</TableCell>
-              <TableCell>{new Date(trip.departureDate).toLocaleDateString()}</TableCell>
-              <TableCell><Badge variant={statusVariantMap[trip.status] || 'outline'}>{statusMap[trip.status] || trip.status}</Badge></TableCell>
-              <TableCell><Button variant="outline" size="sm" onClick={() => onActionClick(trip)}>{actionLabel}</Button></TableCell>
+      <div className="hidden md:block border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>معرّف الطلب</TableHead>
+              <TableHead>الانطلاق</TableHead>
+              <TableHead>الوجهة</TableHead>
+              <TableHead>تاريخ المغادرة</TableHead>
+              <TableHead>الحالة</TableHead>
+              <TableHead>الإجراء</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {(!trips || trips.length === 0) ? (
+                 <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                       لا توجد بيانات لعرضها.
+                    </TableCell>
+                </TableRow>
+            ) : (
+              trips.map((trip) => (
+                <TableRow key={trip.id}>
+                  <TableCell className="font-medium">{trip.id.substring(0, 7).toUpperCase()}</TableCell>
+                  <TableCell>{trip.origin}</TableCell>
+                  <TableCell>{trip.destination}</TableCell>
+                  <TableCell>{new Date(trip.departureDate).toLocaleDateString()}</TableCell>
+                  <TableCell><Badge variant={statusVariantMap[trip.status] || 'outline'}>{statusMap[trip.status] || trip.status}</Badge></TableCell>
+                  <TableCell><Button variant="outline" size="sm" onClick={() => onActionClick(trip)}>{actionLabel}</Button></TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
   );
+
 
   if (isUserLoading) return <AppLayout>{renderSkeleton()}</AppLayout>;
 
@@ -288,6 +299,13 @@ export default function HistoryPage() {
                     </div>
                 </Card>
              ))}
+             {dummyOffers.length === 0 && (
+                <div className="text-center text-muted-foreground py-8">
+                    <Ship className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+                    <p className="text-lg">لم تصل أي عروض بعد</p>
+                    <p className="text-sm mt-2">سيتم إشعارك فور وصول أول عرض.</p>
+                </div>
+             )}
           </div>
         </DialogContent>
       </Dialog>
@@ -327,5 +345,3 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
-
-    
