@@ -47,7 +47,7 @@ import { Label } from '@/components/ui/label';
 const statusMap: Record<string, string> = {
     'Awaiting-Offers': 'بانتظار العروض',
     'Planned': 'مؤكدة',
-    'In-Transit': 'قيد التنفيذ',
+    'In-Transit': 'مؤكدة', // For passenger, this is just a confirmed trip
     'Completed': 'مكتملة',
     'Cancelled': 'ملغاة',
 }
@@ -55,7 +55,7 @@ const statusMap: Record<string, string> = {
 const statusVariantMap: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
     'Awaiting-Offers': 'outline',
     'Planned': 'secondary',
-    'In-Transit': 'default',
+    'In-Transit': 'secondary', // Same as Planned
     'Completed': 'default',
     'Cancelled': 'destructive',
 }
@@ -88,7 +88,8 @@ export default function HistoryPage() {
   const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
 
   // Use dummy data for now
-  const awaitingTrips: Trip[] | null = dummyAwaitingTrips;
+  // const awaitingTrips: Trip[] | null = dummyAwaitingTrips;
+  const awaitingTrips: Trip[] | null = [];
   const isLoadingAwaiting = false;
   const confirmedTrips: Trip[] | null = dummyConfirmedTrips;
   const isLoadingConfirmed = false;
@@ -96,20 +97,23 @@ export default function HistoryPage() {
   const notifications: Notification[] = []; // Dummy notifications
   const notificationCount = notifications?.length || 0;
 
+  const hasAwaitingTrips = !isLoadingAwaiting && awaitingTrips && awaitingTrips.length > 0;
+
   useEffect(() => {
     if (!isUserLoading && !user) router.push('/login');
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
     if (isLoadingAwaiting || isLoadingConfirmed) return;
-    if (awaitingTrips && awaitingTrips.length > 0) {
+    
+    if (hasAwaitingTrips) {
         setOpenAccordion('awaiting');
     } else if (confirmedTrips && confirmedTrips.length > 0) {
         setOpenAccordion('confirmed');
     } else {
         setOpenAccordion(undefined);
     }
-  }, [awaitingTrips, confirmedTrips, isLoadingAwaiting, isLoadingConfirmed]);
+  }, [hasAwaitingTrips, confirmedTrips, isLoadingAwaiting, isLoadingConfirmed]);
 
 
   const handleOpenOffers = (trip: Trip) => {
@@ -246,7 +250,6 @@ export default function HistoryPage() {
 
   if (isUserLoading) return <AppLayout>{renderSkeleton()}</AppLayout>;
 
-  const hasAwaitingTrips = awaitingTrips && awaitingTrips.length > 0;
 
   return (
     <AppLayout>
@@ -285,9 +288,9 @@ export default function HistoryPage() {
         </Card>
 
         <Accordion type="single" collapsible className="w-full space-y-6" value={openAccordion} onValueChange={setOpenAccordion}>
-          <AccordionItem value="awaiting" className="border-none" disabled={!hasAwaitingTrips}>
+          <AccordionItem value="awaiting" className="border-none">
             <Card>
-              <AccordionTrigger className="p-6 text-lg hover:no-underline data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed">
+              <AccordionTrigger className="p-6 text-lg hover:no-underline data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed" disabled={!hasAwaitingTrips}>
                 <div className='flex items-center gap-2'><PackageOpen className="h-6 w-6 text-primary" /><CardTitle>طلباتي المعلقة</CardTitle></div>
               </AccordionTrigger>
               <AccordionContent>
@@ -371,7 +374,7 @@ export default function HistoryPage() {
                          <Button className="mt-2 w-full">إرسال التقييم</Button>
                     </div>
                 )}
-                 {selectedTrip.status === 'Planned' && (
+                 {(selectedTrip.status === 'Planned' || selectedTrip.status === 'In-Transit') && (
                     <Button variant="destructive" className="w-full mt-4">إلغاء الحجز</Button>
                 )}
             </div>
