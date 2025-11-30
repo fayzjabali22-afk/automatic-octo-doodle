@@ -384,7 +384,7 @@ export default function DashboardPage() {
                   
                   {showFilterMessage && (
                     <div className="mt-2 text-center text-sm text-accent bg-accent/10 p-2 rounded-md border border-accent/30">
-                        تم عرض رحلات الناقل المجدولة. يمكنك استخدام الحقول أعلاه لتصفية النتائج أو إرسال طلب جديد.
+                        تم العثور على الناقل. رحلاته المجدولة معروضة أدناه. يمكنك الآن تصفية النتائج أو إرسال طلب حجز مباشر له.
                     </div>
                   )}
 
@@ -437,5 +437,3 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
-
-    
