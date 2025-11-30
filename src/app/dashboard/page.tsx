@@ -54,6 +54,8 @@ export default function DashboardPage() {
   const tripsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
 
+    let q = collection(firestore, 'trips');
+    
     const constraints = [];
     if (activeFilters.origin) {
       constraints.push(where('origin', '==', activeFilters.origin));
@@ -63,10 +65,10 @@ export default function DashboardPage() {
     }
     
     if (constraints.length > 0) {
-        return query(collection(firestore, 'trips'), ...constraints);
+      return query(q, ...constraints);
     }
 
-    return query(collection(firestore, 'trips'));
+    return query(q);
   }, [firestore, user, activeFilters]);
 
   const { data: upcomingTrips, isLoading } = useCollection<Trip>(tripsQuery);
@@ -158,7 +160,7 @@ export default function DashboardPage() {
                       <Select onValueChange={setSearchDestination} value={searchDestination}>
                         <SelectTrigger id="destination-city">
                           <SelectValue placeholder="اختر مدينة الوصول" />
-                        </Trigger>
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="amman">عمّان</SelectItem>
                           <SelectItem value="damascus">دمشق</SelectItem>
@@ -282,7 +284,7 @@ export default function DashboardPage() {
                       <Select onValueChange={(val) => setQuickBookingSeats(parseInt(val))} value={String(quickBookingSeats)}>
                         <SelectTrigger id="quick-seats">
                           <SelectValue placeholder="اختر عدد المقاعد" />
-                        </Trigger>
+                        </SelectTrigger>
                         <SelectContent>
                           {Array.from({ length: 9 }, (_, i) => i + 1).map(num => (
                             <SelectItem key={num} value={String(num)}>{num}</SelectItem>
@@ -313,4 +315,4 @@ export default function DashboardPage() {
       />
     </AppLayout>
   );
-}
+    
