@@ -53,7 +53,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6 z-50">
+      <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-white px-4 text-gray-800 md:px-6 z-50">
         {/* Main Header Content */}
         <Link
           href="/dashboard"
