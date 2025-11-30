@@ -94,10 +94,16 @@ export default function DashboardPage() {
         toast({ title: 'الرجاء إدخال اسم الناقل أو رقم هاتفه', variant: 'destructive' });
         return;
     }
-    const foundTrip = allTrips.find(trip => 
-        trip.carrierName.includes(carrierSearchInput) || 
-        (trip.carrierPhoneNumber && trip.carrierPhoneNumber.includes(carrierSearchInput))
-    );
+    
+    const normalizePhoneNumber = (phone: string) => phone.replace(/[\s+()-]/g, '');
+    const searchInputNormalized = normalizePhoneNumber(carrierSearchInput);
+
+    const foundTrip = allTrips.find(trip => {
+        const nameMatch = trip.carrierName.includes(carrierSearchInput);
+        const phoneMatch = trip.carrierPhoneNumber && normalizePhoneNumber(trip.carrierPhoneNumber).includes(searchInputNormalized);
+        return nameMatch || phoneMatch;
+    });
+
 
     if (foundTrip) {
         setSelectedCarrierName(foundTrip.carrierName);
@@ -267,7 +273,7 @@ export default function DashboardPage() {
                       <div className="flex gap-2">
                         <Input 
                             id="carrier-search" 
-                            placeholder="مثال: شركة النقل السريع أو +966501234567" 
+                            placeholder="مثال: شركة النقل السريع أو 966501234567+" 
                             value={carrierSearchInput} 
                             onChange={(e) => {
                                 setCarrierSearchInput(e.target.value);
