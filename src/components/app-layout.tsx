@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -72,6 +72,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               }}
               className="w-full max-w-xs"
             >
+              <SheetTitle className="sr-only">القائمة الرئيسية</SheetTitle>
               <nav className="grid gap-6 text-lg font-medium">
                 <Link
                   href="/dashboard"
