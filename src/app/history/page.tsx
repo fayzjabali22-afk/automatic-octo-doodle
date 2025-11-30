@@ -128,7 +128,7 @@ export default function HistoryPage() {
     </div>
   );
 
-  const TripList = ({ trips, onActionClick, actionLabel, noDataMessage }: { trips: Trip[] | null, onActionClick: (trip: Trip) => void, actionLabel: string, noDataMessage: string }) => {
+  const TripList = ({ trips, onActionClick, actionLabel, noDataMessage, getActionLabel }: { trips: Trip[] | null, onActionClick: (trip: Trip) => void, actionLabel?: string, noDataMessage: string, getActionLabel?: (trip: Trip) => string }) => {
     if (isLoadingAwaiting || isLoadingConfirmed) return renderSkeleton();
     if (!trips || trips.length === 0) return <p className="text-center text-muted-foreground py-4">{noDataMessage}</p>;
     
@@ -147,7 +147,9 @@ export default function HistoryPage() {
                 </div>
                 <div className="flex justify-between items-center pt-2">
                   <p className="text-sm">المغادرة: {new Date(trip.departureDate).toLocaleDateString()}</p>
-                  <Button variant="outline" size="sm" onClick={() => onActionClick(trip)}>{actionLabel}</Button>
+                  <Button variant="outline" size="sm" onClick={() => onActionClick(trip)}>
+                    {getActionLabel ? getActionLabel(trip) : actionLabel}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -156,7 +158,7 @@ export default function HistoryPage() {
     );
   };
 
-  const TripTable = ({ trips, onActionClick, actionLabel, noDataMessage }: { trips: Trip[] | null, onActionClick: (trip: Trip) => void, actionLabel: string, noDataMessage: string }) => {
+  const TripTable = ({ trips, onActionClick, actionLabel, noDataMessage, getActionLabel }: { trips: Trip[] | null, onActionClick: (trip: Trip) => void, actionLabel?: string, noDataMessage: string, getActionLabel?: (trip: Trip) => string }) => {
     if (isLoadingAwaiting || isLoadingConfirmed) {
         return (
             <div className="hidden md:block border rounded-lg">
@@ -215,7 +217,11 @@ export default function HistoryPage() {
                     <TableCell>{trip.destination}</TableCell>
                     <TableCell>{new Date(trip.departureDate).toLocaleDateString()}</TableCell>
                     <TableCell><Badge variant={statusVariantMap[trip.status] || 'outline'}>{statusMap[trip.status] || trip.status}</Badge></TableCell>
-                    <TableCell><Button variant="outline" size="sm" onClick={() => onActionClick(trip)}>{actionLabel}</Button></TableCell>
+                    <TableCell>
+                        <Button variant="outline" size="sm" onClick={() => onActionClick(trip)}>
+                            {getActionLabel ? getActionLabel(trip) : actionLabel}
+                        </Button>
+                    </TableCell>
                     </TableRow>
                 ))
                 )}
@@ -225,6 +231,12 @@ export default function HistoryPage() {
     );
   };
 
+  const getConfirmedTripActionLabel = (trip: Trip): string => {
+    if (trip.status === 'Completed') {
+      return 'إغلاق الرحلة';
+    }
+    return 'متابعة الرحلة';
+  };
 
   if (isUserLoading) return <AppLayout>{renderSkeleton()}</AppLayout>;
 
@@ -288,8 +300,8 @@ export default function HistoryPage() {
               <AccordionContent>
                 <CardContent>
                   <CardDescription className="mb-4">تابع رحلاتك التي قمت بحجزها بالفعل وأي تحديثات عليها.</CardDescription>
-                  <TripList trips={confirmedTrips} onActionClick={handleOpenTicket} actionLabel="متابعة الرحلة" noDataMessage="ليس لديك حجوزات مؤكدة حاليًا." />
-                  <TripTable trips={confirmedTrips} onActionClick={handleOpenTicket} actionLabel="متابعة الرحلة" noDataMessage="ليس لديك حجوزات مؤكدة حاليًا." />
+                  <TripList trips={confirmedTrips} onActionClick={handleOpenTicket} getActionLabel={getConfirmedTripActionLabel} noDataMessage="ليس لديك حجوزات مؤكدة حاليًا." />
+                  <TripTable trips={confirmedTrips} onActionClick={handleOpenTicket} getActionLabel={getConfirmedTripActionLabel} noDataMessage="ليس لديك حجوزات مؤكدة حاليًا." />
                 </CardContent>
               </AccordionContent>
             </Card>
@@ -364,3 +376,5 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
+
+    
