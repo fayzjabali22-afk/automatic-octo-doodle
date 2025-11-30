@@ -57,7 +57,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-white px-4 text-gray-800 md:px-6 z-50">
+      <header className="sticky top-0 flex h-16 items-center justify-between border-b bg-white px-4 text-gray-800 md:px-6 z-50">
         {/* Main Header Content */}
         <Link
           href="/dashboard"
@@ -71,81 +71,84 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <span className="sr-only">Safar Carrier</span>
         </Link>
         
-        {/* Mobile Menu */}
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="shrink-0 md:hidden ml-auto h-8 w-8"
-            >
-              <Menu className="h-4 w-4 text-green-400" />
-              <span className="sr-only">Toggle navigation menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" style={{ backgroundColor: '#EDC17C', border: '2px solid #8B0000' }}>
-            <nav className="grid gap-6 text-lg font-medium">
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 text-lg font-semibold mb-4"
+        {/* Desktop User Menu & Mobile Menu Wrapper */}
+        <div className="flex items-center gap-4">
+          {/* Desktop User Menu */}
+          <div className="hidden md:flex items-center gap-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar>
+                      {user?.photoURL && <AvatarImage src={user.photoURL} alt={userProfile?.firstName || ''} />}
+                      <AvatarFallback className="bg-primary/20 text-primary">
+                        {userProfile?.firstName ? userProfile.firstName.charAt(0) : user?.email?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>{userProfile?.firstName ? `مرحباً، ${userProfile.firstName}`: 'حسابي'}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <Settings className="ml-2 h-4 w-4" />
+                      <span>ملفي الشخصي</span>
+                    </Link>
+                  </DropdownMenuItem>
+                   <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <Settings className="ml-2 h-4 w-4" />
+                      <span>الإعدادات</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/login">
+                      <LogOut className="ml-2 h-4 w-4" />
+                      <span>تسجيل الخروج</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+          </div>
+
+          {/* Mobile Menu */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0 md:hidden h-8 w-8"
               >
-                <img 
-                  src="https://i.postimg.cc/zvbhTsXV/Iwjw-sfryat.png" 
-                  alt="Safar Carrier Logo" 
-                  style={{ height: '110px', width: '145px' }} 
-                />
-                <span className="sr-only">Safar Carrier</span>
-              </Link>
-              {mobileMenuItems.map((item) => (
+                <Menu className="h-4 w-4 text-green-400" />
+                <span className="sr-only">Toggle navigation menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" style={{ backgroundColor: '#EDC17C', border: '2px solid #8B0000' }}>
+              <nav className="grid gap-6 text-lg font-medium">
                 <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`font-bold text-black hover:text-gray-700 ${pathname === item.href ? 'underline' : ''}`}
+                  href="/dashboard"
+                  className="flex items-center gap-2 text-lg font-semibold mb-4"
                 >
-                  {item.label}
+                  <img 
+                    src="https://i.postimg.cc/zvbhTsXV/Iwjw-sfryat.png" 
+                    alt="Safar Carrier Logo" 
+                    style={{ height: '110px', width: '145px' }} 
+                  />
+                  <span className="sr-only">Safar Carrier</span>
                 </Link>
-              ))}
-            </nav>
-          </SheetContent>
-        </Sheet>
-        
-        {/* Desktop User Menu */}
-        <div className="hidden md:flex items-center gap-4 ml-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar>
-                    {user?.photoURL && <AvatarImage src={user.photoURL} alt={userProfile?.firstName || ''} />}
-                    <AvatarFallback className="bg-primary/20 text-primary">
-                      {userProfile?.firstName ? userProfile.firstName.charAt(0) : user?.email?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{userProfile?.firstName ? `مرحباً، ${userProfile.firstName}`: 'حسابي'}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">
-                    <Settings className="ml-2 h-4 w-4" />
-                    <span>ملفي الشخصي</span>
+                {mobileMenuItems.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`font-bold text-black hover:text-gray-700 ${pathname === item.href ? 'underline' : ''}`}
+                  >
+                    {item.label}
                   </Link>
-                </DropdownMenuItem>
-                 <DropdownMenuItem asChild>
-                  <Link href="/profile">
-                    <Settings className="ml-2 h-4 w-4" />
-                    <span>الإعدادات</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/login">
-                    <LogOut className="ml-2 h-4 w-4" />
-                    <span>تسجيل الخروج</span>
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                ))}
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 
