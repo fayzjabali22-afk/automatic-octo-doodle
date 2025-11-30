@@ -47,7 +47,6 @@ import { Label } from '@/components/ui/label';
 const statusMap: Record<string, string> = {
     'Awaiting-Offers': 'بانتظار العروض',
     'Planned': 'مؤكدة',
-    'In-Transit': 'مؤكدة', // For passenger, this is just a confirmed trip
     'Completed': 'مكتملة',
     'Cancelled': 'ملغاة',
 }
@@ -55,7 +54,6 @@ const statusMap: Record<string, string> = {
 const statusVariantMap: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
     'Awaiting-Offers': 'outline',
     'Planned': 'secondary',
-    'In-Transit': 'secondary', // Same as Planned
     'Completed': 'default',
     'Cancelled': 'destructive',
 }
@@ -239,7 +237,6 @@ export default function HistoryPage() {
     if (trip.status === 'Completed') {
         return 'إغلاق الرحلة';
     }
-    // For passenger, 'Planned' and 'In-Transit' both mean "Follow-up"
     return 'متابعة الرحلة';
 };
 
@@ -291,7 +288,7 @@ const getAwaitingTripActionLabel = (): string => {
           <AccordionItem value="awaiting" className="border-none">
             <Card>
               <AccordionTrigger className="p-6 text-lg hover:no-underline data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed" disabled={!hasAwaitingTrips}>
-                <div className='flex items-center gap-2'><PackageOpen className="h-6 w-6 text-primary" /><CardTitle>طلباتي المعلقة</CardTitle></div>
+                <div className='flex items-center gap-2'><PackageOpen className="h-6 w-6 text-primary" /><CardTitle>عروض الناقلين</CardTitle></div>
               </AccordionTrigger>
               <AccordionContent>
                 <CardContent>
@@ -374,7 +371,7 @@ const getAwaitingTripActionLabel = (): string => {
                          <Button className="mt-2 w-full">إرسال التقييم</Button>
                     </div>
                 )}
-                 {(selectedTrip.status === 'Planned' || selectedTrip.status === 'In-Transit') && (
+                 {selectedTrip.status === 'Planned' && (
                     <Button variant="destructive" className="w-full mt-4">إلغاء الحجز</Button>
                 )}
             </div>
@@ -387,5 +384,3 @@ const getAwaitingTripActionLabel = (): string => {
     </AppLayout>
   );
 }
-
-    
