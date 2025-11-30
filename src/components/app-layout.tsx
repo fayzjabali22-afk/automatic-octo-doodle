@@ -66,7 +66,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <Logo />
+          <div
+            className="flex items-center justify-center p-2 h-[56px] border-2 border-dashed border-teal-400 rounded-lg"
+          >
+          </div>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
