@@ -5,12 +5,13 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
+import { Firestore, doc, setDoc } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
+import type { UserProfile } from '@/lib/data';
 
 /** Initiate anonymous sign-in (non-blocking). */
 export function initiateAnonymousSignIn(authInstance: Auth): void {
   signInAnonymously(authInstance).catch((error) => {
-    console.error("Anonymous sign-in error:", error);
     toast({
         variant: "destructive",
         title: "خطأ في المصادقة",
@@ -19,10 +20,26 @@ export function initiateAnonymousSignIn(authInstance: Auth): void {
   });
 }
 
-/** Initiate email/password sign-up (non-blocking). */
-export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
-  createUserWithEmailAndPassword(authInstance, email, password).catch((error) => {
-    console.error("Sign-up error:", error);
+type UserProfileCreation = Omit<UserProfile, 'id'>;
+
+/** Initiate email/password sign-up and create user profile document. Returns boolean for success. */
+export async function initiateEmailSignUp(
+    authInstance: Auth, 
+    firestore: Firestore,
+    email: string, 
+    password: string,
+    profileData: UserProfileCreation
+): Promise<boolean> {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
+    const user = userCredential.user;
+
+    // After user is created in Auth, create their profile document in Firestore
+    const userRef = doc(firestore, 'users', user.uid);
+    await setDoc(userRef, profileData, { merge: true });
+
+    return true;
+  } catch (error: any) {
     let description = "حدث خطأ غير متوقع أثناء إنشاء الحساب.";
     if (error.code === 'auth/email-already-in-use') {
         description = "هذا البريد الإلكتروني مسجل بالفعل.";
@@ -32,8 +49,10 @@ export function initiateEmailSignUp(authInstance: Auth, email: string, password:
         title: "فشل إنشاء الحساب",
         description: description,
     });
-  });
+    return false;
+  }
 }
+
 
 /** Initiate email/password sign-in (non-blocking). Returns a boolean indicating success. */
 export async function initiateEmailSignIn(authInstance: Auth, email: string, password: string): Promise<boolean> {
@@ -41,7 +60,6 @@ export async function initiateEmailSignIn(authInstance: Auth, email: string, pas
     await signInWithEmailAndPassword(authInstance, email, password);
     return true;
   } catch (error: any) {
-    // Show a user-friendly toast instead of logging to console.
     toast({
         variant: "destructive",
         title: "فشل تسجيل الدخول",

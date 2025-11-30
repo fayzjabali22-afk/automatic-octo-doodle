@@ -5,8 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -27,9 +25,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useFirestore, initiateEmailSignUp, setDocumentNonBlocking, useAuth } from '@/firebase';
+import { useFirestore, initiateEmailSignUp, useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect } from 'react';
 
 const signupFormSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
@@ -59,36 +56,30 @@ export default function SignupPage() {
     },
   });
 
-  useEffect(() => {
-    if (!auth) return;
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user && form.formState.isSubmitSuccessful && firestore) {
-        const [firstName, ...lastNameParts] = form.getValues('fullName').split(' ');
-        const userProfile = {
-          firstName: firstName,
-          lastName: lastNameParts.join(' '),
-          email: user.email,
-          phoneNumber: form.getValues('phoneNumber'),
-        };
-        
-        const userRef = doc(firestore, 'users', user.uid);
-        setDocumentNonBlocking(userRef, userProfile, { merge: true });
+  const onSubmit = async (data: SignupFormValues) => {
+    if (!auth || !firestore) {
+        toast({ title: "Error", description: "Firebase not initialized.", variant: "destructive"});
+        return;
+    };
 
+    const [firstName, ...lastNameParts] = data.fullName.split(' ');
+    const userProfile = {
+        firstName: firstName,
+        lastName: lastNameParts.join(' '),
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+    };
+
+    const success = await initiateEmailSignUp(auth, firestore, data.email, data.password, userProfile);
+
+    if (success) {
         toast({
-          title: 'Account Created!',
-          description: 'You will be redirected to the dashboard.',
+            title: 'Account Created!',
+            description: 'You will be redirected to the dashboard.',
         });
-        
         router.push('/dashboard');
-      }
-    });
-
-    return () => unsubscribe();
-  }, [auth, firestore, form, router, toast]);
-
-  const onSubmit = (data: SignupFormValues) => {
-    if (!auth) return;
-    initiateEmailSignUp(auth, data.email, data.password);
+    }
+    // Failure toast is handled inside initiateEmailSignUp
   };
 
   return (
