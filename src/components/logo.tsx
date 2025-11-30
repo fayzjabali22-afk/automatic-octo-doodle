@@ -4,18 +4,11 @@ export function Logo({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'flex items-center gap-2 text-lg font-bold tracking-tighter text-primary',
+        'flex items-center gap-2 text-lg font-bold tracking-tighter text-primary h-[40px]',
         className
       )}
     >
-      <img 
-        src="https://i.postimg.cc/zvbhTsXV/Iwjw-sfryat.png" 
-        alt="Safar Carrier Logo"
-        width={140}
-        height={40}
-        className="object-contain"
-        style={{ width: '140px', height: '40px' }}
-      />
+      {/* The logo has been removed as requested. */}
     </div>
   );
 }
