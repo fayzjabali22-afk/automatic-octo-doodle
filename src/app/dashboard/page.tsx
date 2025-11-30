@@ -41,9 +41,9 @@ export default function DashboardPage() {
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
 
   const tripsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null; // Do not query if user is not logged in
     return query(collection(firestore, 'trips'));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: upcomingTrips, isLoading } = useCollection<Trip>(tripsQuery);
 
@@ -155,7 +155,7 @@ export default function DashboardPage() {
             <div>
               <h2 className="text-2xl font-bold mb-4">الرحلات المجدولة القادمة</h2>
               {isLoading && <p>Loading trips...</p>}
-              {!isLoading && upcomingTrips && upcomingTrips.length > 0 ? (
+              {!isLoading && user && upcomingTrips && upcomingTrips.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {upcomingTrips.map(trip => (
                     <TripCard key={trip.id} trip={trip} />
@@ -164,8 +164,8 @@ export default function DashboardPage() {
               ) : (
                 <div className="text-center text-muted-foreground py-12">
                   <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <p className="text-lg">لا توجد رحلات مجدولة في الوقت الحالي.</p>
-                  <p className="text-sm mt-2">جرّب البحث بتاريخ أو وجهة مختلفة.</p>
+                  <p className="text-lg">{user ? 'لا توجد رحلات مجدولة في الوقت الحالي.' : 'يرجى تسجيل الدخول لعرض الرحلات المجدولة.'}</p>
+                  <p className="text-sm mt-2">{user ? 'جرّب البحث بتاريخ أو وجهة مختلفة.' : 'يمكنك البحث عن رحلة أو نشر طلب حجز.'}</p>
                 </div>
               )}
             </div>
