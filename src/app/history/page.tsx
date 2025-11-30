@@ -10,6 +10,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -44,11 +50,19 @@ const statusVariantMap: Record<string, "default" | "secondary" | "destructive" |
     'Cancelled': 'destructive',
 }
 
+// --- START: DUMMY DATA FOR TESTING ---
+const dummyAwaitingTrips: Trip[] = [
+    { id: 'DUMMY01', userId: 'test-user', origin: 'الرياض', destination: 'عمّان', departureDate: new Date().toISOString(), status: 'Awaiting-Offers', carrierName: '', carrierPhoneNumber: '', cargoDetails: '', vehicleType: '', vehicleCategory: 'small', vehicleModelYear: 2022, availableSeats: 0 },
+];
+const dummyConfirmedTrips: Trip[] = [];
+// --- END: DUMMY DATA FOR TESTING ---
+
 
 export default function HistoryPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const [openAccordion, setOpenAccordion] = useState<string | undefined>();
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -56,7 +70,14 @@ export default function HistoryPage() {
     }
   }, [user, isUserLoading, router]);
 
-  // --- Queries for the two main states ---
+  // Using dummy data for now
+  const awaitingTrips = dummyAwaitingTrips;
+  const isLoadingAwaiting = false;
+  const confirmedTrips = dummyConfirmedTrips;
+  const isLoadingConfirmed = false;
+  
+  // Real Firestore data fetching (commented out for now)
+  /*
   const awaitingOffersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -77,17 +98,23 @@ export default function HistoryPage() {
 
   const { data: awaitingTrips, isLoading: isLoadingAwaiting } = useCollection<Trip>(awaitingOffersQuery as Query<Trip> | null);
   const { data: confirmedTrips, isLoading: isLoadingConfirmed } = useCollection<Trip>(confirmedTripsQuery as Query<Trip> | null);
-  
-  const notificationsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'users', user.uid, 'notifications'),
-      where('isRead', '==', false)
-    );
-  }, [firestore, user]);
+  */
 
-  const { data: notifications } = useCollection<Notification>(notificationsQuery);
+  const notifications: Notification[] = []; // Dummy notifications
   const notificationCount = notifications?.length || 0;
+
+  useEffect(() => {
+    if (isLoadingAwaiting || isLoadingConfirmed) return;
+
+    if (awaitingTrips && awaitingTrips.length > 0) {
+        setOpenAccordion('awaiting');
+    } else if (confirmedTrips && confirmedTrips.length > 0) {
+        setOpenAccordion('confirmed');
+    } else {
+        setOpenAccordion(undefined); // Or 'awaiting' if you want it open by default
+    }
+  }, [awaitingTrips, confirmedTrips, isLoadingAwaiting, isLoadingConfirmed]);
+
 
   const renderSkeleton = () => (
     <div className="space-y-4">
@@ -97,16 +124,11 @@ export default function HistoryPage() {
     </div>
   );
 
-  const TripList = ({ trips, isLoading }: { trips: Trip[] | null, isLoading: boolean }) => {
-    if (isLoading) return renderSkeleton();
-    if (!trips || trips.length === 0) {
-      return <p className="text-center text-muted-foreground py-4">لا توجد رحلات لعرضها في هذا القسم.</p>;
-    }
-    
+  const TripList = ({ trips }: { trips: Trip[] | null }) => {
     // Mobile View: Cards
     return (
         <div className="md:hidden space-y-4">
-            {trips.map((trip) => (
+            {trips && trips.map((trip) => (
                 <Card key={trip.id} className="w-full">
                     <CardContent className="p-4 grid gap-3">
                         <div className="flex justify-between items-center">
@@ -130,11 +152,7 @@ export default function HistoryPage() {
     );
   };
 
-  const TripTable = ({ trips, isLoading }: { trips: Trip[] | null, isLoading: boolean }) => {
-      if (isLoading) return renderSkeleton();
-      if (!trips || trips.length === 0) {
-        return <p className="text-center text-muted-foreground py-4">لا توجد رحلات لعرضها في هذا القسم.</p>;
-      }
+  const TripTable = ({ trips }: { trips: Trip[] | null }) => {
       return (
         <div className="hidden md:block border rounded-lg">
             <Table>
@@ -149,7 +167,7 @@ export default function HistoryPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {trips.map((trip) => (
+                    {trips && trips.map((trip) => (
                         <TableRow key={trip.id}>
                             <TableCell className="font-medium">{trip.id.substring(0,7).toUpperCase()}</TableCell>
                             <TableCell>{trip.origin}</TableCell>
@@ -194,7 +212,6 @@ export default function HistoryPage() {
     <AppLayout>
       <div className="bg-[#130609] p-4 md:p-8 rounded-lg space-y-8">
         
-        {/* Header with Notifications */}
         <Card>
            <CardHeader>
             <div className="flex justify-between items-start">
@@ -239,35 +256,59 @@ export default function HistoryPage() {
           </CardHeader>
         </Card>
 
-        {/* Section 1: Awaiting Offers */}
-        <Card>
-            <CardHeader>
-                <div className='flex items-center gap-2'>
-                    <PackageOpen className="h-6 w-6 text-primary" />
-                    <CardTitle>طلباتي المعلقة</CardTitle>
-                </div>
-                <CardDescription>هنا تظهر طلباتك التي قمت بنشرها وتنتظر عروضاً من الناقلين.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <TripList trips={awaitingTrips} isLoading={isLoadingAwaiting} />
-                <TripTable trips={awaitingTrips} isLoading={isLoadingAwaiting} />
-            </CardContent>
-        </Card>
-
-        {/* Section 2: Confirmed Trips */}
-        <Card>
-            <CardHeader>
-                <div className='flex items-center gap-2'>
-                    <CheckCircle className="h-6 w-6 text-green-500" />
-                    <CardTitle>رحلاتي المؤكدة</CardTitle>
-                </div>
-                <CardDescription>تابع رحلاتك التي قمت بحجزها بالفعل وأي تحديثات عليها.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <TripList trips={confirmedTrips} isLoading={isLoadingConfirmed} />
-                <TripTable trips={confirmedTrips} isLoading={isLoadingConfirmed} />
-            </CardContent>
-        </Card>
+        <Accordion type="single" collapsible className="w-full space-y-6" value={openAccordion} onValueChange={setOpenAccordion}>
+            <AccordionItem value="awaiting" className="border-none">
+                <Card>
+                    <AccordionTrigger className="p-6 text-lg hover:no-underline">
+                        <div className='flex items-center gap-2'>
+                            <PackageOpen className="h-6 w-6 text-primary" />
+                            <CardTitle>طلباتي المعلقة</CardTitle>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <CardContent>
+                            <CardDescription className="mb-4">هنا تظهر طلباتك التي قمت بنشرها وتنتظر عروضاً من الناقلين.</CardDescription>
+                            {isLoadingAwaiting ? renderSkeleton() : (
+                                (!awaitingTrips || awaitingTrips.length === 0) ? (
+                                    <p className="text-center text-muted-foreground py-4">ليس لديك طلبات تبحث عن ناقل.</p>
+                                ) : (
+                                    <>
+                                        <TripList trips={awaitingTrips} />
+                                        <TripTable trips={awaitingTrips} />
+                                    </>
+                                )
+                            )}
+                        </CardContent>
+                    </AccordionContent>
+                </Card>
+            </AccordionItem>
+            
+            <AccordionItem value="confirmed" className="border-none">
+                <Card>
+                    <AccordionTrigger className="p-6 text-lg hover:no-underline">
+                        <div className='flex items-center gap-2'>
+                            <CheckCircle className="h-6 w-6 text-green-500" />
+                            <CardTitle>رحلاتي المؤكدة</CardTitle>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <CardContent>
+                            <CardDescription className="mb-4">تابع رحلاتك التي قمت بحجزها بالفعل وأي تحديثات عليها.</CardDescription>
+                            {isLoadingConfirmed ? renderSkeleton() : (
+                                (!confirmedTrips || confirmedTrips.length === 0) ? (
+                                    <p className="text-center text-muted-foreground py-4">ليس لديك حجوزات مؤكدة حاليًا.</p>
+                                ) : (
+                                    <>
+                                        <TripList trips={confirmedTrips} />
+                                        <TripTable trips={confirmedTrips} />
+                                    </>
+                                )
+                            )}
+                        </CardContent>
+                    </AccordionContent>
+                </Card>
+            </AccordionItem>
+        </Accordion>
       </div>
     </AppLayout>
   );
