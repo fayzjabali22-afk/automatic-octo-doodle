@@ -1,5 +1,5 @@
-import { Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 export function Logo({ className }: { className?: string }) {
   return (
@@ -9,8 +9,13 @@ export function Logo({ className }: { className?: string }) {
         className
       )}
     >
-      <Truck className="h-6 w-6" />
-      <h1 className="font-headline">Safar Carrier</h1>
+      <Image 
+        src="https://i.postimg.cc/zvbhTsXV/Iwjw-sfryat.png" 
+        alt="Safar Carrier Logo"
+        width={140}
+        height={40}
+        className="object-contain"
+      />
     </div>
   );
 }
