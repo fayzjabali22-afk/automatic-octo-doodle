@@ -111,7 +111,16 @@ export default function DashboardPage() {
               {/* Seats */}
               <div className="grid gap-2">
                 <Label htmlFor="seats">عدد المقاعد</Label>
-                <Input id="seats" type="number" placeholder="1" min="1" />
+                <Select>
+                  <SelectTrigger id="seats">
+                    <SelectValue placeholder="اختر عدد المقاعد" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 9 }, (_, i) => i + 1).map(num => (
+                      <SelectItem key={num} value={String(num)}>{num}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Booking Philosophy */}
