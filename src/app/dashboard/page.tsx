@@ -30,15 +30,22 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useUser, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { LegalDisclaimerDialog } from '@/components/legal-disclaimer-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardPage() {
   const [date, setDate] = useState<Date>()
   const { user } = useUser();
   const firestore = useFirestore();
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
+  const { toast } = useToast();
+
+  const [quickBookingOrigin, setQuickBookingOrigin] = useState('');
+  const [quickBookingDestination, setQuickBookingDestination] = useState('');
+  const [quickBookingSeats, setQuickBookingSeats] = useState(1);
+
 
   const tripsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null; // Do not query if user is not logged in
@@ -48,8 +55,51 @@ export default function DashboardPage() {
   const { data: upcomingTrips, isLoading } = useCollection<Trip>(tripsQuery);
 
   const handleBookingRequest = () => {
-    setIsDisclaimerOpen(true);
+    if (!user) {
+        setIsDisclaimerOpen(true);
+        return;
+    }
+    handleQuickBookingSubmit();
   };
+
+  const handleQuickBookingSubmit = () => {
+    if (!user || !firestore) {
+        toast({
+            title: "يرجى تسجيل الدخول",
+            description: "يجب عليك تسجيل الدخول أولاً لإرسال طلب حجز.",
+            variant: "destructive",
+        });
+        return;
+    }
+    if (!quickBookingOrigin || !quickBookingDestination) {
+        toast({
+            title: "بيانات غير مكتملة",
+            description: "الرجاء اختيار مدينة الانطلاق والوصول.",
+            variant: "destructive",
+        });
+        return;
+    }
+
+    const tripsCollection = collection(firestore, 'trips');
+    addDocumentNonBlocking(tripsCollection, {
+        userId: user.uid,
+        origin: quickBookingOrigin,
+        destination: quickBookingDestination,
+        passengers: quickBookingSeats,
+        status: 'Awaiting-Offers',
+        departureDate: new Date().toISOString(), // Placeholder date
+    });
+
+    toast({
+        title: "تم إرسال طلبك بنجاح!",
+        description: "سيقوم الناقلون بمراجعة طلبك وإرسال عروضهم.",
+    });
+
+    // Reset form
+    setQuickBookingOrigin('');
+    setQuickBookingDestination('');
+    setQuickBookingSeats(1);
+  }
 
 
   return (
@@ -113,7 +163,7 @@ export default function DashboardPage() {
                               !date && "text-muted-foreground"
                             )}
                           >
-                            <CalendarIcon className="mr-2 h-4 w-4 text-green-400" />
+                            <CalendarIcon className="ml-2 h-4 w-4 text-green-400" />
                             {date ? format(date, "PPP") : <span>اختر تاريخاً</span>}
                           </Button>
                         </PopoverTrigger>
@@ -186,7 +236,7 @@ export default function DashboardPage() {
                 <div className="grid gap-6">
                   <div className="grid gap-2">
                     <Label htmlFor="quick-origin">من</Label>
-                    <Select>
+                    <Select onValueChange={setQuickBookingOrigin} value={quickBookingOrigin}>
                         <SelectTrigger id="quick-origin">
                           <SelectValue placeholder="اختر مدينة الانطلاق" />
                         </SelectTrigger>
@@ -198,7 +248,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="quick-destination">إلى</Label>
-                      <Select>
+                      <Select onValueChange={setQuickBookingDestination} value={quickBookingDestination}>
                         <SelectTrigger id="quick-destination">
                           <SelectValue placeholder="اختر مدينة الوصول" />
                         </SelectTrigger>
@@ -210,7 +260,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="grid gap-2">
                       <Label htmlFor="quick-seats">عدد المقاعد</Label>
-                      <Select>
+                      <Select onValueChange={(val) => setQuickBookingSeats(parseInt(val))} value={String(quickBookingSeats)}>
                         <SelectTrigger id="quick-seats">
                           <SelectValue placeholder="اختر عدد المقاعد" />
                         </SelectTrigger>
