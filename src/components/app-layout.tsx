@@ -67,7 +67,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar>
         <SidebarHeader>
           <div className="p-4">
-            <img src="https://i.postimg.cc/zvbhTsXV/Iwjw-sfryat.png" alt="Safar Carrier Logo" style={{ width: '140px', margin: 'auto' }} />
+            {/* The logo was here */}
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -91,9 +91,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
           <div className="flex-1">
-            <h1 className="text-lg font-semibold md:text-xl font-headline">
-              {menuItems.find((item) => item.href === pathname)?.label || 'Dashboard'}
-            </h1>
+            <img src="https://i.postimg.cc/zvbhTsXV/Iwjw-sfryat.png" alt="Safar Carrier Logo" style={{ height: '40px' }} />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
