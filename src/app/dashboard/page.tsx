@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
@@ -128,11 +129,11 @@ export default function DashboardPage() {
     if (searchMode === 'specific-carrier') {
         if (selectedCarrierName) {
             baseTrips = allTrips.filter(trip => trip.carrierName === selectedCarrierName);
-            shouldShowTrips = true; // Show trips as soon as a carrier is selected
+            shouldShowTrips = true; 
         }
     } else { // 'all-carriers' mode
         baseTrips = [...allTrips];
-        shouldShowTrips = true; // Always ready to show trips, filtering will reduce them
+        shouldShowTrips = true; 
     }
 
     // 2. Apply filters if trips should be shown
@@ -147,7 +148,7 @@ export default function DashboardPage() {
             filteredTrips = filteredTrips.filter(trip => trip.availableSeats >= searchSeats);
         }
         
-        // General filters (not tied to accordion logic, but still apply)
+        // General filters 
         if (searchOriginCity) {
             filteredTrips = filteredTrips.filter(trip => trip.origin === searchOriginCity);
         }
@@ -157,6 +158,14 @@ export default function DashboardPage() {
         if (searchMode === 'all-carriers' && searchVehicleType !== 'all') {
           filteredTrips = filteredTrips.filter(trip => trip.vehicleCategory === searchVehicleType);
         }
+    }
+    
+    // Do not show any trips if the main filter condition is not met
+    const primaryFilterMet = searchMode === 'all-carriers' 
+      || (searchMode === 'specific-carrier' && !!selectedCarrierName);
+
+    if (!primaryFilterMet) {
+      filteredTrips = [];
     }
     
     // 3. Group the final filtered trips by date
