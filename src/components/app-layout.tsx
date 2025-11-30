@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert } from 'lucide-react';
+import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert, Lock } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,15 +38,20 @@ import { Badge } from '@/components/ui/badge';
 import { signOut, deleteUser } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+
 
 const menuItems = [
   {
     href: '/dashboard',
     label: 'لوحة التحكم',
+    auth: false,
   },
   {
     href: '/history',
-    label: 'حجوزاتي',
+    label: 'إدارة الحجز',
+    auth: true,
   },
 ];
 
@@ -55,6 +60,7 @@ const mobileMenuItems = [
   {
     href: '/profile',
     label: 'ملفي الشخصي',
+    auth: true,
   },
 ];
 
@@ -134,14 +140,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const UserMenuContent = () => (
     <>
-      <DropdownMenuLabel>
+      <DropdownMenuLabel className="justify-end">
         {userProfile?.firstName
         ? `مرحباً، ${userProfile.firstName}`
         : 'حسابي'}
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
        <DropdownMenuItem asChild>
-          <Link href="/profile" className='justify-end'>
+          <Link href="/profile" className='justify-end w-full'>
             <Settings className="ml-2 h-4 w-4" />
             <span>ملفي الشخصي</span>
           </Link>
@@ -159,7 +165,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <>
+    <TooltipProvider>
     <div className="flex min-h-screen w-full flex-col bg-background">
       <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-[#EDC17C] px-4 text-black md:px-6">
         {/* Mobile: Left side (Menu) */}
@@ -167,7 +173,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
-                <Menu className="h-4 w-4 text-green-400" />
+                <Menu className="h-4 w-4 text-black" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
@@ -192,17 +198,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   />
                   <span className="sr-only">Safar Carrier</span>
                 </Link>
-                {mobileMenuItems.map((item) => (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className={`font-bold text-black hover:text-gray-700 ${
-                      pathname === item.href ? 'underline' : ''
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                {mobileMenuItems.map((item) => {
+                    const isDisabled = item.auth && !user;
+                    if (isDisabled) {
+                      return (
+                         <span key={item.label} className="flex items-center font-bold text-black/50 cursor-not-allowed">
+                            <Lock className="ml-2 h-4 w-4" />
+                            {item.label}
+                        </span>
+                      )
+                    }
+                    return (
+                        <Link
+                            key={item.label}
+                            href={item.href}
+                            className={cn("font-bold text-black hover:text-gray-700", pathname === item.href && "underline")}
+                        >
+                            {item.label}
+                        </Link>
+                    );
+                })}
               </nav>
             </SheetContent>
           </Sheet>
@@ -304,17 +319,40 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Secondary Navigation Header */}
       <nav className="sticky top-16 z-40 hidden h-12 items-center justify-center gap-8 border-b border-b-white bg-[#EDC17C] px-6 md:flex">
-        {menuItems.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            className={`text-sm font-medium text-black transition-colors hover:text-gray-700 ${
-              pathname === item.href ? 'underline' : ''
-            }`}
-          >
-            {item.label}
-          </Link>
-        ))}
+        {menuItems.map((item) => {
+            const isDisabled = item.auth && !user;
+            const linkClass = cn(
+              "text-sm font-medium text-black transition-colors hover:text-gray-700",
+              pathname === item.href && !isDisabled && "underline",
+              isDisabled && "cursor-not-allowed text-black/50 flex items-center gap-1"
+            );
+
+            if (isDisabled) {
+                return (
+                  <Tooltip key={item.label}>
+                    <TooltipTrigger asChild>
+                      <span className={linkClass}>
+                        <Lock className="h-3 w-3" />
+                        {item.label}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>الرجاء تسجيل الدخول للوصول لهذه الصفحة</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )
+            }
+            
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={linkClass}
+              >
+                {item.label}
+              </Link>
+            )
+        })}
       </nav>
 
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -341,6 +379,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
-    </>
+    </TooltipProvider>
   );
 }
