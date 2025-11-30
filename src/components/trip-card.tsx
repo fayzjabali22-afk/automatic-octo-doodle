@@ -105,5 +105,3 @@ export function TripCard({ trip }: TripCardProps) {
     </>
   );
 }
-
-    

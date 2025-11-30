@@ -244,7 +244,7 @@ export default function DashboardPage() {
       }
 
       // Step 2: Check for email verification
-      if (!user.emailVerified) {
+      if (user && !user.emailVerified) {
           toast({
               variant: "destructive",
               title: "الحساب غير مفعل",
@@ -534,5 +534,3 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
-
-    

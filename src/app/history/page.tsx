@@ -83,7 +83,7 @@ export default function HistoryPage() {
   const isLoadingConfirmed = false;
   const hasConfirmedTrips = !isLoadingConfirmed && confirmedTrips && confirmedTrips.length > 0;
   
-  const [openAccordion, setOpenAccordion] = useState<string | undefined>(hasConfirmedTrips ? 'confirmed' : 'awaiting');
+  const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
 
   // State for Dialogs
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
@@ -220,7 +220,7 @@ export default function HistoryPage() {
           )}
           
           {isLoadingConfirmed ? renderSkeleton() : (
-            confirmedTrips && confirmedTrips.length > 0 && (
+            hasConfirmedTrips && (
               <AccordionItem value="confirmed" className="border-none">
                 <Card>
                   <AccordionTrigger className="p-6 text-lg hover:no-underline">
@@ -238,11 +238,11 @@ export default function HistoryPage() {
                                     <Badge variant={statusVariantMap[trip.status] || 'outline'}>{statusMap[trip.status] || trip.status}</Badge>
                                 </div>
                            </CardHeader>
-                           <CardContent className="grid md:grid-cols-2 gap-4 md:gap-6 p-0 md:p-6">
+                           <CardContent className="grid md:grid-cols-2 gap-y-4 md:gap-6 p-0 md:p-6">
                                 {/* Left Column: E-Ticket */}
-                                <div className="p-4 md:p-0 md:border md:rounded-lg bg-background/30 space-y-3">
-                                    <h3 className="font-bold border-b pb-2 mb-3 p-4 md:p-4">التذكرة الإلكترونية</h3>
-                                    <div className="px-4 md:px-4 space-y-3">
+                                <div className="p-4 md:border md:rounded-lg bg-background/30 space-y-3">
+                                    <h3 className="font-bold border-b pb-2 mb-3">التذكرة الإلكترونية</h3>
+                                    <div className="space-y-3">
                                         <p><strong>الناقل:</strong> {trip.carrierName}</p>
                                         <p><strong>وقت الحجز:</strong> {new Date().toLocaleDateString('ar-SA')}</p>
                                         <p><strong>القيمة الإجمالية:</strong> 250 ريال</p>
@@ -259,8 +259,8 @@ export default function HistoryPage() {
                                 </div>
 
                                 {/* Right Column: Control & Communication Hub */}
-                                <div className="p-0 md:border md:rounded-lg bg-background/30 space-y-4 flex flex-col">
-                                     <h3 className="font-bold border-b pb-2 p-4">مركز التحكم والتواصل</h3>
+                                <div className="p-4 pt-0 md:p-0 md:border md:rounded-lg bg-background/30 space-y-4 flex flex-col">
+                                     <h3 className="font-bold border-b pb-2 mb-3 p-4">مركز التحكم والتواصل</h3>
 
                                     {/* Critical Updates */}
                                     <div className="p-3 mx-4 rounded-lg bg-yellow-900/50 border border-yellow-700">
@@ -272,7 +272,7 @@ export default function HistoryPage() {
                                     </div>
                                     
                                      {/* Chat Section */}
-                                     <div className="flex-grow flex flex-col space-y-2 h-96 px-4">
+                                    <div className="flex-grow flex flex-col space-y-2 h-96 px-4">
                                         <div className="flex-grow bg-muted/30 rounded-lg p-2 md:p-4 space-y-4 overflow-y-auto flex flex-col">
                                             {/* Incoming Message */}
                                             <div className="flex items-end gap-2 max-w-md">
@@ -288,12 +288,6 @@ export default function HistoryPage() {
                                                     <p className="text-xs text-accent-foreground/80 mt-1 text-left">10:01 صباحًا</p>
                                                 </div>
                                             </div>
-                                             {/* Placeholder for more messages */}
-                                              <div className="flex-grow"></div>
-                                              <div className="text-center text-xs text-muted-foreground py-2">
-                                                  سجل الدردشة يظهر هنا
-                                              </div>
-                                              <div className="flex-grow"></div>
                                         </div>
                                         <div className="flex items-center gap-2 mt-auto bg-background p-2 rounded-lg border">
                                             <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0">
@@ -357,5 +351,3 @@ export default function HistoryPage() {
       </Dialog>
     </AppLayout>
   );
-
-    

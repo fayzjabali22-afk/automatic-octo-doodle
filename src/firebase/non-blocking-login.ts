@@ -73,5 +73,3 @@ export async function initiateEmailSignIn(authInstance: Auth, email: string, pas
     return false;
   }
 }
-
-    
