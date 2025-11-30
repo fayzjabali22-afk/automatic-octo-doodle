@@ -285,26 +285,29 @@ export default function DashboardPage() {
 
                   {/* Vehicle Type Radio Group (Only for all-carriers mode) */}
                   {searchMode === 'all-carriers' && (
-                    <div className="flex items-center justify-center gap-x-6 gap-y-2 flex-wrap">
-                      <Label className="font-semibold">نوع وسيلة النقل:</Label>
-                      <RadioGroup
-                        defaultValue="all"
-                        className="flex items-center gap-4"
-                        onValueChange={setSearchVehicleType}
-                      >
-                        <div className="flex items-center space-x-2 space-x-reverse">
-                          <RadioGroupItem value="all" id="r-all" />
-                          <Label htmlFor="r-all">المتوفر</Label>
-                        </div>
-                        <div className="flex items-center space-x-2 space-x-reverse">
-                          <RadioGroupItem value="small" id="r-small" />
-                          <Label htmlFor="r-small">مركبة صغيرة</Label>
-                        </div>
-                        <div className="flex items-center space-x-2 space-x-reverse">
-                          <RadioGroupItem value="bus" id="r-bus" />
-                          <Label htmlFor="r-bus">حافلة</Label>
-                        </div>
-                      </RadioGroup>
+                    <div className='grid gap-4'>
+                      <div className="flex items-center justify-center gap-x-6 gap-y-2 flex-wrap">
+                        <Label className="font-semibold">نوع وسيلة النقل:</Label>
+                        <RadioGroup
+                          defaultValue="all"
+                          className="flex items-center gap-4"
+                          onValueChange={setSearchVehicleType}
+                        >
+                          <div className="flex items-center space-x-2 space-x-reverse">
+                            <RadioGroupItem value="all" id="r-all" />
+                            <Label htmlFor="r-all">المتوفر</Label>
+                          </div>
+                          <div className="flex items-center space-x-2 space-x-reverse">
+                            <RadioGroupItem value="small" id="r-small" />
+                            <Label htmlFor="r-small">مركبة صغيرة</Label>
+                          </div>
+                          <div className="flex items-center space-x-2 space-x-reverse">
+                            <RadioGroupItem value="bus" id="r-bus" />
+                            <Label htmlFor="r-bus">حافلة</Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                       <div className="border-t border-border/60 my-2"></div>
                     </div>
                   )}
 
@@ -465,5 +468,3 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
-
-    
