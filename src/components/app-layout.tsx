@@ -59,11 +59,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, `users/${user.uid}/notifications`));
+    return query(collection(firestore, `users/${user.uid}/notifications`), where("isRead", "==", false));
   }, [firestore, user]);
 
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
-  const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
+  const unreadCount = notifications?.length || 0;
   
   const handleNotificationClick = (notification: Notification) => {
     // Update the notification to be read
@@ -170,7 +170,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
-                    <Avatar>
+                    <Avatar className="border-2 border-[#8B0000]">
                     {user?.photoURL && (
                         <AvatarImage
                         src={user.photoURL}
@@ -219,7 +219,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
-                    <Avatar>
+                    <Avatar className="border-2 border-[#8B0000]">
                     {user?.photoURL && (
                         <AvatarImage
                         src={user.photoURL}
