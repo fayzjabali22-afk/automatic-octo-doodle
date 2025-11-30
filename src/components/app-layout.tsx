@@ -33,11 +33,15 @@ const menuItems = [
     href: '/history',
     label: 'حجوزاتي',
   },
-  {
-    href: '/profile',
-    label: 'ملفي الشخصي',
-  },
 ];
+
+const mobileMenuItems = [
+    ...menuItems,
+    {
+        href: '/profile',
+        label: 'ملفي الشخصي',
+    },
+]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -92,7 +96,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 />
                 <span className="sr-only">Safar Carrier</span>
               </Link>
-              {menuItems.map((item) => (
+              {mobileMenuItems.map((item) => (
                 <Link
                   key={item.label}
                   href={item.href}
@@ -122,6 +126,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuLabel>{userProfile?.firstName ? `مرحباً، ${userProfile.firstName}`: 'حسابي'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
+                  <Link href="/profile">
+                    <Settings className="ml-2 h-4 w-4" />
+                    <span>ملفي الشخصي</span>
+                  </Link>
+                </DropdownMenuItem>
+                 <DropdownMenuItem asChild>
                   <Link href="/profile">
                     <Settings className="ml-2 h-4 w-4" />
                     <span>الإعدادات</span>
