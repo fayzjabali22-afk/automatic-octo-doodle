@@ -66,7 +66,7 @@ const dummyAwaitingTrips: Trip[] = [
 ];
 const dummyConfirmedTrips: Trip[] = [
     { id: 'DUMMY02', userId: 'test-user', origin: 'جدة', destination: 'القاهرة', departureDate: '2024-08-10T20:00:00Z', status: 'Planned', carrierName: 'سفريات الأمان', carrierPhoneNumber: '+966555555555', cargoDetails: 'أمتعة شخصية', vehicleType: 'GMC Yukon', vehicleCategory: 'small', vehicleModelYear: 2023, availableSeats: 0, passengers: 1 },
-    { id: 'DUMMY03', userId: 'test-user', origin: 'الدمام', destination: 'دبي', departureDate: '2024-07-25T09:15:00Z', status: 'In-Transit', carrierName: 'الناقل الدولي', carrierPhoneNumber: '+966588884444', cargoDetails: 'مواد بناء', vehicleType: 'Ford Transit', vehicleCategory: 'bus', vehicleModelYear: 2021, availableSeats: 0, passengers: 4 },
+    { id: 'DUMMY03', userId: 'test-user', origin: 'الدمام', destination: 'دبي', departureDate: '2024-07-25T09:15:00Z', status: 'Planned', carrierName: 'الناقل الدولي', carrierPhoneNumber: '+966588884444', cargoDetails: 'مواد بناء', vehicleType: 'Ford Transit', vehicleCategory: 'bus', vehicleModelYear: 2021, availableSeats: 0, passengers: 4 },
     { id: 'DUMMY04', userId: 'test-user', origin: 'عمان', destination: 'الرياض', departureDate: '2024-07-15T12:00:00Z', status: 'Completed', carrierName: 'شركة النقل السريع', carrierPhoneNumber: '+966501234567', cargoDetails: 'أغراض شخصية', vehicleType: 'Hyundai Staria', vehicleCategory: 'small', vehicleModelYear: 2024, availableSeats: 0, passengers: 3 },
 ];
 
@@ -235,17 +235,17 @@ export default function HistoryPage() {
     );
   };
   
-    const getConfirmedTripActionLabel = (trip: Trip): string => {
-        if (trip.status === 'Completed') {
-            return 'إغلاق الرحلة';
-        }
-        // For passenger, 'Planned' and 'In-Transit' both mean "Follow-up"
-        return 'متابعة الرحلة';
-    };
-    
-    const getAwaitingTripActionLabel = (): string => {
-        return "استعراض العروض";
-    };
+  const getConfirmedTripActionLabel = (trip: Trip): string => {
+    if (trip.status === 'Completed') {
+        return 'إغلاق الرحلة';
+    }
+    // For passenger, 'Planned' and 'In-Transit' both mean "Follow-up"
+    return 'متابعة الرحلة';
+};
+
+const getAwaitingTripActionLabel = (): string => {
+    return "استعراض العروض";
+};
 
 
   if (isUserLoading) return <AppLayout>{renderSkeleton()}</AppLayout>;
@@ -254,16 +254,16 @@ export default function HistoryPage() {
   return (
     <AppLayout>
       <div className="bg-[#130609] p-4 md:p-8 rounded-lg space-y-8">
-        <Card>
+        <Card style={{ backgroundColor: '#EDC17C' }}>
           <CardHeader>
             <div className="flex justify-between items-start">
-              <div>
-                <CardTitle>لوحة تحكم المسافر</CardTitle>
-                <CardDescription>تابع طلباتك ورحلاتك المؤكدة من هنا.</CardDescription>
+              <div className="text-black">
+                <CardTitle>إدارة الحجز</CardTitle>
+                <CardDescription className="text-black/80">تابع العروض والحجوزات من هنا</CardDescription>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
+                  <Button variant="ghost" size="icon" className="relative text-black hover:bg-black/10">
                     <Bell className="h-5 w-5" />
                     {notificationCount > 0 && <Badge className="absolute -top-1 -right-1 h-4 w-4 justify-center p-0 text-xs">{notificationCount}</Badge>}
                   </Button>
