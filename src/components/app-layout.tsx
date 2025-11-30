@@ -77,9 +77,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <Button
               variant="outline"
               size="icon"
-              className="shrink-0 md:hidden ml-auto"
+              className="shrink-0 md:hidden ml-auto h-8 w-8"
             >
-              <Menu className="h-5 w-5 text-green-400" />
+              <Menu className="h-4 w-4 text-green-400" />
               <span className="sr-only">Toggle navigation menu</span>
             </Button>
           </SheetTrigger>
