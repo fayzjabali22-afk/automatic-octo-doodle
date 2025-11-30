@@ -15,14 +15,14 @@ service cloud.firestore {
     }
 
     match /trips/{tripId} {
-      // Allow any user (signed-in or anonymous) to read/list trips
-      allow read: if true;
+      // Allow any user to get a single trip document
+      allow get: if true;
+      // Allow signed-in users to list/query trips
+      allow list: if isSignedIn();
       // Allow create if the user is the owner
       allow create: if isOwner(request.resource.data.userId);
       // Allow update/delete if the user was the original owner
       allow update, delete: if isOwner(resource.data.userId);
-       // Allow queries by carrierName and carrierPhoneNumber
-      allow list: if true;
     }
 
     match /bookings/{bookingId} {
