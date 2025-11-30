@@ -35,7 +35,7 @@ import { LegalDisclaimerDialog } from '@/components/legal-disclaimer-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardPage() {
-  const [date, setDate] = useState<Date>()
+  const [date, setDate] = useState<Date>();
   const { user } = useUser();
   const firestore = useFirestore();
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
@@ -265,7 +265,7 @@ export default function DashboardPage() {
                       <Select onValueChange={(val) => setQuickBookingSeats(parseInt(val))} value={String(quickBookingSeats)}>
                         <SelectTrigger id="quick-seats">
                           <SelectValue placeholder="اختر عدد المقاعد" />
-                        </SelectTrigger>
+                        </Trigger>
                         <SelectContent>
                           {Array.from({ length: 9 }, (_, i) => i + 1).map(num => (
                             <SelectItem key={num} value={String(num)}>{num}</SelectItem>
