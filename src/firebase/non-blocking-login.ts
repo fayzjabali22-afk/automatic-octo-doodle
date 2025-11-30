@@ -1,9 +1,11 @@
+
 'use client';
 import {
   Auth,
   signInAnonymously,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendEmailVerification,
 } from 'firebase/auth';
 import { Firestore, doc, setDoc } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
@@ -33,6 +35,9 @@ export async function initiateEmailSignUp(
   try {
     const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
     const user = userCredential.user;
+
+    // Send verification email
+    await sendEmailVerification(user);
 
     // After user is created in Auth, create their profile document in Firestore
     const userRef = doc(firestore, 'users', user.uid);
@@ -68,3 +73,5 @@ export async function initiateEmailSignIn(authInstance: Auth, email: string, pas
     return false;
   }
 }
+
+    

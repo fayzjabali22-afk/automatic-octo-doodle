@@ -188,6 +188,19 @@ export default function DashboardPage() {
     if (searchMode === 'all-carriers') {
       handleBookingRequest();
     } else {
+      // Logic for specific carrier request
+      if (!user) {
+        setIsDisclaimerOpen(true);
+        return;
+      }
+      if (user && !user.emailVerified) {
+        toast({
+            variant: "destructive",
+            title: "الحساب غير مفعل",
+            description: "الرجاء التحقق من بريدك الإلكتروني أولاً لتتمكن من إرسال الطلبات.",
+        });
+        return;
+      }
       if (!selectedCarrierName) {
         toast({
           title: "الرجاء تحديد ناقل أولاً",
@@ -200,50 +213,58 @@ export default function DashboardPage() {
           title: "جاري إرسال الطلب...",
           description: `سيتم إرسال طلبك إلى ${selectedCarrierName}.`,
       });
+      // ... a function to send a request to a specific carrier would go here
     }
   };
-
+  
   const handleBookingRequestSubmit = async () => {
-    if (!user || !firestore) {
-        toast({
-            title: "يرجى تسجيل الدخول",
-            description: "يجب عليك تسجيل الدخول أولاً لإرسال طلب حجز.",
-            variant: "destructive",
-        });
-        return;
-    }
-    if (!searchOriginCity || !searchDestinationCity) {
-        toast({
-            title: "بيانات غير مكتملة",
-            description: "الرجاء اختيار مدينة الانطلاق والوصول.",
-            variant: "destructive",
-        });
-        return;
-    }
-
-    const tripsCollection = collection(firestore, 'trips');
-    addDocumentNonBlocking(tripsCollection, {
-        userId: user.uid,
-        origin: searchOriginCity,
-        destination: searchDestinationCity,
-        passengers: searchSeats,
-        status: 'Awaiting-Offers',
-        departureDate: date ? date.toISOString() : new Date().toISOString(),
-    }).then(() => {
-        toast({
-            title: "تم إرسال طلبك بنجاح!",
-            description: "سيتم توجيهك الآن لصفحة حجوزاتك لمتابعة طلبك.",
-        });
-        router.push('/history');
-    });
+      // This function is now only for 'all-carriers' (tendering)
+      const tripsCollection = collection(firestore!, 'trips');
+      addDocumentNonBlocking(tripsCollection, {
+          userId: user!.uid,
+          origin: searchOriginCity,
+          destination: searchDestinationCity,
+          passengers: searchSeats,
+          status: 'Awaiting-Offers',
+          departureDate: date ? date.toISOString() : new Date().toISOString(),
+      }).then(() => {
+          toast({
+              title: "تم إرسال طلبك بنجاح!",
+              description: "سيتم توجيهك الآن لصفحة حجوزاتك لمتابعة طلبك.",
+          });
+          router.push('/history');
+      });
   };
   
   const handleBookingRequest = () => {
-    if (!user) {
-        setIsDisclaimerOpen(true);
-        return;
-    }
-    handleBookingRequestSubmit();
+      // Step 1: Check for user login
+      if (!user) {
+          setIsDisclaimerOpen(true);
+          return;
+      }
+
+      // Step 2: Check for email verification
+      if (!user.emailVerified) {
+          toast({
+              variant: "destructive",
+              title: "الحساب غير مفعل",
+              description: "الرجاء التحقق من بريدك الإلكتروني أولاً لتتمكن من إرسال الطلبات.",
+          });
+          return;
+      }
+
+      // Step 3: Check for complete data
+      if (!searchOriginCity || !searchDestinationCity) {
+          toast({
+              title: "بيانات غير مكتملة",
+              description: "الرجاء اختيار مدينة الانطلاق والوصول.",
+              variant: "destructive",
+          });
+          return;
+      }
+
+      // Step 4: Submit the request
+      handleBookingRequestSubmit();
   };
 
   const showFilterMessage = searchMode === 'specific-carrier' && selectedCarrierName && Object.keys(groupedAndFilteredTrips).length > 0;

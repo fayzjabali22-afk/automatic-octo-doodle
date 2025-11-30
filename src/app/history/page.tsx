@@ -78,7 +78,12 @@ const dummyOffers = [
 export default function HistoryPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const [openAccordion, setOpenAccordion] = useState<string | undefined>('confirmed');
+  
+  const confirmedTrips: Trip[] | null = dummyConfirmedTrips;
+  const isLoadingConfirmed = false;
+  const hasConfirmedTrips = !isLoadingConfirmed && confirmedTrips && confirmedTrips.length > 0;
+  
+  const [openAccordion, setOpenAccordion] = useState<string | undefined>(hasConfirmedTrips ? 'confirmed' : 'awaiting');
 
   // State for Dialogs
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
@@ -87,8 +92,6 @@ export default function HistoryPage() {
   // Use dummy data for now
   const awaitingTrips: Trip[] | null = dummyAwaitingTrips;
   const isLoadingAwaiting = false;
-  const confirmedTrips: Trip[] | null = dummyConfirmedTrips;
-  const isLoadingConfirmed = false;
   
   const notifications: Notification[] = []; // Dummy notifications
   const notificationCount = notifications?.length || 0;
@@ -96,20 +99,22 @@ export default function HistoryPage() {
   const hasAwaitingOffers = !isLoadingAwaiting && dummyOffers && dummyOffers.length > 0;
 
   useEffect(() => {
-    if (!isUserLoading && !user) router.push('/login');
+    if (!isUserLoading && !user) {
+        router.push('/login');
+    }
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
     if (isLoadingAwaiting || isLoadingConfirmed) return;
     
-    if (confirmedTrips && confirmedTrips.length > 0) {
+    if (hasConfirmedTrips) {
         setOpenAccordion('confirmed');
     } else if (hasAwaitingOffers) {
         setOpenAccordion('awaiting');
     } else {
         setOpenAccordion(undefined);
     }
-  }, [hasAwaitingOffers, confirmedTrips, isLoadingAwaiting, isLoadingConfirmed]);
+  }, [hasAwaitingOffers, hasConfirmedTrips, isLoadingAwaiting, isLoadingConfirmed]);
 
 
   const handleOpenTicket = (trip: Trip) => {
@@ -254,11 +259,11 @@ export default function HistoryPage() {
                                 </div>
 
                                 {/* Right Column: Control & Communication Hub */}
-                                <div className="p-4 md:p-0 md:border md:rounded-lg bg-background/30 space-y-4 flex flex-col">
-                                     <h3 className="font-bold border-b pb-2 mb-3 p-4 md:p-4">مركز التحكم والتواصل</h3>
+                                <div className="p-0 md:border md:rounded-lg bg-background/30 space-y-4 flex flex-col">
+                                     <h3 className="font-bold border-b pb-2 p-4">مركز التحكم والتواصل</h3>
 
                                     {/* Critical Updates */}
-                                    <div className="p-3 mx-4 md:mx-4 rounded-lg bg-yellow-900/50 border border-yellow-700">
+                                    <div className="p-3 mx-4 rounded-lg bg-yellow-900/50 border border-yellow-700">
                                         <div className="flex items-center gap-2">
                                             <AlertCircle className="h-5 w-5 text-yellow-400" />
                                             <h4 className="font-bold text-yellow-300">تحديث على الموعد</h4>
@@ -267,35 +272,41 @@ export default function HistoryPage() {
                                     </div>
                                     
                                      {/* Chat Section */}
-                                     <div className="flex-grow flex flex-col space-y-2 h-96 px-4 md:px-4">
-                                        <div className="flex-grow bg-muted/30 rounded-lg p-4 space-y-4 overflow-y-auto">
+                                     <div className="flex-grow flex flex-col space-y-2 h-96 px-4">
+                                        <div className="flex-grow bg-muted/30 rounded-lg p-2 md:p-4 space-y-4 overflow-y-auto flex flex-col">
                                             {/* Incoming Message */}
-                                            <div className="flex items-end gap-2">
-                                                <div className="bg-gray-700 text-white p-3 rounded-lg max-w-xs">
+                                            <div className="flex items-end gap-2 max-w-md">
+                                                <div className="bg-gray-700 text-white p-3 rounded-lg rounded-bl-none">
                                                     <p className="text-sm">أهلاً بك، تم تأكيد حجزك. هل لديك أي استفسارات؟</p>
                                                     <p className="text-xs text-gray-400 mt-1 text-left">10:00 صباحًا</p>
                                                 </div>
                                             </div>
                                             {/* Outgoing Message */}
                                             <div className="flex items-end gap-2 justify-end">
-                                                <div className="bg-accent text-accent-foreground p-3 rounded-lg max-w-xs">
+                                                <div className="bg-accent text-accent-foreground p-3 rounded-lg rounded-br-none">
                                                     <p className="text-sm">شكرًا لكم. كل شيء واضح حاليًا.</p>
                                                     <p className="text-xs text-accent-foreground/80 mt-1 text-left">10:01 صباحًا</p>
                                                 </div>
                                             </div>
+                                             {/* Placeholder for more messages */}
+                                              <div className="flex-grow"></div>
+                                              <div className="text-center text-xs text-muted-foreground py-2">
+                                                  سجل الدردشة يظهر هنا
+                                              </div>
+                                              <div className="flex-grow"></div>
                                         </div>
-                                        <div className="flex items-center gap-2 mt-auto bg-card p-2 rounded-lg">
+                                        <div className="flex items-center gap-2 mt-auto bg-background p-2 rounded-lg border">
                                             <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0">
                                                 <Paperclip className="h-5 w-5" />
                                             </Button>
-                                            <Input placeholder="اكتب رسالتك هنا..." className="flex-grow bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0" />
+                                            <Textarea placeholder="اكتب رسالتك هنا..." className="flex-grow bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 resize-none h-10 p-2" rows={1} />
                                             <Button size="icon" variant="default" className="h-10 w-10 shrink-0 bg-accent hover:bg-accent/90">
                                                 <SendHorizonal className="h-5 w-5" />
                                             </Button>
                                         </div>
                                     </div>
 
-                                    <div className="border-t pt-4 space-y-2 px-4 md:px-4 pb-4 md:pb-0">
+                                    <div className="border-t pt-4 space-y-2 px-4 pb-4">
                                          <Button variant="outline" className="w-full"><Phone className="ml-2 h-4 w-4"/> التواصل مع الناقل</Button>
                                          <Button variant="destructive" className="w-full"><Pencil className="ml-2 h-4 w-4"/> طلب إلغاء الحجز</Button>
                                     </div>
@@ -346,19 +357,5 @@ export default function HistoryPage() {
       </Dialog>
     </AppLayout>
   );
-    
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
 
     

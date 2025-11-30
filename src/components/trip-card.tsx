@@ -9,6 +9,8 @@ import { Clock, Users, Car } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useState, useEffect } from 'react';
 import { LegalDisclaimerDialog } from './legal-disclaimer-dialog';
+import { useUser } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 interface TripCardProps {
   trip: Trip;
@@ -18,6 +20,8 @@ export function TripCard({ trip }: TripCardProps) {
   const carrierImage = PlaceHolderImages.find((img) => img.id === 'user-avatar');
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
   const [departureTime, setDepartureTime] = useState('');
+  const { user } = useUser();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Format the time on the client-side to avoid hydration mismatch
@@ -32,7 +36,23 @@ export function TripCard({ trip }: TripCardProps) {
 
 
   const handleBookingClick = () => {
-    setIsDisclaimerOpen(true);
+    if (!user) {
+        setIsDisclaimerOpen(true);
+        return;
+    }
+     if (user && !user.emailVerified) {
+        toast({
+            variant: "destructive",
+            title: "الحساب غير مفعل",
+            description: "الرجاء تفعيل حسابك أولاً لتتمكن من الحجز.",
+        });
+        return;
+    }
+    // If user is logged in and verified, proceed to booking (future implementation)
+    toast({
+        title: 'قيد الإنشاء',
+        description: 'سيتم قريباً تفعيل الحجز المباشر من هنا.',
+    });
   };
 
   return (
@@ -85,3 +105,5 @@ export function TripCard({ trip }: TripCardProps) {
     </>
   );
 }
+
+    

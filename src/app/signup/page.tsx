@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -74,8 +75,8 @@ export default function SignupPage() {
 
     if (success) {
         toast({
-            title: 'Account Created!',
-            description: 'You will be redirected to the dashboard.',
+            title: 'تم إنشاء الحساب بنجاح!',
+            description: 'الرجاء التحقق من بريدك الإلكتروني لتفعيل حسابك.',
         });
         router.push('/dashboard');
     }
@@ -190,3 +191,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    

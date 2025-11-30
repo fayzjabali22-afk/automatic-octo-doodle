@@ -1,7 +1,8 @@
+
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert, Lock } from 'lucide-react';
+import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert, Lock, AlertTriangle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +36,7 @@ import {
 import { doc, collection, query, where } from 'firebase/firestore';
 import type { Notification } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
-import { signOut, deleteUser } from 'firebase/auth';
+import { signOut, deleteUser, sendEmailVerification } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -134,6 +135,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         });
     } finally {
         setIsDeleteConfirmOpen(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (user) {
+        try {
+            await sendEmailVerification(user);
+            toast({
+                title: 'تم إرسال رسالة التفعيل',
+                description: 'الرجاء التحقق من بريدك الإلكتروني.',
+            });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'حدث خطأ',
+                description: 'لم نتمكن من إرسال رسالة التفعيل. يرجى المحاولة مرة أخرى.',
+            });
+        }
     }
   };
 
@@ -355,6 +374,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
+      {user && !user.emailVerified && (
+        <div className="sticky top-16 md:top-28 z-40 bg-yellow-600 text-white text-sm text-center p-2 flex items-center justify-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            <span>حسابك غير مفعل. الرجاء التحقق من بريدك الإلكتروني.</span>
+            <Button variant="link" className="p-0 h-auto text-white underline" onClick={handleResendVerification}>
+                إعادة إرسال
+            </Button>
+        </div>
+      )}
+
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         {children}
       </main>
@@ -382,3 +411,5 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </TooltipProvider>
   );
 }
+
+    
