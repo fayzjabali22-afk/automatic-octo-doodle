@@ -44,6 +44,7 @@ export default function DashboardPage() {
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [seats, setSeats] = useState('1');
+  
   const [quickBookingOrigin, setQuickBookingOrigin] = useState('');
   const [quickBookingDestination, setQuickBookingDestination] = useState('');
   const [quickBookingSeats, setQuickBookingSeats] = useState(1);
@@ -55,15 +56,7 @@ export default function DashboardPage() {
   }, [firestore, user]);
 
   const { data: upcomingTrips, isLoading } = useCollection<Trip>(tripsQuery);
-
-  const handleBookingRequest = () => {
-    if (!user) {
-        setIsDisclaimerOpen(true);
-        return;
-    }
-    handleQuickBookingSubmit();
-  };
-
+  
   const handleQuickBookingSubmit = () => {
     if (!user || !firestore) {
         toast({
@@ -101,8 +94,15 @@ export default function DashboardPage() {
     setQuickBookingOrigin('');
     setQuickBookingDestination('');
     setQuickBookingSeats(1);
-  }
-
+  };
+  
+  const handleBookingRequest = () => {
+    if (!user) {
+        setIsDisclaimerOpen(true);
+        return;
+    }
+    handleQuickBookingSubmit();
+  };
 
   return (
     <AppLayout>
