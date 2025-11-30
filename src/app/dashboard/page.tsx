@@ -178,7 +178,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-
+              {/* Action Buttons */}
               <div className="flex justify-between mt-4">
                   <Button variant="outline">إلغاء العملية</Button>
                   <Button asChild>
