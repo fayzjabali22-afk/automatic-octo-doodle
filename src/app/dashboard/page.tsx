@@ -184,7 +184,7 @@ export default function DashboardPage() {
                               !date && "text-muted-foreground"
                             )}
                           >
-                            <CalendarIcon className="ml-2 h-4 w-4 text-green-400" />
+                            <CalendarIcon className="ml-2 h-4 w-4 text-accent" />
                             {date ? format(date, "PPP") : <span>اختر تاريخاً</span>}
                           </Button>
                         </PopoverTrigger>
