@@ -32,7 +32,8 @@
         "id",
         "firstName",
         "lastName",
-        "email"
+        "email",
+        "phoneNumber"
       ]
     },
     "Trip": {
@@ -90,7 +91,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {

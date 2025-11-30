@@ -33,6 +33,7 @@ import { useEffect } from 'react';
 
 const signupFormSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
+  phoneNumber: z.string().min(1, 'Phone number is required.'),
   email: z.string().email('Invalid email address.'),
   password: z.string().min(5, 'Password must be at least 5 characters.'),
 });
@@ -52,6 +53,7 @@ export default function SignupPage() {
     resolver: zodResolver(signupFormSchema),
     defaultValues: {
       fullName: '',
+      phoneNumber: '',
       email: '',
       password: '',
     },
@@ -66,6 +68,7 @@ export default function SignupPage() {
           firstName: firstName,
           lastName: lastNameParts.join(' '),
           email: user.email,
+          phoneNumber: form.getValues('phoneNumber'),
         };
         
         const userRef = doc(firestore, 'users', user.uid);
@@ -126,6 +129,19 @@ export default function SignupPage() {
               />
               <FormField
                 control={form.control}
+                name="phoneNumber"
+                render={({ field }) => (
+                  <FormItem className="grid gap-2">
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+966 50 123 4567" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem className="grid gap-2">
@@ -159,6 +175,19 @@ export default function SignupPage() {
               </Button>
             </form>
           </Form>
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                Or continue with
+                </span>
+            </div>
+          </div>
+           <Button variant="outline" className="w-full">
+            Sign up with Google
+          </Button>
           <div className="mt-4 text-center text-sm">
             Already have an account?{' '}
             <Link href="/login" className="underline">
