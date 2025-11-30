@@ -118,7 +118,7 @@ export default function HistoryPage() {
   return (
     <AppLayout>
       <div className="bg-[#130609] p-4 md:p-8 rounded-lg">
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-start mb-4">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
