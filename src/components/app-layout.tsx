@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Settings, Menu, Bell } from 'lucide-react';
+import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +11,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -25,8 +35,9 @@ import {
 import { doc, collection, query, where } from 'firebase/firestore';
 import type { Notification } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
-import { signOut } from 'firebase/auth';
+import { signOut, deleteUser } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 const menuItems = [
   {
@@ -54,6 +65,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -71,12 +84,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const unreadCount = notifications?.length || 0;
   
   const handleNotificationClick = (notification: Notification) => {
-    // Update the notification to be read
     if (firestore && user && !notification.isRead) {
         const notifRef = doc(firestore, `users/${user.uid}/notifications`, notification.id);
         setDocumentNonBlocking(notifRef, { isRead: true }, { merge: true });
     }
-    // Navigate if there's a link
     if (notification.link) {
         router.push(notification.link);
     }
@@ -98,9 +109,57 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       });
     }
   };
+  
+  const handleDeleteAccount = async () => {
+    if (!user) {
+        toast({ variant: 'destructive', title: 'خطأ', description: 'لم يتم العثور على المستخدم.' });
+        return;
+    }
+    try {
+      await deleteUser(user);
+      toast({ title: 'تم حذف الحساب بنجاح', description: 'نأمل أن نراك مرة أخرى قريبًا.' });
+      router.push('/signup');
+    } catch (error: any) {
+        console.error("Delete account error:", error);
+        toast({
+            variant: 'destructive',
+            title: 'فشل حذف الحساب',
+            description: 'هذه العملية تتطلب إعادة تسجيل دخول حديثة. الرجاء تسجيل الخروج ثم الدخول مرة أخرى والمحاولة مجددًا.',
+        });
+    } finally {
+        setIsDeleteConfirmOpen(false);
+    }
+  };
 
+
+  const UserMenuContent = () => (
+    <>
+      <DropdownMenuLabel>
+        {userProfile?.firstName
+        ? `مرحباً، ${userProfile.firstName}`
+        : 'حسابي'}
+      </DropdownMenuLabel>
+      <DropdownMenuSeparator />
+       <DropdownMenuItem asChild>
+          <Link href="/profile">
+          <Settings className="ml-2 h-4 w-4" />
+          <span>ملفي الشخصي</span>
+          </Link>
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={handleSignOut} className="text-yellow-500 focus:text-yellow-600">
+        <LogOut className="ml-2 h-4 w-4" />
+        <span>تسجيل الخروج</span>
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => setIsDeleteConfirmOpen(true)} className="text-red-500 focus:text-red-600">
+        <Trash2 className="ml-2 h-4 w-4" />
+        <span>حذف الحساب</span>
+      </DropdownMenuItem>
+    </>
+  );
 
   return (
+    <>
     <div className="flex min-h-screen w-full flex-col bg-background">
       <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-[#EDC17C] px-4 text-black md:px-6">
         {/* Mobile: Left side (Menu) */}
@@ -188,11 +247,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+          
+          {/* Desktop User Menu */}
           <div className="hidden md:flex">
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
-                    <Avatar className="border-2 border-maroon-800">
+                    <Avatar className="h-10 w-10 border-2 border-[#8B0000]">
                     {user?.photoURL && (
                         <AvatarImage
                         src={user.photoURL}
@@ -208,38 +269,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                <DropdownMenuLabel>
-                    {userProfile?.firstName
-                    ? `مرحباً، ${userProfile.firstName}`
-                    : 'حسابي'}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                 <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                    <Settings className="ml-2 h-4 w-4" />
-                    <span>ملفي الشخصي</span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                    <Settings className="ml-2 h-4 w-4" />
-                    <span>الإعدادات</span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="ml-2 h-4 w-4" />
-                  <span>تسجيل الخروج</span>
-                </DropdownMenuItem>
+                  <UserMenuContent />
                 </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          {/* Mobile User Menu (now on the far left) */}
+          
+          {/* Mobile User Menu */}
           <div className="flex items-center md:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
-                    <Avatar className="border-2 border-maroon-800">
+                    <Avatar className="h-10 w-10 border-2 border-[#8B0000]">
                     {user?.photoURL && (
                         <AvatarImage
                         src={user.photoURL}
@@ -255,29 +295,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                <DropdownMenuLabel>
-                    {userProfile?.firstName
-                    ? `مرحباً، ${userProfile.firstName}`
-                    : 'حسابي'}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                 <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                    <Settings className="ml-2 h-4 w-4" />
-                    <span>ملفي الشخصي</span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                    <Settings className="ml-2 h-4 w-4" />
-                    <span>الإعدادات</span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="ml-2 h-4 w-4" />
-                  <span>تسجيل الخروج</span>
-                </DropdownMenuItem>
+                  <UserMenuContent />
                 </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -303,7 +321,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
     </div>
+    
+    <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent dir="rtl">
+            <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                    <ShieldAlert className="h-6 w-6 text-red-500" />
+                    هل أنت متأكد من حذف حسابك؟
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                    هذا الإجراء سيقوم بحذف حسابك بشكل نهائي. لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بياناتك الشخصية وحجوزاتك وسجل رحلاتك.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    نعم، قم بحذف حسابي
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
-
-    

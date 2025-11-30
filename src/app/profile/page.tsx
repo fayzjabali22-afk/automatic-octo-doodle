@@ -8,6 +8,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -23,8 +24,13 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { useEffect } from 'react';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { deleteUser } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { ShieldAlert, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
 
 const profileFormSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters.'),
@@ -39,13 +45,14 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfile, isLoading } = useDoc(userProfileRef);
+  const { data: userProfile } = useDoc(userProfileRef);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -80,8 +87,8 @@ export default function ProfilePage() {
     setDocumentNonBlocking(userProfileRef, data, { merge: true });
 
     toast({
-      title: 'Profile Updated',
-      description: 'Your changes have been saved successfully.',
+      title: 'تم تحديث الملف الشخصي',
+      description: 'تم حفظ تغييراتك بنجاح.',
     });
   }
 
@@ -89,32 +96,32 @@ export default function ProfilePage() {
     <AppLayout>
       <Card className="max-w-2xl mx-auto shadow-lg">
         <CardHeader>
-          <CardTitle className="font-headline">Profile Settings</CardTitle>
+          <CardTitle className="font-headline">إعدادات الملف الشخصي</CardTitle>
           <CardDescription>
-            Manage your account and ride preferences.
+            قم بإدارة معلومات حسابك وتفضيلاتك.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-6 rtl:space-x-reverse">
                 <Avatar className="h-20 w-20">
                   {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || ''} />}
                   <AvatarFallback>
                     {userProfile?.firstName ? userProfile.firstName.charAt(0) : user?.email?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <Button variant="outline">Change Photo</Button>
+                <Button variant="outline" type="button">تغيير الصورة</Button>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First Name</FormLabel>
+                      <FormLabel>الاسم الأول</FormLabel>
                       <FormControl>
-                        <Input placeholder="Your first name" {...field} />
+                        <Input placeholder="اسمك الأول" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -125,9 +132,9 @@ export default function ProfilePage() {
                   name="lastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Last Name</FormLabel>
+                      <FormLabel>الاسم الأخير</FormLabel>
                       <FormControl>
-                        <Input placeholder="Your last name" {...field} />
+                        <Input placeholder="اسمك الأخير" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -139,9 +146,9 @@ export default function ProfilePage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>البريد الإلكتروني</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Your email" {...field} disabled />
+                      <Input type="email" placeholder="بريدك الإلكتروني" {...field} disabled />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -152,15 +159,15 @@ export default function ProfilePage() {
                 name="phoneNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
+                    <FormLabel>رقم الهاتف</FormLabel>
                     <FormControl>
-                      <Input type="tel" placeholder="Your phone number" {...field} />
+                      <Input type="tel" placeholder="رقم هاتفك" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit">حفظ التغييرات</Button>
             </form>
           </Form>
         </CardContent>
