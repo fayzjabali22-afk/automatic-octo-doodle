@@ -27,12 +27,10 @@ import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Notification } from '@/lib/data';
 import { Bell } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type TripStatus = 'Awaiting-Offers' | 'Planned' | 'In-Transit' | 'Completed' | 'Cancelled';
 
 const statusMap: Record<string, string> = {
-    'all': 'الكل',
     'Awaiting-Offers': 'بانتظار العروض',
     'Planned': 'مؤكدة',
     'In-Transit': 'قيد التنفيذ',
@@ -44,7 +42,6 @@ export default function HistoryPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -54,16 +51,8 @@ export default function HistoryPage() {
 
   const tripsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    
-    const baseQuery = query(collection(firestore, 'trips'), where('userId', '==', user.uid));
-    
-    if (activeTab === 'all') {
-        return baseQuery;
-    }
-    
-    return query(baseQuery, where('status', '==', activeTab));
-
-  }, [firestore, user, activeTab]);
+    return query(collection(firestore, 'trips'), where('userId', '==', user.uid));
+  }, [firestore, user]);
 
   const { data: trips, isLoading } = useCollection<Trip>(tripsQuery as Query<Trip> | null);
   
@@ -109,7 +98,7 @@ export default function HistoryPage() {
     if (!trips || trips.length === 0) {
         return (
             <div className="text-center py-12">
-                <p className="text-lg text-muted-foreground">لا توجد حجوزات تطابق هذا الفلتر.</p>
+                <p className="text-lg text-muted-foreground">لا توجد حجوزات لعرضها.</p>
             </div>
         );
     }
@@ -245,20 +234,7 @@ export default function HistoryPage() {
             </div>
           </CardHeader>
           <CardContent>
-             <Tabs dir="rtl" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 mb-4">
-                    <TabsTrigger value="all">الكل</TabsTrigger>
-                    <TabsTrigger value="Awaiting-Offers">بانتظار العروض</TabsTrigger>
-                    <TabsTrigger value="Planned">مؤكدة</TabsTrigger>
-                    <TabsTrigger value="Completed">مكتملة</TabsTrigger>
-                    <TabsTrigger value="Cancelled">ملغاة</TabsTrigger>
-                </TabsList>
-                {Object.keys(statusMap).map(statusKey => (
-                    <TabsContent key={statusKey} value={statusKey}>
-                        {renderContent()}
-                    </TabsContent>
-                ))}
-             </Tabs>
+             {renderContent()}
           </CardContent>
         </Card>
       </div>
