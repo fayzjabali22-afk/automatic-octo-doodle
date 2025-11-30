@@ -116,12 +116,6 @@ export default function DashboardPage() {
 
 
   useEffect(() => {
-    // New logic: Only start filtering if a destination country is selected
-    if (searchMode === 'all-carriers' && !searchDestinationCountry) {
-        setFilteredTrips(null);
-        return;
-    }
-      
     let trips: Trip[] = [];
     if (searchMode === 'specific-carrier') {
         if (!selectedCarrierName) {
@@ -458,7 +452,7 @@ export default function DashboardPage() {
                     </>
                    )}
                    {searchMode === 'all-carriers' && (
-                       <p className="text-lg">{isLoading ? 'جاري التحميل...' : 'الرجاء اختيار دولة الوصول لبدء البحث عن الرحلات المجدولة.'}</p>
+                       <p className="text-lg">{isLoading ? 'جاري التحميل...' : 'لا توجد رحلات مجدولة تطابق بحثك. جرّب تغيير فلاتر البحث.'}</p>
                    )}
                 </div>
               )}
