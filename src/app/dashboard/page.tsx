@@ -150,8 +150,15 @@ export default function DashboardPage() {
                     <Input placeholder="ابحث عن ناقل بالاسم أو رقم الهاتف..." className="pl-10" />
                   </div>
                 )}
+                
+                {bookingType === 'date' && (
+                   <div className="grid gap-2">
+                    <Label htmlFor="specific-date">اختر تاريخ السفر</Label>
+                    <Input id="specific-date" type="date" />
+                  </div>
+                )}
 
-                {(bookingType === 'scheduled' || bookingType === 'date') && (
+                {bookingType === 'scheduled' && (
                   <Accordion type="single" collapsible className="w-full">
                     {Object.keys(scheduledTripsByDate).length > 0 ? (
                       Object.entries(scheduledTripsByDate).map(([dateKey, { displayDate, trips }], index) => (
