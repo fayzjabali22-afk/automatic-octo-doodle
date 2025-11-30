@@ -90,7 +90,6 @@ export default function DashboardPage() {
         description: "سيقوم الناقلون بمراجعة طلبك وإرسال عروضهم.",
     });
 
-    // Reset form
     setQuickBookingOrigin('');
     setQuickBookingDestination('');
     setQuickBookingSeats(1);
