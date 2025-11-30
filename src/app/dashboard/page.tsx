@@ -81,7 +81,7 @@ export default function DashboardPage() {
   const [carrierSearchInput, setCarrierSearchInput] = useState('');
   const [selectedCarrierName, setSelectedCarrierName] = useState<string | null>(null);
   const [searchVehicleType, setSearchVehicleType] = useState('all');
-  const [searchMode, setSearchMode] = useState<'specific-carrier' | 'all-carriers'>('specific-carrier');
+  const [searchMode, setSearchMode] = useState<'specific-carrier' | 'all-carriers'>('all-carriers');
 
   const [groupedAndFilteredTrips, setGroupedAndFilteredTrips] = useState<GroupedTrips>({});
   const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
@@ -122,26 +122,41 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let trips: Trip[] = [];
+    let shouldShowTrips = false;
+
     if (searchMode === 'specific-carrier') {
-        if (!selectedCarrierName) {
-            setGroupedAndFilteredTrips({});
-            setOpenAccordion(undefined);
-            return;
+        if (selectedCarrierName) {
+            trips = allTrips.filter(trip => trip.carrierName === selectedCarrierName);
+            shouldShowTrips = true;
         }
-        trips = allTrips.filter(trip => trip.carrierName === selectedCarrierName);
     } else { // 'all-carriers' mode
-        trips = [...allTrips]; // Start with all trips
+        trips = [...allTrips];
+        // In "all-carriers" mode, we only show trips if a destination is selected.
+        if (searchDestinationCity) {
+            shouldShowTrips = true;
+        }
     }
 
-    // Filter for both modes
-    if (searchDestinationCity) {
-        trips = trips.filter(trip => trip.destination === searchDestinationCity);
-    }
-    if (searchSeats > 0) {
-        trips = trips.filter(trip => trip.availableSeats >= searchSeats);
-    }
-    if (searchMode === 'all-carriers' && searchVehicleType !== 'all') {
-      trips = trips.filter(trip => trip.vehicleCategory === searchVehicleType);
+    // Common filtering logic for both modes, but applied conditionally
+    if (shouldShowTrips) {
+        if (searchDestinationCity) {
+            trips = trips.filter(trip => trip.destination === searchDestinationCity);
+        }
+        if (searchSeats > 0) {
+            trips = trips.filter(trip => trip.availableSeats >= searchSeats);
+        }
+        // These filters are not part of the accordion logic as per the new requirement
+        // if (searchOriginCity) {
+        //     trips = trips.filter(trip => trip.origin === searchOriginCity);
+        // }
+        // if (date) {
+        //     trips = trips.filter(trip => new Date(trip.departureDate).toDateString() === date.toDateString());
+        // }
+        // if (searchMode === 'all-carriers' && searchVehicleType !== 'all') {
+        //   trips = trips.filter(trip => trip.vehicleCategory === searchVehicleType);
+        // }
+    } else {
+        trips = []; // If conditions to show aren't met, ensure trips array is empty
     }
     
     // Grouping by date
@@ -163,19 +178,13 @@ export default function DashboardPage() {
 
     setGroupedAndFilteredTrips(sortedGroupedTrips);
     
-    // Only show trips if a destination is selected in 'all-carriers' mode, or a carrier is selected in 'specific-carrier' mode.
-    const shouldShowTrips = (searchMode === 'all-carriers' && searchDestinationCity) || (searchMode === 'specific-carrier' && selectedCarrierName);
-
     if (shouldShowTrips && sortedDates.length > 0) {
         setOpenAccordion(sortedDates[0]); // Open the first date by default
     } else {
         setOpenAccordion(undefined);
-        if(!searchDestinationCity && searchMode === 'all-carriers'){
-            setGroupedAndFilteredTrips({});
-        }
     }
 
-  }, [searchDestinationCity, searchSeats, allTrips, searchMode, selectedCarrierName, searchVehicleType]);
+  }, [searchDestinationCity, searchSeats, allTrips, searchMode, selectedCarrierName]);
 
 
   const handleMainActionButtonClick = () => {
@@ -241,7 +250,7 @@ export default function DashboardPage() {
   };
 
   const showFilterMessage = searchMode === 'specific-carrier' && selectedCarrierName;
-  const showAllCarriersMessage = searchMode === 'all-carriers';
+  const showAllCarriersMessage = searchMode === 'all-carriers' && searchDestinationCity;
 
   const sortedTripDates = Object.keys(groupedAndFilteredTrips);
 
@@ -425,7 +434,7 @@ export default function DashboardPage() {
                   
                   {showFilterMessage && (
                     <div className="mt-2 text-center text-sm text-accent bg-accent/10 p-2 rounded-md border border-accent/30">
-                        {`هناك رحلاته المجدولة لـ ${selectedCarrierName} معروضة أدناه. يمكنك الآن تصفية النتائج أو تكملة ادخال بياناتك ثم إرسال طلب جديد.`}
+                        {`هناك رحلات مجدولة لـ ${selectedCarrierName} معروضة أدناه. يمكنك الآن تصفية النتائج أو تكملة إدخال بياناتك ثم إرسال طلب جديد.`}
                     </div>
                   )}
 
@@ -490,7 +499,7 @@ export default function DashboardPage() {
                     </>
                    )}
                    {searchMode === 'all-carriers' && (
-                       <p className="text-lg">{isLoading ? 'جاري التحميل...' : 'لا توجد رحلات مجدولة تطابق بحثك. جرّب تغيير فلاتر البحث.'}</p>
+                       <p className="text-lg">{isLoading ? 'جاري التحميل...' : 'لا توجد رحلات مجدولة تطابق بحثك. الرجاء اختيار مدينة الوصول أولاً.'}</p>
                    )}
                 </div>
               )}
