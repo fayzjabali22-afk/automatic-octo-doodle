@@ -77,7 +77,7 @@ const dummyOffers = [
 export default function HistoryPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const [openAccordion, setOpenAccordion] = useState<string | undefined>();
+  const [openAccordion, setOpenAccordion] = useState<string | undefined>('confirmed');
 
   // State for Dialogs
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
@@ -330,6 +330,8 @@ export default function HistoryPage() {
     </AppLayout>
   );
     
+    
+
     
 
     
