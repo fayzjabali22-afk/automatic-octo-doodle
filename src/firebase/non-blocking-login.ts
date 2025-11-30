@@ -41,7 +41,8 @@ export async function initiateEmailSignIn(authInstance: Auth, email: string, pas
     await signInWithEmailAndPassword(authInstance, email, password);
     return true;
   } catch (error: any) {
-    console.error("Sign-in error:", error);
+    // Log the error for debugging, but show a user-friendly toast
+    console.error("Sign-in error:", error.code);
     toast({
         variant: "destructive",
         title: "فشل تسجيل الدخول",
