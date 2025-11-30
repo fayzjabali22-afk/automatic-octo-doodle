@@ -39,7 +39,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Notification } from '@/lib/data';
-import { Bell, CheckCircle, PackageOpen, X, Ship, Star, MessageSquare, AlertCircle, Phone, Pencil } from 'lucide-react';
+import { Bell, CheckCircle, PackageOpen, X, Ship, Star, MessageSquare, AlertCircle, Phone, Pencil, SendHorizonal } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
@@ -124,7 +124,7 @@ export default function HistoryPage() {
   
   const getConfirmedTripActionLabel = (trip: Trip): string => {
     if (trip.status === 'Completed') {
-        return 'إغلاق الرحلة';
+        return 'تقييم الرحلة';
     }
     return 'متابعة الرحلة';
 };
@@ -261,7 +261,7 @@ export default function HistoryPage() {
                                 </div>
 
                                 {/* Right Column: Control & Communication Hub */}
-                                <div className="p-4 border rounded-lg bg-background/30 space-y-4">
+                                <div className="p-4 border rounded-lg bg-background/30 space-y-4 flex flex-col">
                                      <h3 className="font-bold border-b pb-2 mb-3">مركز التحكم والتواصل</h3>
 
                                     {/* Critical Updates */}
@@ -273,14 +273,18 @@ export default function HistoryPage() {
                                         <p className="text-sm mt-2">لا توجد تحديثات جديدة على موعد الرحلة.</p>
                                     </div>
                                     
-                                     {/* Chat Placeholder */}
-                                     <div className="space-y-2">
+                                     {/* Chat Section */}
+                                     <div className="flex-grow flex flex-col space-y-2">
                                         <h4 className="font-semibold flex items-center gap-2"><MessageSquare className="h-5 w-5"/> الدردشة مع الناقل</h4>
-                                        <div className="h-24 border rounded-md p-2 text-center text-muted-foreground text-sm flex items-center justify-center bg-muted/30">
+                                        <div className="flex-grow h-40 border rounded-md p-2 text-center text-muted-foreground text-sm flex items-center justify-center bg-muted/30">
                                             سجل الدردشة يظهر هنا
                                         </div>
-                                        <Textarea placeholder="اكتب رسالتك هنا..." />
-                                        <Button size="sm" className="w-full">إرسال</Button>
+                                        <div className="flex items-center gap-2 mt-auto">
+                                            <Textarea placeholder="اكتب رسالتك هنا..." className="flex-grow resize-none" rows={1}/>
+                                            <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0">
+                                                <SendHorizonal className="h-5 w-5" />
+                                            </Button>
+                                        </div>
                                     </div>
 
                                     <div className="border-t pt-4 space-y-2">
@@ -300,7 +304,7 @@ export default function HistoryPage() {
         </Accordion>
       </div>
 
-      {/* E-Ticket Dialog */}
+      {/* E-Ticket Dialog (Legacy, can be removed if not used) */}
       <Dialog open={isTicketDialogOpen} onOpenChange={setIsTicketDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
