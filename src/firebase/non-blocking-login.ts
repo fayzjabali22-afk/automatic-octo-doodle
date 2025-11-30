@@ -35,15 +35,18 @@ export function initiateEmailSignUp(authInstance: Auth, email: string, password:
   });
 }
 
-/** Initiate email/password sign-in (non-blocking). */
-export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {
-  signInWithEmailAndPassword(authInstance, email, password)
-    .catch((error) => {
-        console.error("Sign-in error:", error);
-        toast({
-            variant: "destructive",
-            title: "فشل تسجيل الدخول",
-            description: "يرجى التحقق من بريدك الإلكتروني وكلمة المرور.",
-        });
+/** Initiate email/password sign-in (non-blocking). Returns a boolean indicating success. */
+export async function initiateEmailSignIn(authInstance: Auth, email: string, password: string): Promise<boolean> {
+  try {
+    await signInWithEmailAndPassword(authInstance, email, password);
+    return true;
+  } catch (error: any) {
+    console.error("Sign-in error:", error);
+    toast({
+        variant: "destructive",
+        title: "فشل تسجيل الدخول",
+        description: "يرجى التحقق من بريدك الإلكتروني وكلمة المرور.",
     });
+    return false;
+  }
 }

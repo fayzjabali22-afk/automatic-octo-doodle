@@ -52,16 +52,26 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
+  const onSubmit = async (data: LoginFormValues) => {
     if (!auth) return;
-    initiateEmailSignIn(auth, data.email, data.password);
+    
     toast({
       title: 'Logging in...',
-      description: 'You will be redirected shortly.',
+      description: 'Please wait.',
     });
-    // The onAuthStateChanged listener in the provider will handle the redirect
-    // but we can push a redirect as a fallback.
-    router.push('/dashboard');
+
+    const success = await initiateEmailSignIn(auth, data.email, data.password);
+
+    if (success) {
+      toast({
+        title: 'Logged In Successfully!',
+        description: 'You will be redirected shortly.',
+      });
+      // The onAuthStateChanged listener in the provider will handle the redirect
+      // but we can push a redirect as a fallback.
+      router.push('/dashboard');
+    }
+    // If not successful, the toast with the error is already shown inside initiateEmailSignIn
   };
 
   return (
