@@ -118,46 +118,46 @@ export default function HistoryPage() {
   return (
     <AppLayout>
       <div className="bg-[#130609] p-4 md:p-8 rounded-lg">
-        <div className="flex justify-start mb-4">
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5" />
-                    {notificationCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-4 w-4 justify-center p-0 text-xs">
-                        {notificationCount}
-                    </Badge>
-                    )}
-                </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>الإشعارات</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {notifications && notifications.length > 0 ? (
-                    notifications.map((notif) => (
-                    <DropdownMenuItem
-                        key={notif.id}
-                        className="flex flex-col items-start gap-1"
-                    >
-                        <p className="font-bold">{notif.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                        {notif.message}
-                        </p>
-                    </DropdownMenuItem>
-                    ))
-                ) : (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                    لا توجد إشعارات جديدة.
-                    </div>
-                )}
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
         <Card>
           <CardHeader>
-            <div>
-                <CardTitle>My Bookings</CardTitle>
-                <CardDescription>View and manage your current and past trip bookings.</CardDescription>
+            <div className="flex justify-between items-start">
+                <div>
+                    <CardTitle>My Bookings</CardTitle>
+                    <CardDescription>View and manage your current and past trip bookings.</CardDescription>
+                </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative">
+                        <Bell className="h-5 w-5" />
+                        {notificationCount > 0 && (
+                        <Badge className="absolute -top-1 -right-1 h-4 w-4 justify-center p-0 text-xs">
+                            {notificationCount}
+                        </Badge>
+                        )}
+                    </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-80">
+                    <DropdownMenuLabel>الإشعارات</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {notifications && notifications.length > 0 ? (
+                        notifications.map((notif) => (
+                        <DropdownMenuItem
+                            key={notif.id}
+                            className="flex flex-col items-start gap-1"
+                        >
+                            <p className="font-bold">{notif.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                            {notif.message}
+                            </p>
+                        </DropdownMenuItem>
+                        ))
+                    ) : (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                        لا توجد إشعارات جديدة.
+                        </div>
+                    )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
           </CardHeader>
           <CardContent>
