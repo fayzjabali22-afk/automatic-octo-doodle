@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LogOut, Settings, Menu } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { LogOut, Settings, Menu, Bell } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,8 +18,12 @@ import {
   useDoc,
   useFirestore,
   useMemoFirebase,
+  useCollection,
+  setDocumentNonBlocking,
 } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, collection, query, where } from 'firebase/firestore';
+import type { Notification } from '@/lib/data';
+import { Badge } from '@/components/ui/badge';
 
 const menuItems = [
   {
@@ -42,6 +46,7 @@ const mobileMenuItems = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
 
@@ -51,6 +56,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [firestore, user]);
 
   const { data: userProfile } = useDoc(userProfileRef);
+
+  const notificationsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/notifications`));
+  }, [firestore, user]);
+
+  const { data: notifications } = useCollection<Notification>(notificationsQuery);
+  const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
+  
+  const handleNotificationClick = (notification: Notification) => {
+    // Update the notification to be read
+    if (firestore && user && !notification.isRead) {
+        const notifRef = doc(firestore, `users/${user.uid}/notifications`, notification.id);
+        setDocumentNonBlocking(notifRef, { isRead: true }, { merge: true });
+    }
+    // Navigate if there's a link
+    if (notification.link) {
+        router.push(notification.link);
+    }
+  };
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -118,6 +144,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Desktop: Right Side Elements & Mobile: Far left user menu */}
         <div className="flex items-center gap-4">
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="h-5 w-5" />
+                    {unreadCount > 0 && <Badge className="absolute -top-1 -right-1 h-4 w-4 justify-center p-0 text-xs">{unreadCount}</Badge>}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuLabel>الإشعارات</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {notifications && notifications.length > 0 ? (
+                    notifications.map((notif) => (
+                      <DropdownMenuItem key={notif.id} onClick={() => handleNotificationClick(notif)} className={`flex flex-col items-start gap-1 ${!notif.isRead ? 'font-bold' : ''}`}>
+                        <p>{notif.title}</p>
+                        <p className="text-xs text-muted-foreground">{notif.message}</p>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-sm text-muted-foreground">لا توجد إشعارات جديدة.</div>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
           <div className="hidden md:flex">
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
