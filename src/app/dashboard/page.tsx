@@ -68,12 +68,7 @@ export default function DashboardPage() {
   const [searchSeats, setSearchSeats] = useState(1);
   const [searchCarrier, setSearchCarrier] = useState('');
 
-  const [searchMode, setSearchMode] = useState<'specific-carrier' | 'all-carriers'>('all-carriers');
-
-  // Quick Booking States
-  const [quickBookingOrigin, setQuickBookingOrigin] = useState('');
-  const [quickBookingDestination, setQuickBookingDestination] = useState('');
-  const [quickBookingSeats, setQuickBookingSeats] = useState(1);
+  const [searchMode, setSearchMode] = useState<'specific-carrier' | 'all-carriers'>('specific-carrier');
 
   const [activeFilters, setActiveFilters] = useState<{
     origin?: string;
@@ -83,7 +78,7 @@ export default function DashboardPage() {
   }>({});
 
   const tripsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user || searchMode === 'all-carriers') return null;
 
     let q = collection(firestore, 'trips');
     
@@ -109,18 +104,22 @@ export default function DashboardPage() {
 
   const { data: upcomingTrips, isLoading } = useCollection<Trip>(tripsQuery);
   
-  const handleSearch = () => {
-    const filters: typeof activeFilters = {};
-    if (searchOriginCity) filters.origin = searchOriginCity;
-    if (searchDestinationCity) filters.destination = searchDestinationCity;
-    if (searchSeats) filters.seats = searchSeats;
-    if (searchMode === 'specific-carrier' && searchCarrier) {
-        filters.carrierName = searchCarrier;
+  const handleSearchClick = () => {
+    if (searchMode === 'all-carriers') {
+      handleBookingRequest();
+    } else {
+      const filters: typeof activeFilters = {};
+      if (searchOriginCity) filters.origin = searchOriginCity;
+      if (searchDestinationCity) filters.destination = searchDestinationCity;
+      if (searchSeats) filters.seats = searchSeats;
+      if (searchMode === 'specific-carrier' && searchCarrier) {
+          filters.carrierName = searchCarrier;
+      }
+      setActiveFilters(filters);
     }
-    setActiveFilters(filters);
   };
 
-  const handleQuickBookingSubmit = async () => {
+  const handleBookingRequestSubmit = async () => {
     if (!user || !firestore) {
         toast({
             title: "يرجى تسجيل الدخول",
@@ -129,7 +128,7 @@ export default function DashboardPage() {
         });
         return;
     }
-    if (!quickBookingOrigin || !quickBookingDestination) {
+    if (!searchOriginCity || !searchDestinationCity) {
         toast({
             title: "بيانات غير مكتملة",
             description: "الرجاء اختيار مدينة الانطلاق والوصول.",
@@ -141,11 +140,11 @@ export default function DashboardPage() {
     const tripsCollection = collection(firestore, 'trips');
     addDocumentNonBlocking(tripsCollection, {
         userId: user.uid,
-        origin: quickBookingOrigin,
-        destination: quickBookingDestination,
-        passengers: quickBookingSeats,
+        origin: searchOriginCity,
+        destination: searchDestinationCity,
+        passengers: searchSeats,
         status: 'Awaiting-Offers',
-        departureDate: new Date().toISOString(), // Placeholder date
+        departureDate: date ? date.toISOString() : new Date().toISOString(),
     }).then(() => {
         toast({
             title: "تم إرسال طلبك بنجاح!",
@@ -161,7 +160,7 @@ export default function DashboardPage() {
         setIsDisclaimerOpen(true);
         return;
     }
-    handleQuickBookingSubmit();
+    handleBookingRequestSubmit();
   };
 
   return (
@@ -295,9 +294,12 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Action Button */}
-                  <Button onClick={handleSearch} size="lg" className="w-full justify-self-stretch sm:justify-self-end mt-2 bg-accent hover:bg-accent/90 text-accent-foreground">
-                    <Search className="ml-2 h-5 w-5" />
-                    البحث عن رحلة
+                  <Button onClick={handleSearchClick} size="lg" className="w-full justify-self-stretch sm:justify-self-end mt-2 bg-accent hover:bg-accent/90 text-accent-foreground">
+                    {searchMode === 'all-carriers' ? (
+                        <>إرسال طلب الحجز</>
+                    ) : (
+                        <><Search className="ml-2 h-5 w-5" /> البحث عن رحلة</>
+                    )}
                   </Button>
                 </div>
               </CardContent>
@@ -316,80 +318,23 @@ export default function DashboardPage() {
               ) : (
                 <div className="text-center text-muted-foreground py-12">
                   <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <p className="text-lg">{user ? 'لا توجد رحلات تطابق بحثك.' : 'يرجى تسجيل الدخول لعرض الرحلات المجدولة.'}</p>
-                   {searchMode === 'specific-carrier' && !isLoading && upcomingTrips?.length === 0 && (
-                     <Button onClick={() => alert('سيتم إرسال طلب لهذا الناقل المحدد')} className="mt-4">
-                        أرسل طلب حجز لهذا الناقل
-                     </Button>
+                   {searchMode === 'specific-carrier' && (
+                    <>
+                        <p className="text-lg">{user ? 'لا توجد رحلات تطابق بحثك.' : 'يرجى تسجيل الدخول لعرض الرحلات المجدولة.'}</p>
+                        {!isLoading && upcomingTrips?.length === 0 && (
+                            <Button onClick={() => alert('سيتم إرسال طلب لهذا الناقل المحدد')} className="mt-4">
+                                أرسل طلب حجز لهذا الناقل
+                            </Button>
+                        )}
+                        <p className="text-sm mt-2">{user ? 'جرّب البحث بمعايير مختلفة أو أرسل طلب حجز.' : 'يمكنك البحث عن رحلة أو نشر طلب حجز.'}</p>
+                    </>
                    )}
-                  <p className="text-sm mt-2">{user ? 'جرّب البحث بمعايير مختلفة أو أرسل طلب حجز.' : 'يمكنك البحث عن رحلة أو نشر طلب حجز.'}</p>
+                   {searchMode === 'all-carriers' && (
+                       <p className="text-lg">أرسل طلبك مباشرة إلى أفضل الناقلين.</p>
+                   )}
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Side Panel: Quick Booking */}
-          <div className="lg:w-[350px] lg:shrink-0 lg:sticky lg:top-8">
-            <Card className="w-full shadow-lg rounded-lg border-2 border-accent bg-card/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-2xl font-bold">
-                  حجز سريع
-                </CardTitle>
-                <CardDescription>
-                  أرسل طلبك مباشرة إلى أفضل الناقلين.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 md:p-6">
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="quick-origin">من</Label>
-                    <Select onValueChange={setQuickBookingOrigin} value={quickBookingOrigin}>
-                        <SelectTrigger id="quick-origin">
-                          <SelectValue placeholder="اختر مدينة الانطلاق" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.keys(cities).map((cityKey) => (
-                              <SelectItem key={cityKey} value={cityKey}>{cities[cityKey]}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="quick-destination">إلى</Label>
-                      <Select onValueChange={setQuickBookingDestination} value={quickBookingDestination}>
-                        <SelectTrigger id="quick-destination">
-                          <SelectValue placeholder="اختر مدينة الوصول" />
-                        </SelectTrigger>
-                        <SelectContent>
-                           {Object.keys(cities).map((cityKey) => (
-                              <SelectItem key={cityKey} value={cityKey}>{cities[cityKey]}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                  </div>
-                  <div className="grid gap-2">
-                      <Label htmlFor="quick-seats">عدد المقاعد</Label>
-                      <Select onValueChange={(val) => setQuickBookingSeats(parseInt(val))} value={String(quickBookingSeats)}>
-                        <SelectTrigger id="quick-seats">
-                          <SelectValue placeholder="اختر عدد المقاعد" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 9 }, (_, i) => i + 1).map(num => (
-                            <SelectItem key={num} value={String(num)}>{num}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex justify-end mt-4">
-                      <Button size="lg" onClick={handleBookingRequest}>
-                        إرسال طلب الحجز
-                      </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
@@ -400,3 +345,5 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
+
+    
