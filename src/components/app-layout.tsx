@@ -111,7 +111,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
   
   const handleDeleteAccount = async () => {
-    if (!user) {
+    if (!user || !auth) {
         toast({ variant: 'destructive', title: 'خطأ', description: 'لم يتم العثور على المستخدم.' });
         return;
     }
@@ -142,18 +142,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <DropdownMenuSeparator />
        <DropdownMenuItem asChild>
           <Link href="/profile" className='justify-end'>
+            <Settings className="ml-2 h-4 w-4" />
             <span>ملفي الشخصي</span>
-            <Settings className="mr-2 h-4 w-4" />
           </Link>
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={handleSignOut} className="text-yellow-500 focus:text-yellow-600 justify-end">
+        <LogOut className="ml-2 h-4 w-4" />
         <span>تسجيل الخروج</span>
-        <LogOut className="mr-2 h-4 w-4" />
       </DropdownMenuItem>
       <DropdownMenuItem onClick={() => setIsDeleteConfirmOpen(true)} className="text-red-500 focus:text-red-600 justify-end">
+        <Trash2 className="ml-2 h-4 w-4" />
         <span>حذف الحساب</span>
-        <Trash2 className="mr-2 h-4 w-4" />
       </DropdownMenuItem>
     </>
   );
