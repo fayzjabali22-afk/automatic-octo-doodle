@@ -1,4 +1,3 @@
-
 'use client';
 import { AppLayout } from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
@@ -253,7 +252,7 @@ export default function DashboardPage() {
                       <Select onValueChange={setQuickBookingDestination} value={quickBookingDestination}>
                         <SelectTrigger id="quick-destination">
                           <SelectValue placeholder="اختر مدينة الوصول" />
-                        </Trigger>
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="amman">عمّان</SelectItem>
                           <SelectItem value="damascus">دمشق</SelectItem>
@@ -265,7 +264,7 @@ export default function DashboardPage() {
                       <Select onValueChange={(val) => setQuickBookingSeats(parseInt(val))} value={String(quickBookingSeats)}>
                         <SelectTrigger id="quick-seats">
                           <SelectValue placeholder="اختر عدد المقاعد" />
-                        </Trigger>
+                        </SelectTrigger>
                         <SelectContent>
                           {Array.from({ length: 9 }, (_, i) => i + 1).map(num => (
                             <SelectItem key={num} value={String(num)}>{num}</SelectItem>
