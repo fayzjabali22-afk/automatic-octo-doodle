@@ -41,9 +41,9 @@ export default function DashboardPage() {
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
   const { toast } = useToast();
 
-  const [origin, setOrigin] = useState('');
-  const [destination, setDestination] = useState('');
-  const [seats, setSeats] = useState('1');
+  const [searchOrigin, setSearchOrigin] = useState('');
+  const [searchDestination, setSearchDestination] = useState('');
+  const [searchSeats, setSearchSeats] = useState('1');
   
   const [quickBookingOrigin, setQuickBookingOrigin] = useState('');
   const [quickBookingDestination, setQuickBookingDestination] = useState('');
@@ -51,7 +51,7 @@ export default function DashboardPage() {
 
 
   const tripsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null; // Do not query if user is not logged in
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'trips'));
   }, [firestore, user]);
 
@@ -124,7 +124,7 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="origin-city">من</Label>
-                      <Select onValueChange={setOrigin} value={origin}>
+                      <Select onValueChange={setSearchOrigin} value={searchOrigin}>
                         <SelectTrigger id="origin-city">
                           <SelectValue placeholder="اختر مدينة الانطلاق" />
                         </SelectTrigger>
@@ -138,7 +138,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="destination-city">إلى</Label>
-                      <Select onValueChange={setDestination} value={destination}>
+                      <Select onValueChange={setSearchDestination} value={searchDestination}>
                         <SelectTrigger id="destination-city">
                           <SelectValue placeholder="اختر مدينة الوصول" />
                         </SelectTrigger>
@@ -181,7 +181,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="seats">عدد المقاعد</Label>
-                      <Select onValueChange={setSeats} value={seats}>
+                      <Select onValueChange={setSearchSeats} value={searchSeats}>
                         <SelectTrigger id="seats">
                           <SelectValue placeholder="1" />
                         </SelectTrigger>
