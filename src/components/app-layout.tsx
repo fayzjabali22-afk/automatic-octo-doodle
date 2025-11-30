@@ -54,7 +54,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-50 flex h-16 items-center border-b bg-[#EDC17C] px-4 text-black md:px-6">
+      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-[#EDC17C] px-4 text-black md:px-6">
         {/* Mobile: Left side (Menu) */}
         <div className="flex items-center md:hidden">
           <Sheet>
@@ -99,10 +99,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </SheetContent>
           </Sheet>
         </div>
+        
+        {/* Center Section: Logo (visible on all screens) */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 text-lg font-semibold"
+          >
+            <img
+              src="https://i.postimg.cc/zvbhTsXV/Iwjw-sfryat.png"
+              alt="Safar Carrier Logo"
+              style={{ height: '110px', width: '145px' }}
+            />
+            <span className="sr-only">Safar Carrier</span>
+          </Link>
+        </div>
 
-        {/* Mobile: Center (User Menu) */}
-        <div className="flex flex-1 items-center justify-center gap-4 md:hidden">
-            <DropdownMenu>
+        {/* Desktop: Right Side Elements & Mobile: Far left user menu */}
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex">
+             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                     <Avatar>
@@ -120,7 +136,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </Avatar>
                 </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="center">
+                <DropdownMenuContent align="end">
                 <DropdownMenuLabel>
                     {userProfile?.firstName
                     ? `مرحباً، ${userProfile.firstName}`
@@ -148,72 +164,56 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
-        </div>
-
-
-        {/* Desktop: Left side (User Menu) */}
-        <div className="hidden items-center gap-4 md:flex">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar>
-                  {user?.photoURL && (
-                    <AvatarImage
-                      src={user.photoURL}
-                      alt={userProfile?.firstName || ''}
-                    />
-                  )}
-                  <AvatarFallback className="bg-primary/20 text-primary">
+          </div>
+          {/* Mobile User Menu (now on the far left) */}
+          <div className="flex items-center md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar>
+                    {user?.photoURL && (
+                        <AvatarImage
+                        src={user.photoURL}
+                        alt={userProfile?.firstName || ''}
+                        />
+                    )}
+                    <AvatarFallback className="bg-primary/20 text-primary">
+                        {userProfile?.firstName
+                        ? userProfile.firstName.charAt(0)
+                        : user?.email?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                    </Avatar>
+                </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                <DropdownMenuLabel>
                     {userProfile?.firstName
-                      ? userProfile.firstName.charAt(0)
-                      : user?.email?.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuLabel>
-                {userProfile?.firstName
-                  ? `مرحباً، ${userProfile.firstName}`
-                  : 'حسابي'}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/profile">
-                  <Settings className="ml-2 h-4 w-4" />
-                  <span>ملفي الشخصي</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/profile">
-                  <Settings className="ml-2 h-4 w-4" />
-                  <span>الإعدادات</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/login">
-                  <LogOut className="ml-2 h-4 w-4" />
-                  <span>تسجيل الخروج</span>
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Center Section: Logo (visible on all screens) */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-lg font-semibold"
-          >
-            <img
-              src="https://i.postimg.cc/zvbhTsXV/Iwjw-sfryat.png"
-              alt="Safar Carrier Logo"
-              style={{ height: '110px', width: '145px' }}
-            />
-            <span className="sr-only">Safar Carrier</span>
-          </Link>
+                    ? `مرحباً، ${userProfile.firstName}`
+                    : 'حسابي'}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                 <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                    <Settings className="ml-2 h-4 w-4" />
+                    <span>ملفي الشخصي</span>
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                    <Settings className="ml-2 h-4 w-4" />
+                    <span>الإعدادات</span>
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                    <Link href="/login">
+                    <LogOut className="ml-2 h-4 w-4" />
+                    <span>تسجيل الخروج</span>
+                    </Link>
+                </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 
