@@ -121,46 +121,46 @@ export default function DashboardPage() {
 
 
   useEffect(() => {
-    let trips: Trip[] = [];
+    let baseTrips: Trip[] = [];
     let shouldShowTrips = false;
 
+    // 1. Determine the base set of trips based on the search mode
     if (searchMode === 'specific-carrier') {
         if (selectedCarrierName) {
-            trips = allTrips.filter(trip => trip.carrierName === selectedCarrierName);
-            shouldShowTrips = true;
+            baseTrips = allTrips.filter(trip => trip.carrierName === selectedCarrierName);
+            shouldShowTrips = true; // Show trips as soon as a carrier is selected
         }
     } else { // 'all-carriers' mode
-        trips = [...allTrips];
-        // In "all-carriers" mode, we only show trips if a destination is selected.
-        if (searchDestinationCity) {
-            shouldShowTrips = true;
-        }
+        baseTrips = [...allTrips];
+        shouldShowTrips = true; // Always ready to show trips, filtering will reduce them
     }
 
-    // Common filtering logic for both modes, but applied conditionally
+    // 2. Apply filters if trips should be shown
+    let filteredTrips = shouldShowTrips ? [...baseTrips] : [];
+    
     if (shouldShowTrips) {
+        // Accordion filters: destination and seats
         if (searchDestinationCity) {
-            trips = trips.filter(trip => trip.destination === searchDestinationCity);
+            filteredTrips = filteredTrips.filter(trip => trip.destination === searchDestinationCity);
         }
         if (searchSeats > 0) {
-            trips = trips.filter(trip => trip.availableSeats >= searchSeats);
+            filteredTrips = filteredTrips.filter(trip => trip.availableSeats >= searchSeats);
         }
-        // These filters are not part of the accordion logic as per the new requirement
-        // if (searchOriginCity) {
-        //     trips = trips.filter(trip => trip.origin === searchOriginCity);
-        // }
-        // if (date) {
-        //     trips = trips.filter(trip => new Date(trip.departureDate).toDateString() === date.toDateString());
-        // }
-        // if (searchMode === 'all-carriers' && searchVehicleType !== 'all') {
-        //   trips = trips.filter(trip => trip.vehicleCategory === searchVehicleType);
-        // }
-    } else {
-        trips = []; // If conditions to show aren't met, ensure trips array is empty
+        
+        // General filters (not tied to accordion logic, but still apply)
+        if (searchOriginCity) {
+            filteredTrips = filteredTrips.filter(trip => trip.origin === searchOriginCity);
+        }
+        if (date) {
+            filteredTrips = filteredTrips.filter(trip => new Date(trip.departureDate).toDateString() === date.toDateString());
+        }
+        if (searchMode === 'all-carriers' && searchVehicleType !== 'all') {
+          filteredTrips = filteredTrips.filter(trip => trip.vehicleCategory === searchVehicleType);
+        }
     }
     
-    // Grouping by date
-    const grouped = trips.reduce((acc: GroupedTrips, trip) => {
+    // 3. Group the final filtered trips by date
+    const grouped = filteredTrips.reduce((acc: GroupedTrips, trip) => {
         const tripDate = new Date(trip.departureDate).toISOString().split('T')[0]; // YYYY-MM-DD
         if (!acc[tripDate]) {
             acc[tripDate] = [];
@@ -169,7 +169,7 @@ export default function DashboardPage() {
         return acc;
     }, {});
     
-    // Sort dates
+    // 4. Sort dates and set state
     const sortedDates = Object.keys(grouped).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
     const sortedGroupedTrips: GroupedTrips = {};
     sortedDates.forEach(date => {
@@ -178,13 +178,14 @@ export default function DashboardPage() {
 
     setGroupedAndFilteredTrips(sortedGroupedTrips);
     
-    if (shouldShowTrips && sortedDates.length > 0) {
+    // 5. Determine which accordion item should be open
+    if (sortedDates.length > 0) {
         setOpenAccordion(sortedDates[0]); // Open the first date by default
     } else {
         setOpenAccordion(undefined);
     }
 
-  }, [searchDestinationCity, searchSeats, allTrips, searchMode, selectedCarrierName]);
+  }, [searchOriginCity, searchDestinationCity, searchSeats, date, allTrips, searchMode, selectedCarrierName, searchVehicleType]);
 
 
   const handleMainActionButtonClick = () => {
@@ -249,8 +250,8 @@ export default function DashboardPage() {
     handleBookingRequestSubmit();
   };
 
-  const showFilterMessage = searchMode === 'specific-carrier' && selectedCarrierName;
-  const showAllCarriersMessage = searchMode === 'all-carriers' && searchDestinationCity;
+  const showFilterMessage = searchMode === 'specific-carrier' && selectedCarrierName && Object.keys(groupedAndFilteredTrips).length > 0;
+  const showAllCarriersMessage = searchMode === 'all-carriers' && Object.keys(groupedAndFilteredTrips).length > 0;
 
   const sortedTripDates = Object.keys(groupedAndFilteredTrips);
 
@@ -499,7 +500,7 @@ export default function DashboardPage() {
                     </>
                    )}
                    {searchMode === 'all-carriers' && (
-                       <p className="text-lg">{isLoading ? 'جاري التحميل...' : 'لا توجد رحلات مجدولة تطابق بحثك. الرجاء اختيار مدينة الوصول أولاً.'}</p>
+                       <p className="text-lg">{isLoading ? 'جاري التحميل...' : 'لا توجد رحلات مجدولة تطابق بحثك. جرّب تغيير فلاتر البحث.'}</p>
                    )}
                 </div>
               )}
