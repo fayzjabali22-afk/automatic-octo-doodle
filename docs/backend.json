@@ -32,8 +32,7 @@
         "id",
         "firstName",
         "lastName",
-        "email",
-        "phoneNumber"
+        "email"
       ]
     },
     "Trip": {
