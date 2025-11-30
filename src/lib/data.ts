@@ -19,6 +19,7 @@ export type Trip = {
   status: 'Planned' | 'In-Transit' | 'Completed' | 'Cancelled' | 'Awaiting-Offers';
   cargoDetails: string;
   vehicleType: string;
+  vehicleCategory: 'small' | 'bus';
   vehicleModelYear: number;
   availableSeats: number;
   passengers?: number;
@@ -55,6 +56,7 @@ export const tripHistory: Trip[] = [
     status: 'Planned',
     cargoDetails: 'Electronics',
     vehicleType: 'GMC Yukon',
+    vehicleCategory: 'small',
     vehicleModelYear: 2023,
     availableSeats: 3,
   },
@@ -69,6 +71,7 @@ export const tripHistory: Trip[] = [
     status: 'Planned',
     cargoDetails: 'Textiles',
     vehicleType: 'Mercedes-Benz Sprinter',
+    vehicleCategory: 'bus',
     vehicleModelYear: 2022,
     availableSeats: 8,
   },
@@ -83,6 +86,7 @@ export const tripHistory: Trip[] = [
     status: 'Planned',
     cargoDetails: 'Building Materials',
     vehicleType: 'Toyota HiAce',
+    vehicleCategory: 'bus',
     vehicleModelYear: 2024,
     availableSeats: 5,
   },
@@ -97,6 +101,7 @@ export const tripHistory: Trip[] = [
     status: 'Planned',
     cargoDetails: 'Furniture',
     vehicleType: 'Hyundai Staria',
+    vehicleCategory: 'small',
     vehicleModelYear: 2023,
     availableSeats: 6,
   },
@@ -111,6 +116,7 @@ export const tripHistory: Trip[] = [
     status: 'Planned',
     cargoDetails: 'Personal Belongings',
     vehicleType: 'GMC Yukon',
+    vehicleCategory: 'small',
     vehicleModelYear: 2023,
     availableSeats: 2,
   },
@@ -125,6 +131,7 @@ export const tripHistory: Trip[] = [
     status: 'Planned',
     cargoDetails: 'Documents',
     vehicleType: 'GMC Yukon',
+    vehicleCategory: 'small',
     vehicleModelYear: 2023,
     availableSeats: 7,
   },
@@ -139,6 +146,7 @@ export const tripHistory: Trip[] = [
     status: 'Planned',
     cargoDetails: 'General Goods',
     vehicleType: 'Mercedes-Benz Sprinter',
+    vehicleCategory: 'bus',
     vehicleModelYear: 2022,
     availableSeats: 1,
   },
@@ -153,6 +161,7 @@ export const tripHistory: Trip[] = [
     status: 'Planned',
     cargoDetails: 'Luggage',
     vehicleType: 'Mercedes-Benz Sprinter',
+    vehicleCategory: 'bus',
     vehicleModelYear: 2022,
     availableSeats: 10,
   },
@@ -167,6 +176,7 @@ export const tripHistory: Trip[] = [
     status: 'Planned',
     cargoDetails: 'Spices',
     vehicleType: 'Ford Transit',
+    vehicleCategory: 'bus',
     vehicleModelYear: 2021,
     availableSeats: 4,
   },
@@ -181,8 +191,10 @@ export const tripHistory: Trip[] = [
     status: 'Planned',
     cargoDetails: 'Medical Supplies',
     vehicleType: 'Ford Transit',
+    vehicleCategory: 'bus',
     vehicleModelYear: 2021,
     availableSeats: 6,
   }
 ];
 
+    

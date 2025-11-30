@@ -28,6 +28,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useCollection, useFirestore, useUser, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
@@ -73,6 +74,7 @@ export default function DashboardPage() {
   const [searchSeats, setSearchSeats] = useState(1);
   const [carrierSearchInput, setCarrierSearchInput] = useState('');
   const [selectedCarrierName, setSelectedCarrierName] = useState<string | null>(null);
+  const [searchVehicleType, setSearchVehicleType] = useState('all');
 
   const [searchMode, setSearchMode] = useState<'specific-carrier' | 'all-carriers'>('specific-carrier');
 
@@ -125,6 +127,10 @@ export default function DashboardPage() {
         trips = allTrips.filter(trip => trip.carrierName === selectedCarrierName);
     } else { // 'all-carriers'
         trips = [...allTrips];
+         // Filter by vehicle type
+        if (searchVehicleType !== 'all') {
+          trips = trips.filter(trip => trip.vehicleCategory === searchVehicleType);
+        }
     }
 
     // Filter by origin
@@ -168,7 +174,7 @@ export default function DashboardPage() {
 
     setFilteredTrips(trips);
 
-  }, [selectedCarrierName, searchOriginCity, searchDestinationCity, searchSeats, date, allTrips, searchMode]);
+  }, [selectedCarrierName, searchOriginCity, searchDestinationCity, searchSeats, date, allTrips, searchMode, searchVehicleType]);
 
   const tripsToDisplay = filteredTrips;
   
@@ -292,6 +298,31 @@ export default function DashboardPage() {
                             <Search className="h-4 w-4" />
                         </Button>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Vehicle Type Radio Group (Only for all-carriers mode) */}
+                  {searchMode === 'all-carriers' && (
+                    <div className="grid gap-2">
+                      <Label>نوع وسيلة النقل</Label>
+                      <RadioGroup
+                        defaultValue="all"
+                        className="flex items-center gap-4"
+                        onValueChange={setSearchVehicleType}
+                      >
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          <RadioGroupItem value="all" id="r-all" />
+                          <Label htmlFor="r-all">المتوفر</Label>
+                        </div>
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          <RadioGroupItem value="small" id="r-small" />
+                          <Label htmlFor="r-small">مركبة صغيرة</Label>
+                        </div>
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          <RadioGroupItem value="bus" id="r-bus" />
+                          <Label htmlFor="r-bus">حافلة</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
                   )}
 
@@ -451,3 +482,5 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
+
+    
