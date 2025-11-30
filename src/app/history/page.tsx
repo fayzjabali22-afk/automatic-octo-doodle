@@ -101,10 +101,10 @@ export default function HistoryPage() {
   useEffect(() => {
     if (isLoadingAwaiting || isLoadingConfirmed) return;
     
-    if (hasAwaitingOffers) {
-        setOpenAccordion('awaiting');
-    } else if (confirmedTrips && confirmedTrips.length > 0) {
+    if (confirmedTrips && confirmedTrips.length > 0) {
         setOpenAccordion('confirmed');
+    } else if (hasAwaitingOffers) {
+        setOpenAccordion('awaiting');
     } else {
         setOpenAccordion(undefined);
     }
@@ -169,58 +169,49 @@ export default function HistoryPage() {
         </Card>
 
         <Accordion type="single" collapsible className="w-full space-y-6" value={openAccordion} onValueChange={setOpenAccordion}>
-          <AccordionItem value="awaiting" className="border-none">
-            <Card>
-              <AccordionTrigger className="p-6 text-lg hover:no-underline data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed" disabled={!hasAwaitingOffers}>
-                <div className='flex items-center gap-2'><PackageOpen className="h-6 w-6 text-primary" /><CardTitle>عروض الناقلين</CardTitle></div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <CardContent>
-                  <CardDescription className="mb-4">
-                    {hasAwaitingOffers 
-                      ? 'هنا تظهر العروض التي أرسلها الناقلون لطلبك. قارن بينها واختر الأنسب لك.'
-                      : 'ليس لديك أي عروض جديدة في الوقت الحالي. سيتم إشعارك فور وصول أول عرض.'
-                    }
-                  </CardDescription>
-                  {hasAwaitingOffers ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {dummyOffers.map(offer => (
-                            <Card key={offer.id} className="w-full shadow-md hover:shadow-primary/20 transition-shadow">
-                                <CardContent className="p-4 grid gap-3">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-bold text-lg">{offer.carrierName}</p>
-                                            <div className="flex items-center text-sm text-muted-foreground">
-                                                <Star className="w-4 h-4 ml-1 text-yellow-400 fill-yellow-400" />
-                                                {offer.rating}
-                                            </div>
-                                        </div>
-                                        <div className="text-left">
-                                            <p className="font-bold text-xl text-primary">{offer.price} ريال</p>
-                                            <p className="text-xs text-muted-foreground">العربون: {offer.downPayment} ريال</p>
-                                        </div>
-                                    </div>
-                                    <div className="border-t border-border/60 my-2"></div>
-                                    <div>
-                                        <p className="text-sm"><span className="font-semibold">المركبة:</span> {offer.vehicle}</p>
-                                        <p className="text-sm"><span className="font-semibold">موعد الانطلاق:</span> {new Date(offer.departureDate).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' })}</p>
-                                    </div>
-                                    <Button className="w-full mt-2">قبول الحجز</Button>
-                                </CardContent>
-                            </Card>
-                          ))}
-                      </div>
-                  ) : (
-                      <div className="text-center text-muted-foreground py-8">
-                          <Ship className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-                          <p className="text-lg">لم تصل أي عروض بعد</p>
-                          <p className="text-sm mt-2">سيتم إشعارك فور وصول أول عرض.</p>
-                      </div>
-                  )}
-                </CardContent>
-              </AccordionContent>
-            </Card>
-          </AccordionItem>
+          {hasAwaitingOffers && (
+            <AccordionItem value="awaiting" className="border-none">
+              <Card>
+                <AccordionTrigger className="p-6 text-lg hover:no-underline">
+                  <div className='flex items-center gap-2'><PackageOpen className="h-6 w-6 text-primary" /><CardTitle>عروض الناقلين</CardTitle></div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <CardContent>
+                    <CardDescription className="mb-4">
+                      هنا تظهر العروض التي أرسلها الناقلون لطلبك. قارن بينها واختر الأنسب لك.
+                    </CardDescription>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {dummyOffers.map(offer => (
+                          <Card key={offer.id} className="w-full shadow-md hover:shadow-primary/20 transition-shadow">
+                              <CardContent className="p-4 grid gap-3">
+                                  <div className="flex justify-between items-start">
+                                      <div>
+                                          <p className="font-bold text-lg">{offer.carrierName}</p>
+                                          <div className="flex items-center text-sm text-muted-foreground">
+                                              <Star className="w-4 h-4 ml-1 text-yellow-400 fill-yellow-400" />
+                                              {offer.rating}
+                                          </div>
+                                      </div>
+                                      <div className="text-left">
+                                          <p className="font-bold text-xl text-primary">{offer.price} ريال</p>
+                                          <p className="text-xs text-muted-foreground">العربون: {offer.downPayment} ريال</p>
+                                      </div>
+                                  </div>
+                                  <div className="border-t border-border/60 my-2"></div>
+                                  <div>
+                                      <p className="text-sm"><span className="font-semibold">المركبة:</span> {offer.vehicle}</p>
+                                      <p className="text-sm"><span className="font-semibold">موعد الانطلاق:</span> {new Date(offer.departureDate).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                                  </div>
+                                  <Button className="w-full mt-2">قبول الحجز</Button>
+                              </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  </CardContent>
+                </AccordionContent>
+              </Card>
+            </AccordionItem>
+          )}
           
           {isLoadingConfirmed ? renderSkeleton() : (
             confirmedTrips && confirmedTrips.length > 0 && (
@@ -243,7 +234,7 @@ export default function HistoryPage() {
                            </CardHeader>
                            <CardContent className="grid md:grid-cols-2 gap-4 md:gap-6 p-0 md:p-6">
                                 {/* Left Column: E-Ticket */}
-                                <div className="p-4 border-b md:border md:rounded-lg bg-background/30 space-y-3">
+                                <div className="p-4 md:border md:rounded-lg bg-background/30 space-y-3">
                                     <h3 className="font-bold border-b pb-2 mb-3">التذكرة الإلكترونية</h3>
                                     <p><strong>الناقل:</strong> {trip.carrierName}</p>
                                     <p><strong>وقت الحجز:</strong> {new Date().toLocaleDateString('ar-SA')}</p>
@@ -339,6 +330,8 @@ export default function HistoryPage() {
     </AppLayout>
   );
     
+    
+
     
 
     
