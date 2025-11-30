@@ -218,13 +218,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Secondary Navigation Header */}
-      <nav className="sticky top-16 z-40 hidden h-12 items-center justify-center gap-8 border-b bg-card/80 px-6 backdrop-blur-sm md:flex">
+      <nav className="sticky top-16 z-40 hidden h-12 items-center justify-center gap-8 border-b border-b-white bg-[#EDC17C] px-6 md:flex">
         {menuItems.map((item) => (
           <Link
             key={item.label}
             href={item.href}
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              pathname === item.href ? 'text-primary' : 'text-muted-foreground'
+            className={`text-sm font-medium text-black transition-colors hover:text-gray-700 ${
+              pathname === item.href ? 'underline' : ''
             }`}
           >
             {item.label}
