@@ -128,7 +128,7 @@ export default function HistoryPage() {
     </div>
   );
 
-  const TripList = ({ trips, onActionClick, actionLabel, noDataMessage, getActionLabel }: { trips: Trip[] | null, onActionClick: (trip: Trip) => void, actionLabel?: string, noDataMessage: string, getActionLabel?: (trip: Trip) => string }) => {
+  const TripList = ({ trips, onActionClick, noDataMessage, getActionLabel }: { trips: Trip[] | null, onActionClick: (trip: Trip) => void, noDataMessage: string, getActionLabel: (trip: Trip) => string }) => {
     if (isLoadingAwaiting || isLoadingConfirmed) return renderSkeleton();
     if (!trips || trips.length === 0) return <p className="text-center text-muted-foreground py-4">{noDataMessage}</p>;
     
@@ -148,7 +148,7 @@ export default function HistoryPage() {
                 <div className="flex justify-between items-center pt-2">
                   <p className="text-sm">المغادرة: {new Date(trip.departureDate).toLocaleDateString()}</p>
                   <Button variant="outline" size="sm" onClick={() => onActionClick(trip)}>
-                    {getActionLabel ? getActionLabel(trip) : actionLabel}
+                    {getActionLabel(trip)}
                   </Button>
                 </div>
               </CardContent>
@@ -158,7 +158,7 @@ export default function HistoryPage() {
     );
   };
 
-  const TripTable = ({ trips, onActionClick, actionLabel, noDataMessage, getActionLabel }: { trips: Trip[] | null, onActionClick: (trip: Trip) => void, actionLabel?: string, noDataMessage: string, getActionLabel?: (trip: Trip) => string }) => {
+  const TripTable = ({ trips, onActionClick, noDataMessage, getActionLabel }: { trips: Trip[] | null, onActionClick: (trip: Trip) => void, noDataMessage: string, getActionLabel: (trip: Trip) => string }) => {
     if (isLoadingAwaiting || isLoadingConfirmed) {
         return (
             <div className="hidden md:block border rounded-lg">
@@ -219,7 +219,7 @@ export default function HistoryPage() {
                     <TableCell><Badge variant={statusVariantMap[trip.status] || 'outline'}>{statusMap[trip.status] || trip.status}</Badge></TableCell>
                     <TableCell>
                         <Button variant="outline" size="sm" onClick={() => onActionClick(trip)}>
-                            {getActionLabel ? getActionLabel(trip) : actionLabel}
+                            {getActionLabel(trip)}
                         </Button>
                     </TableCell>
                     </TableRow>
@@ -230,15 +230,23 @@ export default function HistoryPage() {
         </div>
     );
   };
+  
+    const getConfirmedTripActionLabel = (trip: Trip): string => {
+        if (trip.status === 'Completed') {
+            return 'إغلاق الرحلة';
+        }
+        // For passenger, 'Planned' and 'In-Transit' both mean "Follow-up"
+        return 'متابعة الرحلة';
+    };
+    
+    const getAwaitingTripActionLabel = (): string => {
+        return "استعراض العروض";
+    };
 
-  const getConfirmedTripActionLabel = (trip: Trip): string => {
-    if (trip.status === 'Completed') {
-      return 'إغلاق الرحلة';
-    }
-    return 'متابعة الرحلة';
-  };
 
   if (isUserLoading) return <AppLayout>{renderSkeleton()}</AppLayout>;
+
+  const hasAwaitingTrips = awaitingTrips && awaitingTrips.length > 0;
 
   return (
     <AppLayout>
@@ -277,16 +285,16 @@ export default function HistoryPage() {
         </Card>
 
         <Accordion type="single" collapsible className="w-full space-y-6" value={openAccordion} onValueChange={setOpenAccordion}>
-          <AccordionItem value="awaiting" className="border-none">
+          <AccordionItem value="awaiting" className="border-none" disabled={!hasAwaitingTrips}>
             <Card>
-              <AccordionTrigger className="p-6 text-lg hover:no-underline">
+              <AccordionTrigger className="p-6 text-lg hover:no-underline data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed">
                 <div className='flex items-center gap-2'><PackageOpen className="h-6 w-6 text-primary" /><CardTitle>طلباتي المعلقة</CardTitle></div>
               </AccordionTrigger>
               <AccordionContent>
                 <CardContent>
                   <CardDescription className="mb-4">هنا تظهر طلباتك التي قمت بنشرها وتنتظر عروضاً من الناقلين.</CardDescription>
-                  <TripList trips={awaitingTrips} onActionClick={handleOpenOffers} actionLabel="استعراض العروض" noDataMessage="ليس لديك طلبات تبحث عن ناقل." />
-                  <TripTable trips={awaitingTrips} onActionClick={handleOpenOffers} actionLabel="استعراض العروض" noDataMessage="ليس لديك طلبات تبحث عن ناقل." />
+                  <TripList trips={awaitingTrips} onActionClick={handleOpenOffers} getActionLabel={() => getAwaitingTripActionLabel()} noDataMessage="ليس لديك طلبات تبحث عن ناقل." />
+                  <TripTable trips={awaitingTrips} onActionClick={handleOpenOffers} getActionLabel={() => getAwaitingTripActionLabel()} noDataMessage="ليس لديك طلبات تبحث عن ناقل." />
                 </CardContent>
               </AccordionContent>
             </Card>
