@@ -91,7 +91,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
           <div className="flex-1">
-            <img src="https://i.postimg.cc/zvbhTsXV/Iwjw-sfryat.png" alt="Safar Carrier Logo" style={{ height: '60px', width: '140px' }} />
+            <img src="https://i.postimg.cc/zvbhTsXV/Iwjw-sfryat.png" alt="Safar Carrier Logo" style={{ height: '80px', width: '140px' }} />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
