@@ -118,12 +118,7 @@ export default function HistoryPage() {
   return (
     <AppLayout>
       <div className="bg-[#130609] p-4 md:p-8 rounded-lg">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-                <CardTitle>My Bookings</CardTitle>
-                <CardDescription>View and manage your current and past trip bookings.</CardDescription>
-            </div>
+        <div className="flex justify-end mb-4">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
@@ -157,6 +152,13 @@ export default function HistoryPage() {
                 )}
                 </DropdownMenuContent>
             </DropdownMenu>
+        </div>
+        <Card>
+          <CardHeader>
+            <div>
+                <CardTitle>My Bookings</CardTitle>
+                <CardDescription>View and manage your current and past trip bookings.</CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
             {/* For larger screens, use a table */}
