@@ -18,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Trip } from '@/lib/data';
 import { TripCard } from '@/components/trip-card';
 import { Calendar } from "@/components/ui/calendar"
@@ -70,12 +70,7 @@ export default function DashboardPage() {
 
   const [searchMode, setSearchMode] = useState<'specific-carrier' | 'all-carriers'>('specific-carrier');
 
-  const [activeFilters, setActiveFilters] = useState<{
-    origin?: string;
-    destination?: string;
-    seats?: number;
-    carrierName?: string;
-  }>({});
+  const [filteredTrips, setFilteredTrips] = useState<Trip[] | null>(null);
   
   // Reset city when country changes
   useEffect(() => {
@@ -88,44 +83,81 @@ export default function DashboardPage() {
 
 
   const tripsQuery = useMemoFirebase(() => {
-    if (!firestore || !user || searchMode === 'all-carriers') return null;
+    if (!firestore || !user || searchMode !== 'specific-carrier' || !searchCarrier) return null;
 
-    let q = collection(firestore, 'trips');
-    
-    const constraints = [];
-    if (activeFilters.origin) {
-      constraints.push(where('origin', '==', activeFilters.origin));
-    }
-    if (activeFilters.destination) {
-      constraints.push(where('destination', '==', activeFilters.destination));
-    }
-    if (activeFilters.seats && activeFilters.seats > 0) {
-      constraints.push(where('availableSeats', '>=', activeFilters.seats));
-    }
-     if (searchMode === 'specific-carrier' && activeFilters.carrierName) {
-      constraints.push(where('carrierName', '==', activeFilters.carrierName));
-    }
-    
-    // Always apply a filter for status to not show 'Awaiting-Offers'
-    constraints.push(where('status', '!=', 'Awaiting-Offers'));
-    
-    return query(q, ...constraints);
-  }, [firestore, user, activeFilters, searchMode]);
+    return query(
+        collection(firestore, 'trips'),
+        where('carrierName', '==', searchCarrier),
+        where('status', '!=', 'Awaiting-Offers')
+    );
+  }, [firestore, user, searchMode, searchCarrier]);
 
   const { data: upcomingTrips, isLoading } = useCollection<Trip>(tripsQuery);
+
+  useEffect(() => {
+    if (searchMode !== 'specific-carrier' || !upcomingTrips) {
+        setFilteredTrips(null); // Clear filtered trips if not in specific carrier mode or no data
+        return;
+    }
+
+    let trips = [...upcomingTrips];
+
+    // Filter by origin
+    if (searchOriginCity) {
+        trips = trips.filter(trip => trip.origin === searchOriginCity);
+    }
+    // Filter by destination
+    if (searchDestinationCity) {
+        trips = trips.filter(trip => trip.destination === searchDestinationCity);
+    }
+    // Filter by available seats
+    if (searchSeats > 0) {
+        trips = trips.filter(trip => trip.availableSeats >= searchSeats);
+    }
+    // Filter and sort by date
+    if (date) {
+        const selectedDate = new Date(date.setHours(0,0,0,0));
+        trips = trips.filter(trip => {
+            const tripDate = new Date(new Date(trip.departureDate).setHours(0,0,0,0));
+            return tripDate.getTime() === selectedDate.getTime();
+        });
+    }
+
+    // Sort to bring more relevant trips to the top
+    trips.sort((a, b) => {
+        // Prioritize trips with enough seats
+        const aHasSeats = a.availableSeats >= searchSeats;
+        const bHasSeats = b.availableSeats >= searchSeats;
+        if (aHasSeats !== bHasSeats) return aHasSeats ? -1 : 1;
+
+        // Prioritize by date if selected
+        if (date) {
+            const aDateMatch = new Date(new Date(a.departureDate).setHours(0,0,0,0)).getTime() === new Date(date.setHours(0,0,0,0)).getTime();
+            const bDateMatch = new Date(new Date(b.departureDate).setHours(0,0,0,0)).getTime() === new Date(date.setHours(0,0,0,0)).getTime();
+            if (aDateMatch !== bDateMatch) return aDateMatch ? -1 : 1;
+        }
+
+        // Default sort by departure date
+        return new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime();
+    });
+
+    setFilteredTrips(trips);
+
+  }, [searchOriginCity, searchDestinationCity, searchSeats, date, upcomingTrips, searchMode]);
+
+  const tripsToDisplay = searchMode === 'specific-carrier' ? filteredTrips : [];
   
   const handleSearchClick = () => {
     if (searchMode === 'all-carriers') {
       handleBookingRequest();
     } else {
-      const filters: typeof activeFilters = {};
-      if (searchOriginCity) filters.origin = searchOriginCity;
-      if (searchDestinationCity) filters.destination = searchDestinationCity;
-      if (searchSeats) filters.seats = searchSeats;
-      if (searchMode === 'specific-carrier' && searchCarrier) {
-          filters.carrierName = searchCarrier;
-      }
-      setActiveFilters(filters);
+      // This button is now for submitting a NEW trip request to a SPECIFIC carrier
+      // if no suitable trips are found.
+      toast({
+          title: "جاري إرسال الطلب...",
+          description: `سيتم إرسال طلبك إلى ${searchCarrier}.`,
+      });
+      // Placeholder for sending a direct request to a carrier
     }
   };
 
@@ -172,6 +204,8 @@ export default function DashboardPage() {
     }
     handleBookingRequestSubmit();
   };
+
+  const showFilterMessage = searchMode === 'specific-carrier' && searchCarrier && upcomingTrips && upcomingTrips.length > 0;
 
   return (
     <AppLayout>
@@ -304,6 +338,13 @@ export default function DashboardPage() {
                       </Select>
                     </div>
                   </div>
+                  
+                  {showFilterMessage && (
+                    <div className="mt-2 text-center text-sm text-accent bg-accent/10 p-2 rounded-md border border-accent/30">
+                        تم عرض رحلات الناقل المجدولة. يمكنك استخدام الحقول أعلاه لتصفية النتائج أو إرسال طلب جديد.
+                    </div>
+                  )}
+
 
                   {/* Action Button */}
                   <Button onClick={handleSearchClick} size="lg" className="w-full justify-self-stretch sm:justify-self-end mt-2 bg-accent hover:bg-accent/90 text-accent-foreground">
@@ -320,10 +361,11 @@ export default function DashboardPage() {
             {/* Upcoming Scheduled Trips */}
             <div className="mt-12">
               <h2 className="text-2xl font-bold mb-4">الرحلات المجدولة القادمة</h2>
-              {isLoading && <p>جاري تحميل الرحلات...</p>}
-              {!isLoading && user && upcomingTrips && upcomingTrips.length > 0 ? (
+              {(isLoading && searchMode === 'specific-carrier') && <p>جاري تحميل رحلات الناقل...</p>}
+              
+              {!isLoading && user && tripsToDisplay && tripsToDisplay.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {upcomingTrips.map(trip => (
+                  {tripsToDisplay.map(trip => (
                     <TripCard key={trip.id} trip={trip} />
                   ))}
                 </div>
@@ -332,12 +374,16 @@ export default function DashboardPage() {
                   <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
                    {searchMode === 'specific-carrier' && (
                     <>
-                        <p className="text-lg">{user ? 'لا توجد رحلات تطابق بحثك.' : 'يرجى تسجيل الدخول لعرض الرحلات المجدولة.'}</p>
-                        <p className="text-sm mt-2">{user ? 'جرّب البحث بمعايير مختلفة أو بدّل إلى وضع "كل الناقلين" لإرسال طلب.' : 'يمكنك البحث عن رحلة أو نشر طلب حجز.'}</p>
+                        <p className="text-lg">
+                            {isLoading ? 'جاري التحميل...' : (searchCarrier ? 'لا توجد رحلات مجدولة تطابق بحثك لهذا الناقل.' : 'الرجاء إدخال اسم الناقل لعرض رحلاته.')}
+                        </p>
+                        <p className="text-sm mt-2">
+                           {searchCarrier ? 'جرّب تغيير فلاتر البحث أو أرسل طلبًا جديدًا لهذا الناقل.' : 'يمكنك أيضًا التبديل إلى وضع "كل الناقلين" لإرسال طلب للجميع.'}
+                        </p>
                     </>
                    )}
                    {searchMode === 'all-carriers' && (
-                       <p className="text-lg">املأ بيانات رحلتك ثم اضغط "إرسال طلب الحجز" ليصل لجميع الناقلين.</p>
+                       <p className="text-lg">املأ بيانات رحلتك ثم اضغط "البحث عن مناقص ناقلين" ليصل طلبك لجميع الناقلين.</p>
                    )}
                 </div>
               )}
@@ -352,3 +398,5 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
+
+    
