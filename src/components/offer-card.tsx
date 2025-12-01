@@ -97,7 +97,7 @@ export function OfferCard({ offer, trip, onAccept }: OfferCardProps) {
               )}
             </CardContent>
             <CardFooter className="flex p-2 bg-background/30">
-                <Button size="lg" className="w-full bg-green-600 hover:bg-green-700" onClick={handleAcceptClick}>
+                <Button size="lg" className="w-full bg-green-600 hover:bg-green-700 border-2 border-white" onClick={handleAcceptClick}>
                     <ThumbsUp className="ml-2 h-4 w-4" />
                     قبول وتأكيد الحجز
                 </Button>
