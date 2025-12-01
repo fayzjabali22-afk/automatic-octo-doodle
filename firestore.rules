@@ -23,15 +23,15 @@ service cloud.firestore {
     match /trips/{tripId} {
       allow read, list: if true;
       allow create: if isOwner(request.resource.data.userId);
-      allow update, delete: if isOwner(resource.data.userId);
+      // Allow the user who owns the trip to update it (e.g. to add a booking ID)
+      allow update: if isOwner(resource.data.userId);
+      allow delete: if isOwner(resource.data.userId);
 
-      // --- New Rules for Offers Subcollection ---
       match /offers/{offerId} {
         // The user who created the trip can read the offers.
         allow read, list: if isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.userId);
         
         // Any authenticated user can create an offer (we'll assume this is a carrier).
-        // This can be tightened later by adding a 'carrier' role.
         allow create: if isSignedIn();
         
         // Only the user who created the trip can accept/reject an offer (update status).
@@ -42,7 +42,12 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
-      allow read, create: if isSignedIn();
+      // Allow signed-in user to create their own booking.
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      // Allow user to read or delete their own booking (for cancellation).
+      allow read, delete: if isSignedIn() && isOwner(resource.data.userId);
+      // Allow carrier to update the booking (e.g., to confirm it).
+      allow update: if isSignedIn() && isOwner(resource.data.carrierId);
     }
     
     match /users/{userId}/notifications/{notificationId} {
