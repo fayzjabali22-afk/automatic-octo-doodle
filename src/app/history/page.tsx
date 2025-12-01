@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from '@/components/app-layout';
 import {
@@ -221,9 +222,6 @@ export default function HistoryPage() {
                                                         <p className="text-sm text-muted-foreground">({new Date(trip.departureDate).toLocaleDateString('ar-SA')})</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant={offerCount > 0 ? "secondary" : "outline"}>{offerCount} عروض</Badge>
-                                                </div>
                                             </div>
                                         </AccordionTrigger>
                                         <AccordionContent>
@@ -293,3 +291,5 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
+
+    
