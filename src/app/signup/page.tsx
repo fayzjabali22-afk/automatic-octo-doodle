@@ -113,7 +113,7 @@ export default function SignupPage() {
                     <MailCheck className="mx-auto h-16 w-16 text-green-500" />
                     <CardTitle className="text-2xl mt-4">نجحت</CardTitle>
                     <CardDescription className="pt-2">
-                        قوم بتفعيل حسابك من رسالة التحقق على بريدك الالكتروني
+                        لقد أرسلنا رابط التفعيل والإقرار القانوني إلى بريدك الإلكتروني.
                         <br/>
                         <span className="font-bold text-foreground">{userEmail}</span>
                     </CardDescription>
@@ -122,6 +122,7 @@ export default function SignupPage() {
                     <p className="text-xs text-muted-foreground">
                         إذا لم تجد البريد الإلكتروني، يرجى التحقق من مجلد الرسائل غير المرغوب فيها (Spam).
                     </p>
+                    <Button onClick={() => router.push('/login')} className="mt-4">العودة لتسجيل الدخول</Button>
                 </CardContent>
             </Card>
         </div>
@@ -237,3 +238,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    
