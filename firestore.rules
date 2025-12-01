@@ -24,7 +24,7 @@ service cloud.firestore {
       allow read, list: if true;
       allow create: if isOwner(request.resource.data.userId);
       // Allow the user who owns the trip to update it (e.g. to add an accepted offer and booking ID)
-      allow update: if isOwner(resource.data.userId) && (request.resource.data.keys().hasAll(['acceptedOfferId', 'currentBookingId']));
+      allow update: if isOwner(resource.data.userId);
       allow delete: if isOwner(resource.data.userId);
 
       match /offers/{offerId} {
@@ -44,8 +44,8 @@ service cloud.firestore {
     match /bookings/{bookingId} {
       // Allow signed-in user to create their own booking.
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
-      // Allow user to read or delete their own booking (for cancellation).
-      allow read, delete: if isSignedIn() && isOwner(resource.data.userId);
+      // Allow user or carrier to read or delete their own booking (for cancellation).
+      allow read, delete: if isSignedIn() && (isOwner(resource.data.userId) || isOwner(resource.data.carrierId));
       // Allow carrier to update the booking (e.g., to confirm it).
       allow update: if isSignedIn() && isOwner(resource.data.carrierId);
     }
