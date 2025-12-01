@@ -109,16 +109,6 @@ export default function DashboardPage() {
           setIsAuthDialogOpen(true);
           return;
       }
-
-      // Step 2: Check for complete data
-      if (!searchOriginCity || !searchDestinationCity) {
-          toast({
-              title: "بيانات غير مكتملة",
-              description: "الرجاء اختيار مدينة الانطلاق والوصول.",
-              variant: "destructive",
-          });
-          return;
-      }
       
       if (searchMode === 'specific-carrier' ) {
           // Add validation for selecting a carrier if needed
