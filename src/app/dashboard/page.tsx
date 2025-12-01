@@ -21,7 +21,6 @@ import { Label } from '@/components/ui/label';
 import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import type { Trip } from '@/lib/data';
-import { tripHistory } from '@/lib/data'; // Import mock data
 import { TripCard } from '@/components/trip-card';
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -39,11 +38,13 @@ import {
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useCollection, useFirestore, useUser, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { LegalDisclaimerDialog } from '@/components/legal-disclaimer-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 // Mock data for countries and cities
 const countries: { [key: string]: { name: string; cities: string[] } } = {
@@ -71,8 +72,13 @@ export default function DashboardPage() {
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
   const { toast } = useToast();
 
-  const allTrips = tripHistory;
-  const isLoading = false; 
+  const tripsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    // Query for planned trips that are in the future
+    return query(collection(firestore, 'trips'), where('status', '==', 'Planned'));
+  }, [firestore]);
+  
+  const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
 
   const [searchOriginCountry, setSearchOriginCountry] = useState('');
   const [searchOriginCity, setSearchOriginCity] = useState('');
@@ -101,6 +107,8 @@ export default function DashboardPage() {
         return;
     }
     
+    if (!allTrips) return;
+    
     const normalizePhoneNumber = (phone: string) => phone.replace(/[\s+()-]/g, '');
     const searchInputNormalized = normalizePhoneNumber(carrierSearchInput);
 
@@ -122,6 +130,11 @@ export default function DashboardPage() {
 
 
   useEffect(() => {
+    if (!allTrips) {
+        setGroupedAndFilteredTrips({});
+        return;
+    };
+    
     let baseTrips: Trip[] = [];
     
     // 1. Determine the base set of trips based on the search mode
@@ -227,6 +240,14 @@ export default function DashboardPage() {
           passengers: searchSeats,
           status: 'Awaiting-Offers',
           departureDate: date ? date.toISOString() : new Date().toISOString(),
+          // Add other required fields with default/empty values if necessary
+          carrierName: '',
+          carrierPhoneNumber: '',
+          cargoDetails: '',
+          vehicleType: '',
+          vehicleCategory: 'small', // Or a sensible default
+          vehicleModelYear: new Date().getFullYear(),
+          availableSeats: 0,
       }).then(() => {
           toast({
               title: "تم إرسال طلبك بنجاح!",
@@ -269,9 +290,16 @@ export default function DashboardPage() {
 
   const showFilterMessage = searchMode === 'specific-carrier' && selectedCarrierName && Object.keys(groupedAndFilteredTrips).length > 0;
   const showAllCarriersMessage = searchMode === 'all-carriers' && Object.keys(groupedAndFilteredTrips).length > 0;
-  const showNoResultsMessage = Object.keys(groupedAndFilteredTrips).length === 0;
+  const showNoResultsMessage = Object.keys(groupedAndFilteredTrips).length === 0 && !isLoading;
 
   const sortedTripDates = Object.keys(groupedAndFilteredTrips);
+  
+  const renderSkeletons = () => (
+    <div className="space-y-4">
+      <Skeleton className="h-40 w-full" />
+      <Skeleton className="h-40 w-full" />
+    </div>
+  );
 
 
   return (
@@ -475,7 +503,7 @@ export default function DashboardPage() {
             {/* Upcoming Scheduled Trips - Accordion View */}
             <div className="mt-12">
               <h2 className="text-2xl font-bold mb-4">الرحلات المجدولة القادمة</h2>
-              {isLoading && <p>جاري تحميل الرحلات...</p>}
+              {isLoading && renderSkeletons()}
               
               {!isLoading && sortedTripDates.length > 0 ? (
                 <Accordion type="single" collapsible defaultValue={openAccordion} value={openAccordion} onValueChange={setOpenAccordion}>
@@ -534,3 +562,5 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
+
+    
