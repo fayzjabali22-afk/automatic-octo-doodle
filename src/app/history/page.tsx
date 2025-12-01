@@ -26,7 +26,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,6 +36,8 @@ import { Bell, CheckCircle, PackageOpen, Ship, Hourglass, XCircle, Info, Loader2
 import { OfferCard } from '@/components/offer-card';
 import { useToast } from '@/hooks/use-toast';
 import { LegalDisclaimerDialog } from '@/components/legal-disclaimer-dialog';
+import { mockOffers } from '@/lib/data';
+
 
 const statusMap: Record<string, string> = {
     'Awaiting-Offers': 'بانتظار العروض',
@@ -60,13 +62,13 @@ const cities: { [key: string]: string } = {
 };
 
 
-const TripBookingManager = ({ trip }: { trip: Trip; }) => {
+const TripOfferManager = ({ trip }: { trip: Trip; }) => {
     const { toast } = useToast();
     const firestore = useFirestore();
     const { user } = useUser();
     const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
-    
+
     const offersQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(collection(firestore, `trips/${trip.id}/offers`));
@@ -75,21 +77,22 @@ const TripBookingManager = ({ trip }: { trip: Trip; }) => {
     const { data: offers, isLoading: isLoadingOffers } = useCollection<Offer>(offersQuery);
 
     const handleAcceptClick = (offer: Offer) => {
+        if (!user) {
+            toast({ title: "الرجاء تسجيل الدخول أولاً", variant: "destructive" });
+            return;
+        }
         setSelectedOffer(offer);
         setIsDisclaimerOpen(true);
     };
-
+    
     const handleDisclaimerContinue = async () => {
         setIsDisclaimerOpen(false);
         if (!firestore || !user || !selectedOffer || !trip.passengers) return;
 
         toast({
-            title: "تم قبول العرض",
-            description: "جاري تأكيد الحجز...",
+            title: "تم قبول عرضك.",
+            description: "هذه رسالة مؤقتة. سيتم بناء شاشة الانتظار في الخطوة التالية.",
         });
-
-        // Simplified logic: Just toast for now.
-        // In the future, this is where booking creation would happen.
     };
 
     if (isLoadingOffers) {
@@ -100,18 +103,17 @@ const TripBookingManager = ({ trip }: { trip: Trip; }) => {
         );
     }
     
-    const pendingOffers = offers?.filter(o => o.status === 'Pending') || [];
-    
-    if (pendingOffers.length === 0) {
-        return <p className="text-center text-muted-foreground p-8">لم يصلك أي عروض بعد، أو تم قبول عرض بالفعل. عليك الانتظار.</p>;
+    const availableOffers = offers && offers.length > 0 ? offers : mockOffers.filter(o => o.tripId === trip.id);
+
+    if (availableOffers.length === 0) {
+        return <p className="text-center text-muted-foreground p-8">لم تصلك أي عروض بعد لهذا الطلب. يمكنك الانتظار أو إلغاء الطلب.</p>;
     }
 
     return (
         <>
-            <div className="p-0 md:p-0 space-y-4">
-                <p className="text-center text-accent font-semibold px-4 pt-4">انتظر، قد تصلك عروض أفضل.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-                    {pendingOffers.map(offer => (
+            <div className="p-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {availableOffers.map(offer => (
                         <OfferCard key={offer.id} offer={offer} trip={trip} onAccept={() => handleAcceptClick(offer)} />
                     ))}
                 </div>
@@ -246,7 +248,7 @@ export default function HistoryPage() {
                                             </div>
                                         </AccordionTrigger>
                                         <AccordionContent className="p-0">
-                                            <TripBookingManager trip={trip} />
+                                            <TripOfferManager trip={trip} />
                                         </AccordionContent>
                                     </Card>
                                 </AccordionItem>
@@ -311,5 +313,3 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
-
-    
