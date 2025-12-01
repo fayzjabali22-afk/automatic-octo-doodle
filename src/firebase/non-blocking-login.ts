@@ -6,8 +6,10 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
-import { Firestore, doc, setDoc } from 'firebase/firestore';
+import { Firestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/lib/data';
 import { actionCodeSettings } from './config';
@@ -38,15 +40,14 @@ export async function initiateEmailSignUp(
     const user = userCredential.user;
 
     // Send verification email with action code settings
-    // This email will contain the legal disclaimer and the activation link.
     await sendEmailVerification(user, actionCodeSettings);
 
     // After user is created in Auth, create their profile document in Firestore
     const userRef = doc(firestore, 'users', user.uid);
+    // This is temporary until user verifies email
     await setDoc(userRef, profileData, { merge: true });
     
     // IMPORTANT: We sign the user out to force them to verify their email
-    // This is a key part of the new flow.
     await authInstance.signOut();
 
     return true;
@@ -75,6 +76,41 @@ export async function initiateEmailSignIn(authInstance: Auth, email: string, pas
         variant: "destructive",
         title: "فشل تسجيل الدخول",
         description: "يرجى التحقق من بريدك الإلكتروني وكلمة المرور.",
+    });
+    return false;
+  }
+}
+
+/** Initiate Google Sign-In flow. Returns a boolean indicating success. */
+export async function initiateGoogleSignIn(auth: Auth, firestore: Firestore): Promise<boolean> {
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // Check if a user profile already exists.
+    const userRef = doc(firestore, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      // This is a new user, create a profile for them.
+      const [firstName, ...lastNameParts] = (user.displayName || '').split(' ');
+      const newUserProfile: UserProfileCreation = {
+        firstName: firstName || '',
+        lastName: lastNameParts.join(' '),
+        email: user.email!,
+        phoneNumber: user.phoneNumber || '',
+      };
+      await setDoc(userRef, newUserProfile);
+    }
+    
+    // After sign-in (and profile creation if needed), user is redirected by the auth state listener.
+    return true;
+  } catch (error: any) {
+    toast({
+      variant: 'destructive',
+      title: 'فشل تسجيل الدخول عبر جوجل',
+      description: error.message || 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.',
     });
     return false;
   }

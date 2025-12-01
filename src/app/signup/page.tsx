@@ -27,7 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useFirestore, initiateEmailSignUp, useAuth } from '@/firebase';
+import { useFirestore, initiateEmailSignUp, useAuth, initiateGoogleSignIn } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { MailCheck } from 'lucide-react';
 
@@ -81,7 +81,18 @@ export default function SignupPage() {
         setUserEmail(data.email);
         setIsSignUpSuccessful(true);
     }
-    // Failure toast is handled inside initiateEmailSignUp
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!auth || !firestore) return;
+    const success = await initiateGoogleSignIn(auth, firestore);
+    if (success) {
+      toast({
+        title: 'Signed Up Successfully!',
+        description: 'You will be redirected shortly.',
+      });
+      router.push('/dashboard');
+    }
   };
   
   if (isSignUpSuccessful) {
@@ -212,7 +223,7 @@ export default function SignupPage() {
                 </span>
             </div>
           </div>
-           <Button variant="outline" className="w-full">
+           <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
             Sign up with Google
           </Button>
           <div className="mt-4 text-center text-sm">

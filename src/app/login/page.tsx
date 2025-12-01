@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -26,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useAuth, initiateEmailSignIn } from '@/firebase';
+import { useAuth, initiateEmailSignIn, useFirestore, initiateGoogleSignIn } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 const loginFormSchema = z.object({
@@ -41,6 +42,7 @@ export default function LoginPage() {
     (img) => img.id === 'login-background'
   );
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -67,11 +69,20 @@ export default function LoginPage() {
         title: 'Logged In Successfully!',
         description: 'You will be redirected shortly.',
       });
-      // The onAuthStateChanged listener in the provider will handle the redirect
-      // but we can push a redirect as a fallback.
       router.push('/dashboard');
     }
-    // If not successful, the toast with the error is already shown inside initiateEmailSignIn
+  };
+  
+  const handleGoogleSignIn = async () => {
+    if (!auth || !firestore) return;
+    const success = await initiateGoogleSignIn(auth, firestore);
+    if (success) {
+      toast({
+        title: 'Logged In Successfully!',
+        description: 'You will be redirected shortly.',
+      });
+      router.push('/dashboard');
+    }
   };
 
   return (
@@ -150,7 +161,7 @@ export default function LoginPage() {
                 </span>
             </div>
           </div>
-          <Button variant="outline" className="w-full">
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
             Login with Google
           </Button>
           <div className="mt-4 text-center text-sm">
