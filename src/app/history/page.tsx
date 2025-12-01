@@ -36,6 +36,7 @@ import { Bell, CheckCircle, PackageOpen, Ship, Hourglass, XCircle } from 'lucide
 import { OfferCard } from '@/components/offer-card';
 import { useToast } from '@/hooks/use-toast';
 import { LegalDisclaimerDialog } from '@/components/legal-disclaimer-dialog';
+import { mockOffers } from '@/lib/data';
 
 const statusMap: Record<string, string> = {
     'Awaiting-Offers': 'بانتظار العروض',
@@ -142,7 +143,8 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
         try {
             const batch = writeBatch(firestore);
             batch.delete(bookingRef);
-            // Use updateDoc for unsetting fields
+            
+            // This is how you unset a field with an update operation.
             await updateDoc(tripRef, {
                 acceptedOfferId: null,
                 currentBookingId: null,
@@ -164,7 +166,7 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
 
     if (isLoadingOffers || isLoadingBooking) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                 <Skeleton className="h-48 w-full" />
                 <Skeleton className="h-48 w-full" />
             </div>
@@ -189,7 +191,9 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
     }
 
     // STATE 1: Displaying offers
-    if (!offers || offers.length === 0) {
+    const finalOffers = offers && offers.length > 0 ? offers : mockOffers.filter(o => o.tripId === trip.id);
+
+    if (finalOffers.length === 0) {
         return <p className="text-center text-muted-foreground p-8">لم يصلك أي عروض بعد، عليك الانتظار.</p>;
     }
 
@@ -198,7 +202,7 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
             <div className="p-0 md:p-0 space-y-4">
                 <p className="text-center text-accent font-semibold px-4 pt-4">انتظر، قد تصلك عروض أفضل.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-                    {offers.map(offer => (
+                    {finalOffers.map(offer => (
                         <OfferCard key={offer.id} offer={offer} trip={trip} onAccept={() => handleAcceptClick(offer)} />
                     ))}
                 </div>
@@ -270,7 +274,7 @@ export default function HistoryPage() {
 
   return (
     <AppLayout>
-      <div className="bg-[#130609] p-0 md:p-8 rounded-lg space-y-8">
+      <div className="bg-[#130609] p-0 rounded-lg space-y-8">
         <Card style={{ backgroundColor: '#EDC17C' }} className="rounded-none md:rounded-lg">
           <CardHeader className="p-4">
             <div className="flex justify-between items-start">
@@ -304,7 +308,7 @@ export default function HistoryPage() {
           </CardHeader>
         </Card>
 
-        <Accordion type="multiple" className="w-full space-y-6" value={openAccordion} onValueChange={setOpenAccordion}>
+        <Accordion type="multiple" className="w-full space-y-6 px-2 md:px-0" value={openAccordion} onValueChange={setOpenAccordion}>
           
           {isLoading && renderSkeleton()}
           {hasAwaitingOffers && (
@@ -398,4 +402,3 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
-

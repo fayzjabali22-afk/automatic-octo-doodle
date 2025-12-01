@@ -38,12 +38,13 @@ import {
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useCollection, useFirestore, useUser, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, addDoc } from 'firebase/firestore';
+import { collection, query, where, doc, addDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { LegalDisclaimerDialog } from '@/components/legal-disclaimer-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { tripHistory } from '@/lib/data';
 
 
 // Mock data for countries and cities
@@ -79,6 +80,30 @@ export default function DashboardPage() {
   }, [firestore]);
   
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
+    
+  // Seed mock data
+  useEffect(() => {
+    if (firestore && user) {
+        const seedData = async () => {
+            const tripsCollection = collection(firestore, 'trips');
+            const q = query(tripsCollection, where('userId', '==', user.uid));
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) {
+                const batch = writeBatch(firestore);
+                tripHistory.forEach(trip => {
+                    const newTrip = { ...trip, userId: user.uid };
+                    const docRef = doc(tripsCollection, trip.id);
+                    batch.set(docRef, newTrip);
+                });
+                await batch.commit();
+                console.log("Mock data seeded for user:", user.uid);
+            }
+        };
+        seedData();
+    }
+  }, [firestore, user]);
+
 
   const [searchOriginCountry, setSearchOriginCountry] = useState('');
   const [searchOriginCity, setSearchOriginCity] = useState('');
@@ -561,5 +586,3 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
-
-    
