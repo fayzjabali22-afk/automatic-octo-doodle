@@ -6,7 +6,7 @@ import { mockCarriers } from '@/lib/data'; // Import mock carriers
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
-import { HandCoins, MessageCircle, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { HandCoins, MessageCircle, Star, ThumbsUp } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from './ui/skeleton';

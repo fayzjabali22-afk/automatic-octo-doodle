@@ -262,11 +262,11 @@ export default function HistoryPage() {
                       <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>الناقل</TableHead>
-                                <TableHead>من</TableHead>
-                                <TableHead>إلى</TableHead>
-                                <TableHead>تاريخ الرحلة</TableHead>
-                                <TableHead>الحالة</TableHead>
+                                <TableHead className="text-right">الناقل</TableHead>
+                                <TableHead className="text-right">من</TableHead>
+                                <TableHead className="text-right">إلى</TableHead>
+                                <TableHead className="text-right">تاريخ الرحلة</TableHead>
+                                <TableHead className="text-right">الحالة</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
