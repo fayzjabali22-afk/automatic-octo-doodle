@@ -31,7 +31,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Notification, Offer, Booking } from '@/lib/data';
-import { collection, query, where, doc, writeBatch, updateDoc } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, updateDoc, deleteDoc } from 'firebase/firestore';
 import { Bell, CheckCircle, PackageOpen, Ship, Hourglass, XCircle } from 'lucide-react';
 import { OfferCard } from '@/components/offer-card';
 import { useToast } from '@/hooks/use-toast';
@@ -110,6 +110,8 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
         };
 
         const tripRef = doc(firestore, 'trips', trip.id);
+        const offerRef = doc(firestore, `trips/${trip.id}/offers`, selectedOffer.id);
+
 
         try {
             const batch = writeBatch(firestore);
@@ -118,6 +120,8 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
                 acceptedOfferId: selectedOffer.id,
                 currentBookingId: newBooking.id
             });
+            batch.update(offerRef, { status: 'Accepted' });
+            
             await batch.commit();
 
             toast({
@@ -135,20 +139,23 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
     };
     
     const handleCancelPendingConfirmation = async () => {
-        if (!firestore || !trip.id || !trip.currentBookingId) return;
+        if (!firestore || !trip.id || !trip.currentBookingId || !trip.acceptedOfferId) return;
 
         const tripRef = doc(firestore, 'trips', trip.id);
         const bookingRef = doc(firestore, 'bookings', trip.currentBookingId);
+        const offerRef = doc(firestore, `trips/${trip.id}/offers`, trip.acceptedOfferId);
+
 
         try {
             const batch = writeBatch(firestore);
             batch.delete(bookingRef);
-            
-            // This is how you unset a field with an update operation.
-            await updateDoc(tripRef, {
+            batch.update(tripRef, {
                 acceptedOfferId: null,
                 currentBookingId: null,
             });
+            batch.update(offerRef, { status: 'Pending' });
+
+            await batch.commit();
 
             toast({
                 title: 'تم الإلغاء',
@@ -192,10 +199,10 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
 
     // STATE 1: Displaying offers
     // If there are no live offers, fall back to mock offers for the specific trip.
-    const finalOffers = (offers && offers.length > 0) ? offers : mockOffers.filter(o => o.tripId === trip.id);
+    const finalOffers = (offers && offers.length > 0) ? offers.filter(o => o.status === 'Pending') : mockOffers.filter(o => o.tripId === trip.id && o.status === 'Pending');
 
     if (finalOffers.length === 0) {
-        return <p className="text-center text-muted-foreground p-8">لم يصلك أي عروض بعد، عليك الانتظار.</p>;
+        return <p className="text-center text-muted-foreground p-8">لم يصلك أي عروض بعد، أو تم قبول عرض بالفعل. عليك الانتظار.</p>;
     }
 
     return (
@@ -403,3 +410,5 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
+
+    
