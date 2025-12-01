@@ -26,14 +26,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking, useDoc } from '@/firebase';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Trip, Notification, Offer, CarrierProfile } from '@/lib/data';
-import { mockOffers, tripHistory, mockCarriers } from '@/lib/data';
-import { collection, query, where, doc, getDocs } from 'firebase/firestore';
-import { Bell, CheckCircle, PackageOpen, Ship } from 'lucide-react';
+import type { Trip, Notification, Offer, Booking } from '@/lib/data';
+import { mockOffers, tripHistory } from '@/lib/data';
+import { collection, query, where, doc, writeBatch } from 'firebase/firestore';
+import { Bell, CheckCircle, PackageOpen, Ship, Hourglass, XCircle } from 'lucide-react';
 import { OfferCard } from '@/components/offer-card';
 import { useToast } from '@/hooks/use-toast';
 import { LegalDisclaimerDialog } from '@/components/legal-disclaimer-dialog';
@@ -61,32 +61,99 @@ const cities: { [key: string]: string } = {
 };
 
 
-const TripOffers = ({ trip }: { trip: Trip; }) => {
+const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
     const { toast } = useToast();
+    const firestore = useFirestore();
+    const { user } = useUser();
     const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
-    
+
     // MOCK DATA USAGE: Using mockOffers instead of fetching from Firestore
     const offers = mockOffers.filter(offer => offer.tripId === trip.id && offer.status === 'Pending');
-    const isLoading = false; // Mock data is never loading
+    const isLoadingOffers = false; // Mock data is never loading
+    
+    const bookingRef = useMemoFirebase(() => {
+        if (!firestore || !trip.currentBookingId) return null;
+        return doc(firestore, 'bookings', trip.currentBookingId);
+    }, [firestore, trip.currentBookingId]);
+    const { data: booking, isLoading: isLoadingBooking } = useDoc<Booking>(bookingRef);
 
     const handleAcceptClick = (offer: Offer) => {
         setSelectedOffer(offer);
         setIsDisclaimerOpen(true);
     };
 
-    const handleDisclaimerContinue = () => {
+    const handleDisclaimerContinue = async () => {
         setIsDisclaimerOpen(false);
-        // This is the final step in this flow for now.
-        // It confirms the whole path is working.
-        toast({
-            title: "تم الإقرار.",
-            description: "سيتم الآن فتح بطاقة الحجز...",
-        });
-        // In a future step, we will navigate to the unified booking screen from here.
-    };
+        if (!firestore || !user || !selectedOffer || !trip.passengers) return;
 
-    if (isLoading) {
+        const bookingsCollection = collection(firestore, 'bookings');
+        const newBookingRef = doc(bookingsCollection);
+
+        const newBooking: Booking = {
+            id: newBookingRef.id,
+            tripId: trip.id,
+            userId: user.uid,
+            carrierId: selectedOffer.carrierId,
+            seats: trip.passengers,
+            status: 'Pending-Carrier-Confirmation',
+            totalPrice: selectedOffer.price,
+        };
+
+        const tripRef = doc(firestore, 'trips', trip.id);
+
+        try {
+            const batch = writeBatch(firestore);
+            batch.set(newBookingRef, newBooking);
+            batch.update(tripRef, { 
+                acceptedOfferId: selectedOffer.id,
+                currentBookingId: newBooking.id
+            });
+            await batch.commit();
+
+            toast({
+                title: "تم استلام طلبك",
+                description: "تم إرسال طلبك للناقل وبانتظار تأكيد المقاعد.",
+            });
+        } catch (error) {
+            console.error("Error creating booking:", error);
+            toast({
+                title: "حدث خطأ",
+                description: "لم نتمكن من إرسال طلبك. يرجى المحاولة مرة أخرى.",
+                variant: "destructive"
+            });
+        }
+    };
+    
+    const handleCancelPendingConfirmation = async () => {
+        if (!firestore || !trip.id || !trip.currentBookingId) return;
+
+        const tripRef = doc(firestore, 'trips', trip.id);
+        const bookingRef = doc(firestore, 'bookings', trip.currentBookingId);
+
+        try {
+            const batch = writeBatch(firestore);
+            batch.delete(bookingRef);
+            batch.update(tripRef, {
+                acceptedOfferId: null,
+                currentBookingId: null,
+            });
+            await batch.commit();
+            toast({
+                title: 'تم الإلغاء',
+                description: 'تم إلغاء طلب تأكيد الحجز. يمكنك الآن اختيار عرض آخر.',
+            });
+        } catch (error) {
+            console.error("Error cancelling booking confirmation:", error);
+             toast({
+                title: "حدث خطأ",
+                description: "لم نتمكن من إلغاء الطلب. يرجى المحاولة مرة أخرى.",
+                variant: "destructive"
+            });
+        }
+    }
+
+    if (isLoadingOffers || isLoadingBooking) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Skeleton className="h-48 w-full" />
@@ -95,6 +162,24 @@ const TripOffers = ({ trip }: { trip: Trip; }) => {
         );
     }
     
+    // STATE 2: Waiting for carrier confirmation
+    if (booking?.status === 'Pending-Carrier-Confirmation') {
+        return (
+             <div className="text-center p-8 bg-background/30">
+                <Hourglass className="mx-auto h-12 w-12 text-accent mb-4 animate-spin" />
+                <h3 className="text-xl font-bold mb-2">نحن بانتظار الناقل ليؤكد المقاعد لك</h3>
+                <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
+                    بمجرد أن يفتح شاشة الحجز، سيصلك إشعار فورًا لتكمل حجزك بسهولة. هدفنا أن تكون العملية سلسة ومنظمة دون تراكم حجوزات عند الناقل.
+                </p>
+                <Button variant="ghost" onClick={handleCancelPendingConfirmation} className="text-red-500 hover:bg-red-500/10">
+                    <XCircle className="ml-2 h-4 w-4" />
+                    إلغاء الطلب والعودة للعروض
+                </Button>
+            </div>
+        )
+    }
+
+    // STATE 1: Displaying offers
     if (!offers || offers.length === 0) {
         return <p className="text-center text-muted-foreground p-8">لم يصلك أي عروض بعد، عليك الانتظار.</p>;
     }
@@ -128,15 +213,16 @@ export default function HistoryPage() {
   
   const [openAccordion, setOpenAccordion] = useState<string[]>([]);
   
-  const [displayedTrips, setDisplayedTrips] = useState(tripHistory);
+  // Using MOCK data for now. This will be replaced by Firestore queries.
+  // We simulate the separation of trips based on their state.
+  const [allUserTrips, setAllUserTrips] = useState(tripHistory); // This will come from useCollection
+  const isLoading = false; // This will be from useCollection
 
-  const awaitingTrips = displayedTrips.filter(t => t.status === 'Awaiting-Offers');
-  const confirmedTrips = displayedTrips.filter(t => ['Planned', 'Completed', 'Cancelled'].includes(t.status));
-  const isLoadingAwaiting = false;
-  const isLoadingConfirmed = false;
-
-  const hasAwaitingOffers = !isLoadingAwaiting && awaitingTrips && awaitingTrips.length > 0;
-  const hasConfirmedTrips = !isLoadingConfirmed && confirmedTrips && confirmedTrips.length > 0;
+  const awaitingTrips = allUserTrips.filter(t => t.status === 'Awaiting-Offers');
+  const confirmedTrips = allUserTrips.filter(t => ['Planned', 'Completed', 'Cancelled'].includes(t.status));
+  
+  const hasAwaitingOffers = !isLoading && awaitingTrips && awaitingTrips.length > 0;
+  const hasConfirmedTrips = !isLoading && confirmedTrips && confirmedTrips.length > 0;
   
   const notifications: Notification[] = []; // This will be connected to Firestore later
   const notificationCount = notifications?.length || 0;
@@ -148,14 +234,14 @@ export default function HistoryPage() {
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
-    if (isLoadingAwaiting || isLoadingConfirmed) return;
+    if (isLoading) return;
     
     const openItems: string[] = [];
     if (hasAwaitingOffers) openItems.push('awaiting');
     if (hasConfirmedTrips) openItems.push('confirmed');
     setOpenAccordion(openItems);
 
-  }, [hasAwaitingOffers, hasConfirmedTrips, isLoadingAwaiting, isLoadingConfirmed]);
+  }, [hasAwaitingOffers, hasConfirmedTrips, isLoading]);
 
 
   const renderSkeleton = () => (
@@ -205,19 +291,18 @@ export default function HistoryPage() {
 
         <Accordion type="multiple" className="w-full space-y-6" value={openAccordion} onValueChange={setOpenAccordion}>
           
-          {isLoadingAwaiting && renderSkeleton()}
+          {isLoading && renderSkeleton()}
           {hasAwaitingOffers && (
             <AccordionItem value="awaiting" className="border-none">
               <Card className="rounded-none md:rounded-lg">
                 <AccordionTrigger className="p-6 text-lg hover:no-underline">
                   <div className='flex items-center gap-2'><PackageOpen className="h-6 w-6 text-primary" /><CardTitle>طلبات بانتظار العروض</CardTitle></div>
                 </AccordionTrigger>
-                <AccordionContent>
-                  <CardContent className="p-0">
-                    <CardDescription className="mb-4 px-6">
-                      هنا تظهر طلباتك التي أرسلتها. يمكنك استعراض العروض المقدمة من الناقلين لكل طلب.
-                    </CardDescription>
-                    <Accordion type="single" collapsible className="w-full space-y-4 px-0 md:px-6">
+                <AccordionContent className="p-0">
+                  <CardDescription className="mb-4 px-6">
+                    هنا تظهر طلباتك التي أرسلتها. يمكنك استعراض العروض المقدمة من الناقلين لكل طلب.
+                  </CardDescription>
+                  <Accordion type="single" collapsible className="w-full space-y-4">
                        {awaitingTrips.map(trip => {
                             return (
                                 <AccordionItem value={trip.id} key={trip.id} className="border-none">
@@ -232,21 +317,20 @@ export default function HistoryPage() {
                                                 </div>
                                             </div>
                                         </AccordionTrigger>
-                                        <AccordionContent>
-                                            <TripOffers trip={trip} />
+                                        <AccordionContent className="p-0">
+                                            <BookingStatusManager trip={trip} />
                                         </AccordionContent>
                                     </Card>
                                 </AccordionItem>
                             )
                        })}
-                    </Accordion>
-                  </CardContent>
+                  </Accordion>
                 </AccordionContent>
                 </Card>
             </AccordionItem>
           )}
           
-          {isLoadingConfirmed && renderSkeleton()}
+          {isLoading && renderSkeleton()}
           {hasConfirmedTrips && (
               <AccordionItem value="confirmed" className="border-none">
                 <Card className="rounded-none md:rounded-lg">
@@ -286,7 +370,7 @@ export default function HistoryPage() {
           }
         </Accordion>
         
-        {!isLoadingAwaiting && !isLoadingConfirmed && !hasAwaitingOffers && !hasConfirmedTrips && (
+        {!isLoading && !hasAwaitingOffers && !hasConfirmedTrips && (
             <div className="text-center text-muted-foreground py-12">
                 <Ship className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
                 <p className="text-lg">لا يوجد لديك أي حجوزات أو طلبات حالياً.</p>

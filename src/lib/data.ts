@@ -34,7 +34,21 @@ export type Trip = {
   vehicleModelYear?: number;
   availableSeats?: number;
   passengers?: number;
+  // New fields to track the booking process
+  acceptedOfferId?: string | null;
+  currentBookingId?: string | null;
 };
+
+export type Booking = {
+    id: string;
+    tripId: string;
+    userId: string;
+    carrierId: string;
+    seats: number;
+    status: 'Confirmed' | 'Pending-Payment' | 'Cancelled' | 'Completed' | 'Pending-Carrier-Confirmation';
+    totalPrice: number;
+};
+
 
 export type Offer = {
     id: string;
