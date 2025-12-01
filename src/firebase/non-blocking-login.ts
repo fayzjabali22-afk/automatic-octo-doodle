@@ -10,6 +10,7 @@ import {
 import { Firestore, doc, setDoc } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/lib/data';
+import { actionCodeSettings } from './config';
 
 /** Initiate anonymous sign-in (non-blocking). */
 export function initiateAnonymousSignIn(authInstance: Auth): void {
@@ -36,12 +37,15 @@ export async function initiateEmailSignUp(
     const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
     const user = userCredential.user;
 
-    // Send verification email
-    await sendEmailVerification(user);
+    // Send verification email with action code settings
+    await sendEmailVerification(user, actionCodeSettings);
 
     // After user is created in Auth, create their profile document in Firestore
     const userRef = doc(firestore, 'users', user.uid);
     await setDoc(userRef, profileData, { merge: true });
+    
+    // IMPORTANT: We sign the user out to force them to verify their email
+    await authInstance.signOut();
 
     return true;
   } catch (error: any) {

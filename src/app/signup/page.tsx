@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -28,6 +28,7 @@ import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useFirestore, initiateEmailSignUp, useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { MailCheck } from 'lucide-react';
 
 const signupFormSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
@@ -46,6 +47,7 @@ export default function SignupPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  const [isSignUpSuccessful, setIsSignUpSuccessful] = useState(false);
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
@@ -75,13 +77,45 @@ export default function SignupPage() {
 
     if (success) {
         toast({
-            title: 'تم إنشاء الحساب بنجاح!',
-            description: 'الرجاء التحقق من بريدك الإلكتروني لتفعيل حسابك.',
+            title: 'الخطوة الأخيرة!',
+            description: 'لقد أرسلنا رابط تفعيل إلى بريدك الإلكتروني. الرجاء الضغط عليه لإكمال التسجيل.',
         });
-        router.push('/dashboard');
+        setIsSignUpSuccessful(true);
     }
     // Failure toast is handled inside initiateEmailSignUp
   };
+  
+  if (isSignUpSuccessful) {
+    return (
+        <div className="relative flex min-h-screen w-full flex-col items-center justify-center p-4">
+            {bgImage && (
+                <Image
+                src={bgImage.imageUrl}
+                alt={bgImage.description}
+                fill
+                className="absolute inset-0 -z-10 h-full w-full object-cover"
+                data-ai-hint={bgImage.imageHint}
+                />
+            )}
+            <div className="absolute inset-0 -z-10 bg-black/60" />
+            <Card className="mx-auto max-w-sm text-center">
+                <CardHeader>
+                    <MailCheck className="mx-auto h-16 w-16 text-green-500" />
+                    <CardTitle className="text-2xl mt-4">تم إرسال رابط التفعيل بنجاح</CardTitle>
+                    <CardDescription className="pt-2">
+                        لقد أرسلنا رابط تفعيل إلى بريدك الإلكتروني. يرجى التحقق من صندوق الوارد الخاص بك والنقر على الرابط لإكمال عملية التسجيل والمصادقة.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                        إذا لم تجد البريد الإلكتروني، يرجى التحقق من مجلد الرسائل غير المرغوب فيها (Spam).
+                    </p>
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
+
 
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center p-4">

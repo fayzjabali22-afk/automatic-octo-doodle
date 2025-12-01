@@ -80,7 +80,20 @@ export default function DashboardPage() {
 
   
   const handleBookingRequestSubmit = async () => {
-      if (!firestore || !user) return;
+      if (!firestore || !user) {
+        // This should not happen if the logic flow is correct, but it's a good safeguard.
+        setIsAuthDialogOpen(true);
+        return;
+      }
+      
+      if (!searchOriginCity || !searchDestinationCity) {
+        toast({
+            variant: "destructive",
+            title: "بيانات غير مكتملة",
+            description: "الرجاء اختيار مدينة الانطلاق ومدينة الوصول.",
+        });
+        return;
+      }
 
       const tripsCollection = collection(firestore, 'trips');
       
@@ -91,7 +104,6 @@ export default function DashboardPage() {
           passengers: searchSeats,
           status: 'Awaiting-Offers',
           departureDate: date ? date.toISOString() : new Date().toISOString(),
-          // if searchMode is specific-carrier, add the carrierId
           ...(searchMode === 'specific-carrier' && { privateCarrierId: 'carrier01' }), // Replace with actual selected carrier
       };
       
@@ -105,24 +117,13 @@ export default function DashboardPage() {
   };
   
   const handleBookingRequest = () => {
-    // Step 1: Check for user login
-    if (!user) {
+    // If user is already logged in, proceed to submit.
+    // Otherwise, the dialog will be opened.
+    if (user) {
+        handleBookingRequestSubmit();
+    } else {
         setIsAuthDialogOpen(true);
-        return;
     }
-    
-    // Step 2: Validate required fields
-    if (!searchOriginCity || !searchDestinationCity) {
-        toast({
-            variant: "destructive",
-            title: "بيانات غير مكتملة",
-            description: "الرجاء اختيار مدينة الانطلاق ومدينة الوصول.",
-        });
-        return;
-    }
-
-    // Step 3: Submit the request
-    handleBookingRequestSubmit();
   };
 
 
@@ -310,6 +311,7 @@ export default function DashboardPage() {
       <AuthRedirectDialog 
         isOpen={isAuthDialogOpen}
         onOpenChange={setIsAuthDialogOpen}
+        onLoginSuccess={handleBookingRequestSubmit}
       />
     </AppLayout>
   );
