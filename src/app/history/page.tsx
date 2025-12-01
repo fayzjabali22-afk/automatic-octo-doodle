@@ -101,7 +101,7 @@ const TripOffers = ({ trip }: { trip: Trip; }) => {
 
     return (
         <>
-            <div className="p-0 md:p-4 space-y-4">
+            <div className="p-0 md:p-0 space-y-4">
                 <p className="text-center text-accent font-semibold px-4 pt-4">انتظر، قد تصلك عروض أفضل.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 md:p-0">
                     {offers.map(offer => (
@@ -219,7 +219,6 @@ export default function HistoryPage() {
                     </CardDescription>
                     <Accordion type="single" collapsible className="w-full space-y-4 px-6">
                        {awaitingTrips.map(trip => {
-                            const offerCount = mockOffers.filter(o => o.tripId === trip.id).length;
                             return (
                                 <AccordionItem value={trip.id} key={trip.id}>
                                     <Card className="overflow-hidden">
@@ -227,7 +226,7 @@ export default function HistoryPage() {
                                             <div className="flex justify-between items-center w-full">
                                                 <div className="text-right">
                                                     <div className="flex items-center gap-3">
-                                                        <p className="font-bold text-xl">{cities[trip.origin as keyof typeof cities] || trip.origin} إلى {cities[trip.destination as keyof typeof cities] || trip.destination}</p>
+                                                        <p className="font-bold text-lg">{cities[trip.origin as keyof typeof cities] || trip.origin} إلى {cities[trip.destination as keyof typeof cities] || trip.destination}</p>
                                                         <p className="text-sm text-muted-foreground">({new Date(trip.departureDate).toLocaleDateString('ar-SA')})</p>
                                                     </div>
                                                 </div>
@@ -300,5 +299,3 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
-
-    
