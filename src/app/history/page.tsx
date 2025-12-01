@@ -181,7 +181,7 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
     }
     
     // STATE 2: Waiting for carrier confirmation
-    if (trip.currentBookingId && booking?.status === 'Pending-Carrier-Confirmation') {
+    if (trip.acceptedOfferId && trip.currentBookingId && booking?.status === 'Pending-Carrier-Confirmation') {
         return (
              <div className="text-center p-8 bg-background/30">
                 <Hourglass className="mx-auto h-12 w-12 text-accent mb-4 animate-spin" />
@@ -198,7 +198,6 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
     }
 
     // STATE 1: Displaying offers
-    // If there are no live offers, fall back to mock offers for the specific trip.
     const finalOffers = (offers && offers.length > 0) ? offers.filter(o => o.status === 'Pending') : mockOffers.filter(o => o.tripId === trip.id && o.status === 'Pending');
 
     if (finalOffers.length === 0) {
@@ -410,5 +409,3 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
-
-    
