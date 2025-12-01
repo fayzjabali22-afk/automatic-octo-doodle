@@ -1,15 +1,14 @@
 
 'use client';
 
-import type { Offer } from '@/lib/data';
+import type { Offer, CarrierProfile } from '@/lib/data';
+import { mockCarriers } from '@/lib/data'; // Import mock carriers
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { HandCoins, MessageCircle, Star, ThumbsUp } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
-import { useDoc, useFirestore } from '@/firebase';
-import { doc } from 'firebase/firestore';
 import { Skeleton } from './ui/skeleton';
 
 interface OfferCardProps {
@@ -17,9 +16,9 @@ interface OfferCardProps {
 }
 
 const CarrierInfo = ({ carrierId }: { carrierId: string }) => {
-    const firestore = useFirestore();
-    const carrierRef = firestore ? doc(firestore, 'carriers', carrierId) : null;
-    const { data: carrier, isLoading } = useDoc(carrierRef);
+    // MOCK DATA USAGE: Find carrier from mockCarriers array
+    const carrier = mockCarriers.find(c => c.id === carrierId);
+    const isLoading = false; // Mock data is never loading
     const carrierImage = PlaceHolderImages.find((img) => img.id === 'user-avatar');
 
     if (isLoading) {
@@ -55,7 +54,7 @@ export function OfferCard({ offer }: OfferCardProps) {
     const { toast } = useToast();
 
     const handleAccept = () => {
-        toast({ title: "قبول العرض", description: "سيتم تفعيل هذه الميزة قريباً." });
+        toast({ title: "قبول العرض", description: "سيتم تفعيل هذه الميزة في المرحلة التالية." });
     };
 
   return (

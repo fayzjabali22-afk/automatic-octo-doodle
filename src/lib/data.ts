@@ -65,7 +65,29 @@ export const userProfile: UserProfile = {
   email: 'fayz.alharbi@example.com',
 };
 
+// --- MOCK DATA FOR DEVELOPMENT ---
+
+export const mockCarriers: CarrierProfile[] = [
+    { id: 'carrier01', name: 'شركة النقل السريع', contactEmail: 'nq.saree3@email.com', averageRating: 4.8 },
+    { id: 'carrier02', name: 'سفريات الأمان', contactEmail: 'alaman.travel@email.com', averageRating: 4.5 },
+    { id: 'carrier03', name: 'الناقل الدولي', contactEmail: 'international.carrier@email.com', averageRating: 4.2 },
+    { id: 'carrier04', name: 'الجبالي للنقل', contactEmail: 'jebali.transport@email.com', averageRating: 4.0 },
+];
+
+// Create a trip that is explicitly awaiting offers
+const tripAwaitingOffers: Trip = {
+    id: 'TRIP-AWAITING-001',
+    userId: 'user123',
+    origin: 'amman',
+    destination: 'riyadh',
+    departureDate: new Date(new Date().setDate(new Date().getDate() + 10)).toISOString(),
+    status: 'Awaiting-Offers',
+    passengers: 2
+};
+
+
 export const tripHistory: Trip[] = [
+  tripAwaitingOffers,
   {
     id: 'TRIP001',
     userId: 'user123',
@@ -164,7 +186,7 @@ export const tripHistory: Trip[] = [
     origin: 'riyadh',
     destination: 'amman',
     departureDate: '2024-08-01T11:00:00Z',
-    status: 'Planned',
+    status: 'Completed',
     cargoDetails: 'Personal Belongings',
     vehicleType: 'GMC Yukon',
     vehicleCategory: 'small',
@@ -179,73 +201,43 @@ export const tripHistory: Trip[] = [
     origin: 'damascus',
     destination: 'amman',
     departureDate: '2024-08-02T15:00:00Z',
-    status: 'Planned',
+    status: 'Cancelled',
     cargoDetails: 'Documents',
     vehicleType: 'GMC Yukon',
     vehicleCategory: 'small',
     vehicleModelYear: 2023,
     availableSeats: 7,
-  },
-  {
-    id: 'TRIP007',
-    userId: 'user123',
-    carrierName: 'سفريات الأمان',
-    carrierPhoneNumber: '+966555555555',
-    origin: 'cairo',
-    destination: 'riyadh',
-    departureDate: '2024-08-05T08:00:00Z',
-    status: 'Planned',
-    cargoDetails: 'General Goods',
-    vehicleType: 'Mercedes-Benz Sprinter',
-    vehicleCategory: 'bus',
-    vehicleModelYear: 2022,
-    availableSeats: 1,
-  },
-  {
-    id: 'TRIP008',
-    userId: 'user123',
-    carrierName: 'سفريات الأمان',
-    carrierPhoneNumber: '+966555555555',
-    origin: 'amman',
-    destination: 'riyadh',
-    departureDate: '2024-08-10T20:00:00Z',
-    status: 'Planned',
-    cargoDetails: 'Luggage',
-    vehicleType: 'Mercedes-Benz Sprinter',
-    vehicleCategory: 'bus',
-    vehicleModelYear: 2022,
-    availableSeats: 10,
-  },
-  {
-    id: 'TRIP009',
-    userId: 'user123',
-    carrierName: 'الجبالي للنقل',
-    carrierPhoneNumber: '+966591234567',
-    origin: 'amman',
-    destination: 'jeddah',
-    departureDate: '2024-08-12T12:00:00Z',
-    status: 'Planned',
-    cargoDetails: 'Spices',
-    vehicleType: 'Ford Transit',
-    vehicleCategory: 'bus',
-    vehicleModelYear: 2021,
-    availableSeats: 4,
-  },
-  {
-    id: 'TRIP010',
-    userId: 'user123',
-    carrierName: 'الجبالي للنقل',
-    carrierPhoneNumber: '+966591234567',
-    origin: 'riyadh',
-    destination: 'damascus',
-    departureDate: '2024-08-15T22:00:00Z',
-    status: 'Planned',
-    cargoDetails: 'Medical Supplies',
-    vehicleType: 'Ford Transit',
-    vehicleCategory: 'bus',
-    vehicleModelYear: 2021,
-    availableSeats: 6,
   }
+];
+
+export const mockOffers: Offer[] = [
+    {
+        id: 'offer01',
+        tripId: 'TRIP-AWAITING-001',
+        carrierId: 'carrier01', // شركة النقل السريع
+        price: 100,
+        status: 'Pending',
+        notes: 'يمكننا توفير مقاعد مريحة ووجبة خفيفة خلال الرحلة.',
+        createdAt: new Date().toISOString(),
+    },
+    {
+        id: 'offer02',
+        tripId: 'TRIP-AWAITING-001',
+        carrierId: 'carrier02', // سفريات الأمان
+        price: 95,
+        status: 'Pending',
+        notes: 'لدينا رحلات يومية، السعر قابل للتفاوض البسيط.',
+        createdAt: new Date().toISOString(),
+    },
+    {
+        id: 'offer03',
+        tripId: 'TRIP-AWAITING-001',
+        carrierId: 'carrier03', // الناقل الدولي
+        price: 110,
+        status: 'Pending',
+        notes: 'نضمن لك الوصول في الموعد المحدد.',
+        createdAt: new Date().toISOString(),
+    }
 ];
 
     

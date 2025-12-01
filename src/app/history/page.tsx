@@ -31,6 +31,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Notification, Offer } from '@/lib/data';
+import { mockOffers, tripHistory, mockCarriers } from '@/lib/data';
 import { collection, query, where } from 'firebase/firestore';
 import { Bell, CheckCircle, PackageOpen, Ship } from 'lucide-react';
 import { OfferCard } from '@/components/offer-card';
@@ -50,13 +51,9 @@ const statusVariantMap: Record<string, "default" | "secondary" | "destructive" |
 }
 
 const TripOffers = ({ trip }: { trip: Trip }) => {
-    const firestore = useFirestore();
-    const offersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return query(collection(firestore, `trips/${trip.id}/offers`), where('status', '==', 'Pending'));
-    }, [firestore, trip.id]);
-
-    const { data: offers, isLoading } = useCollection<Offer>(offersQuery);
+    // MOCK DATA USAGE: Using mockOffers instead of fetching from Firestore
+    const offers = mockOffers.filter(offer => offer.tripId === trip.id && offer.status === 'Pending');
+    const isLoading = false; // Mock data is never loading
 
     if (isLoading) {
         return (
@@ -72,7 +69,7 @@ const TripOffers = ({ trip }: { trip: Trip }) => {
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
             {offers.map(offer => (
                 <OfferCard key={offer.id} offer={offer} />
             ))}
@@ -80,25 +77,18 @@ const TripOffers = ({ trip }: { trip: Trip }) => {
     );
 };
 
+
 export default function HistoryPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const firestore = useFirestore();
   
   const [openAccordion, setOpenAccordion] = useState<string[]>([]);
   
-  const awaitingTripsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'trips'), where('userId', '==', user.uid), where('status', '==', 'Awaiting-Offers'));
-  }, [firestore, user]);
-
-  const confirmedTripsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'trips'), where('userId', '==', user.uid), where('status', 'in', ['Planned', 'Completed', 'Cancelled']));
-  }, [firestore, user]);
-
-  const { data: awaitingTrips, isLoading: isLoadingAwaiting } = useCollection<Trip>(awaitingTripsQuery);
-  const { data: confirmedTrips, isLoading: isLoadingConfirmed } = useCollection<Trip>(confirmedTripsQuery);
+  // MOCK DATA USAGE: Filtering mock tripHistory instead of useCollection
+  const awaitingTrips = tripHistory.filter(t => t.status === 'Awaiting-Offers');
+  const confirmedTrips = tripHistory.filter(t => ['Planned', 'Completed', 'Cancelled'].includes(t.status));
+  const isLoadingAwaiting = false;
+  const isLoadingConfirmed = false;
 
   const hasAwaitingOffers = !isLoadingAwaiting && awaitingTrips && awaitingTrips.length > 0;
   const hasConfirmedTrips = !isLoadingConfirmed && confirmedTrips && confirmedTrips.length > 0;
@@ -108,7 +98,8 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-        router.push('/login');
+        // For development with mock data, we can comment this out to avoid being redirected
+        // router.push('/login');
     }
   }, [user, isUserLoading, router]);
 
@@ -195,7 +186,7 @@ export default function HistoryPage() {
                                             <Badge variant={statusVariantMap[trip.status]}>{statusMap[trip.status]}</Badge>
                                          </div>
                                      </AccordionTrigger>
-                                     <AccordionContent className="p-4">
+                                     <AccordionContent>
                                         <TripOffers trip={trip} />
                                      </AccordionContent>
                                 </Card>
