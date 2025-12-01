@@ -7,10 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { HandCoins, MessageCircle, Star, ThumbsUp } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from './ui/skeleton';
-import { useState } from 'react';
-import { LegalDisclaimerDialog } from './legal-disclaimer-dialog';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 

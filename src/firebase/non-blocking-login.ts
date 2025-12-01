@@ -39,14 +39,13 @@ export async function initiateEmailSignUp(
     const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
     const user = userCredential.user;
 
+    // After user is created in Auth, create their profile document in Firestore
+    const userRef = doc(firestore, 'users', user.uid);
+    await setDoc(userRef, profileData, { merge: true });
+    
     // Send verification email with action code settings
     await sendEmailVerification(user, actionCodeSettings);
 
-    // After user is created in Auth, create their profile document in Firestore
-    const userRef = doc(firestore, 'users', user.uid);
-    // This is temporary until user verifies email
-    await setDoc(userRef, profileData, { merge: true });
-    
     // IMPORTANT: We sign the user out to force them to verify their email
     await authInstance.signOut();
 
