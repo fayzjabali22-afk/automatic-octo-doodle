@@ -110,17 +110,7 @@ export default function DashboardPage() {
           return;
       }
 
-      // Step 2: Check for email verification
-      if (user && !user.emailVerified) {
-          toast({
-              variant: "destructive",
-              title: "الحساب غير مفعل",
-              description: "الرجاء التحقق من بريدك الإلكتروني أولاً لتتمكن من إرسال الطلبات.",
-          });
-          return;
-      }
-
-      // Step 3: Check for complete data
+      // Step 2: Check for complete data
       if (!searchOriginCity || !searchDestinationCity) {
           toast({
               title: "بيانات غير مكتملة",
@@ -135,7 +125,7 @@ export default function DashboardPage() {
       }
 
 
-      // Step 4: Submit the request
+      // Step 3: Submit the request
       handleBookingRequestSubmit();
   };
 
