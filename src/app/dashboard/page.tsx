@@ -38,13 +38,13 @@ import {
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useCollection, useFirestore, useUser, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, addDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, query, where, doc, addDoc, writeBatch, getDocs, getDoc } from 'firebase/firestore';
 import { LegalDisclaimerDialog } from '@/components/legal-disclaimer-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { tripHistory } from '@/lib/data';
+import { tripHistory, mockOffers } from '@/lib/data';
 
 
 // Mock data for countries and cities
@@ -81,21 +81,32 @@ export default function DashboardPage() {
   
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
     
-  // Seed mock data
+  // Seed mock data for testing purposes
   useEffect(() => {
     if (firestore && user) {
         const seedData = async () => {
-            const tripsCollection = collection(firestore, 'trips');
-            const q = query(tripsCollection, where('userId', '==', user.uid));
-            const snapshot = await getDocs(q);
+            const awaitingTripId = 'TRIP-AWAITING-001';
+            const tripRef = doc(firestore, 'trips', awaitingTripId);
+            const tripSnap = await getDoc(tripRef);
 
-            if (snapshot.empty) {
+            // Only seed if the specific "Awaiting-Offers" trip doesn't exist.
+            if (!tripSnap.exists()) {
                 const batch = writeBatch(firestore);
-                tripHistory.forEach(trip => {
-                    const newTrip = { ...trip, userId: user.uid };
-                    const docRef = doc(tripsCollection, trip.id);
-                    batch.set(docRef, newTrip);
+
+                // Add the main trip that is awaiting offers
+                const tripAwaitingOffers = tripHistory.find(t => t.id === awaitingTripId);
+                if (tripAwaitingOffers) {
+                    const newTrip = { ...tripAwaitingOffers, userId: user.uid };
+                    batch.set(tripRef, newTrip);
+                }
+
+                // Add the mock offers for that trip
+                const offersForTrip = mockOffers.filter(o => o.tripId === awaitingTripId);
+                offersForTrip.forEach(offer => {
+                    const offerRef = doc(collection(firestore, `trips/${awaitingTripId}/offers`));
+                    batch.set(offerRef, { ...offer, id: offerRef.id }); // Assign new ID
                 });
+
                 await batch.commit();
                 console.log("Mock data seeded for user:", user.uid);
             }
@@ -586,3 +597,5 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
+
+    
