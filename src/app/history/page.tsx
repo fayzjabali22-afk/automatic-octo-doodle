@@ -52,6 +52,15 @@ const statusVariantMap: Record<string, "default" | "secondary" | "destructive" |
     'Cancelled': 'destructive',
 }
 
+const cities: { [key: string]: string } = {
+    damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص',
+    amman: 'عمّان', irbid: 'إربد', zarqa: 'الزرقاء',
+    riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام',
+    cairo: 'القاهرة', alexandria: 'الاسكندرية', giza: 'الجيزة',
+    dubai: 'دبي', kuwait: 'الكويت'
+};
+
+
 const TripOffers = ({ trip }: { trip: Trip; }) => {
     const { toast } = useToast();
     const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
@@ -204,7 +213,7 @@ export default function HistoryPage() {
                   <div className='flex items-center gap-2'><PackageOpen className="h-6 w-6 text-primary" /><CardTitle>طلبات بانتظار العروض</CardTitle></div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <CardContent className="p-0">
+                  <CardContent className="p-0 md:p-0">
                     <CardDescription className="mb-4 px-6">
                       هنا تظهر طلباتك التي أرسلتها. يمكنك استعراض العروض المقدمة من الناقلين لكل طلب.
                     </CardDescription>
@@ -218,7 +227,7 @@ export default function HistoryPage() {
                                             <div className="flex justify-between items-center w-full">
                                                 <div className="text-right">
                                                     <div className="flex items-center gap-3">
-                                                        <p className="font-bold text-xl">طلب رحلة: {trip.origin} إلى {trip.destination}</p>
+                                                        <p className="font-bold text-xl">{cities[trip.origin as keyof typeof cities] || trip.origin} إلى {cities[trip.destination as keyof typeof cities] || trip.destination}</p>
                                                         <p className="text-sm text-muted-foreground">({new Date(trip.departureDate).toLocaleDateString('ar-SA')})</p>
                                                     </div>
                                                 </div>
