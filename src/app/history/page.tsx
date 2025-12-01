@@ -50,7 +50,7 @@ const statusVariantMap: Record<string, "default" | "secondary" | "destructive" |
     'Cancelled': 'destructive',
 }
 
-const TripOffers = ({ trip, onOfferAccepted }: { trip: Trip; onOfferAccepted: () => void }) => {
+const TripOffers = ({ trip, onOfferAccepted }: { trip: Trip; onOfferAccepted: (acceptedOffer: Offer, trip: Trip) => void }) => {
     // MOCK DATA USAGE: Using mockOffers instead of fetching from Firestore
     const offers = mockOffers.filter(offer => offer.tripId === trip.id && offer.status === 'Pending');
     const isLoading = false; // Mock data is never loading
@@ -123,46 +123,23 @@ export default function HistoryPage() {
 
 
   const handleAcceptOffer = async (acceptedOffer: Offer, trip: Trip) => {
-    if (!firestore) return;
-
+    // This function is for the UI simulation for now.
+    // The real Firestore logic will be added when we connect to the backend.
+    
     toast({ title: 'جاري قبول العرض...', description: 'لحظات من فضلك.' });
 
-    try {
-        const tripRef = doc(firestore, 'trips', trip.id);
-        const offersQuery = query(collection(firestore, `trips/${trip.id}/offers`));
-        const offersSnapshot = await getDocs(offersQuery);
-
-        // This would be a transaction in a real app
-        // 1. Update the accepted offer
-        const acceptedOfferRef = doc(firestore, `trips/${trip.id}/offers`, acceptedOffer.id);
-        updateDocumentNonBlocking(acceptedOfferRef, { status: 'Accepted' });
-
-        // 2. Reject all other offers
-        offersSnapshot.forEach(offerDoc => {
-            if (offerDoc.id !== acceptedOffer.id) {
-                const offerRef = doc(firestore, `trips/${trip.id}/offers`, offerDoc.id);
-                updateDocumentNonBlocking(offerRef, { status: 'Rejected' });
-            }
-        });
-        
+    // Simulate backend delay
+    setTimeout(() => {
         const carrier = mockCarriers.find(c => c.id === acceptedOffer.carrierId);
-
-        // 3. Update the trip itself
-        updateDocumentNonBlocking(tripRef, {
-            status: 'Planned',
-            carrierId: acceptedOffer.carrierId,
-            carrierName: carrier?.name || 'اسم الناقل غير متوفر', // Get carrier name
-            // price: acceptedOffer.price, // Assuming you add price to Trip schema
-        });
         
         // --- UI UPDATE ---
-        // This is a simulation of the real-time update
         setDisplayedTrips(prevTrips => {
             return prevTrips.map(t => {
                 if (t.id === trip.id) {
                     return { 
                         ...t, 
                         status: 'Planned', 
+                        carrierId: acceptedOffer.carrierId,
                         carrierName: carrier?.name || 'اسم الناقل غير متوفر'
                     };
                 }
@@ -174,15 +151,8 @@ export default function HistoryPage() {
             title: 'تم قبول العرض بنجاح!',
             description: `تم تأكيد حجزك مع ${carrier?.name}.`,
         });
-
-    } catch (error) {
-        console.error("Error accepting offer: ", error);
-        toast({
-            variant: 'destructive',
-            title: 'حدث خطأ',
-            description: 'لم نتمكن من قبول العرض. يرجى المحاولة مرة أخرى.',
-        });
-    }
+        
+    }, 1500);
   };
 
 
@@ -234,7 +204,7 @@ export default function HistoryPage() {
         <Accordion type="multiple" className="w-full space-y-6" value={openAccordion} onValueChange={setOpenAccordion}>
           
           {isLoadingAwaiting && renderSkeleton()}
-          {!isLoadingAwaiting && awaitingTrips && awaitingTrips.length > 0 && (
+          {hasAwaitingOffers && (
             <Card>
                 <AccordionItem value="awaiting" className="border-none">
                 <AccordionTrigger className="p-6 text-lg hover:no-underline">
@@ -266,7 +236,7 @@ export default function HistoryPage() {
                                             </div>
                                         </AccordionTrigger>
                                         <AccordionContent>
-                                            <TripOffers trip={trip} onOfferAccepted={() => handleAcceptOffer(mockOffers.find(o => o.tripId === trip.id)!, trip)} />
+                                            <TripOffers trip={trip} onOfferAccepted={handleAcceptOffer} />
                                         </AccordionContent>
                                     </Card>
                                 </AccordionItem>
@@ -280,7 +250,7 @@ export default function HistoryPage() {
           )}
           
           {isLoadingConfirmed && renderSkeleton()}
-          {!isLoadingConfirmed && confirmedTrips && confirmedTrips.length > 0 && (
+          {hasConfirmedTrips && (
               <Card>
                 <AccordionItem value="confirmed" className="border-none">
                   <AccordionTrigger className="p-6 text-lg hover:no-underline">

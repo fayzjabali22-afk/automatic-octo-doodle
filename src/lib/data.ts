@@ -239,5 +239,3 @@ export const mockOffers: Offer[] = [
         createdAt: new Date().toISOString(),
     }
 ];
-
-    

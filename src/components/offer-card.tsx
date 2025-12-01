@@ -6,7 +6,7 @@ import { mockCarriers } from '@/lib/data'; // Import mock carriers
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
-import { HandCoins, MessageCircle, Star, ThumbsUp } from 'lucide-react';
+import { HandCoins, MessageCircle, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from './ui/skeleton';
@@ -53,6 +53,8 @@ const CarrierInfo = ({ carrierId }: { carrierId: string }) => {
 }
 
 export function OfferCard({ offer, trip, onAccept }: OfferCardProps) {
+  const { toast } = useToast();
+  
   return (
     <Card className="w-full overflow-hidden shadow-lg transition-all hover:shadow-primary/20 border-2 border-border/60 flex flex-col justify-between bg-card/70">
         <CardHeader>
@@ -72,7 +74,7 @@ export function OfferCard({ offer, trip, onAccept }: OfferCardProps) {
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex gap-2 p-2 bg-background/30">
+        <CardFooter className="flex p-2 bg-background/30">
             <Button size="lg" className="w-full bg-green-600 hover:bg-green-700" onClick={() => onAccept(offer, trip)}>
                 <ThumbsUp className="ml-2 h-4 w-4" />
                 قبول وتأكيد الحجز
