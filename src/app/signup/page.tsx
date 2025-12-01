@@ -6,7 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState }
+from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -48,6 +49,7 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSignUpSuccessful, setIsSignUpSuccessful] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
@@ -76,11 +78,7 @@ export default function SignupPage() {
     const success = await initiateEmailSignUp(auth, firestore, data.email, data.password, userProfile);
 
     if (success) {
-        toast({
-            title: 'الخطوة الأخيرة!',
-            description: 'أقرّ بأنني المسؤول الأول والأخير عن جميع البيانات التي أقوم بإدخالها في نظام سفريات. كما أقرّ وأعلم أن نظام سفريات يعمل كوسيط إلكتروني فقط، ولا يتحمل أي مسؤولية عن أي خلل أو إخلال بالالتزامات الناشئة بين المسافر والناقل. لقد أرسلنا رابط تفعيل إلى بريدك الإلكتروني. الرجاء الضغط عليه لإكمال التسجيل.',
-            duration: 10000,
-        });
+        setUserEmail(data.email);
         setIsSignUpSuccessful(true);
     }
     // Failure toast is handled inside initiateEmailSignUp
@@ -102,9 +100,11 @@ export default function SignupPage() {
             <Card className="mx-auto max-w-sm text-center">
                 <CardHeader>
                     <MailCheck className="mx-auto h-16 w-16 text-green-500" />
-                    <CardTitle className="text-2xl mt-4">تم إرسال رابط التفعيل بنجاح</CardTitle>
+                    <CardTitle className="text-2xl mt-4">نجحت</CardTitle>
                     <CardDescription className="pt-2">
-                        لقد أرسلنا رابط تفعيل إلى بريدك الإلكتروني يتضمن الإقرار القانوني. يرجى التحقق من صندوق الوارد الخاص بك والنقر على الرابط لإكمال عملية التسجيل والمصادقة.
+                        قوم بتفعيل حسابك من رسالة التحقق على بريدك الالكتروني
+                        <br/>
+                        <span className="font-bold text-foreground">{userEmail}</span>
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
