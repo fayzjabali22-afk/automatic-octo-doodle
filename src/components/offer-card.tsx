@@ -63,10 +63,17 @@ export function OfferCard({ offer, trip, onAccept }: OfferCardProps) {
   };
 
   const handleDisclaimerContinue = () => {
-    // This is called when the user accepts the legal disclaimer.
-    // Now we can proceed with the original logic.
-    onAccept(offer, trip);
-    setIsDisclaimerOpen(false); // Close the disclaimer dialog
+    // This is the final step in this flow for now.
+    // It confirms the whole path is working.
+    setIsDisclaimerOpen(false);
+    toast({
+        title: "تم الإقرار.",
+        description: "سيتم الآن فتح بطاقة الحجز...",
+    });
+    // In a future step, we will navigate to the unified booking screen from here.
+    // For now, we can still call the original onAccept for UI simulation if needed,
+    // or replace it entirely once the booking screen is ready.
+    // onAccept(offer, trip); 
   };
   
   return (

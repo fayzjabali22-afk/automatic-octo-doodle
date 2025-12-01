@@ -66,13 +66,13 @@ const TripOffers = ({ trip, onOfferAccepted }: { trip: Trip; onOfferAccepted: (a
     
     // Case 1: No offers received yet
     if (!offers || offers.length === 0) {
-        return <p className="text-center text-muted-foreground p-8">لم يصلك اي عروض عليك الانتظار</p>;
+        return <p className="text-center text-muted-foreground p-8">لم يصلك أي عروض بعد، عليك الانتظار.</p>;
     }
 
     // Case 2: Offers have been received
     return (
         <div className="p-4 space-y-4">
-            <p className="text-center text-accent font-semibold">انتظر قد تصلك عروض افضل</p>
+            <p className="text-center text-accent font-semibold">انتظر، قد تصلك عروض أفضل.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {offers.map(offer => (
                     <OfferCard key={offer.id} offer={offer} trip={trip} onAccept={onOfferAccepted} />
@@ -122,9 +122,10 @@ export default function HistoryPage() {
   }, [hasAwaitingOffers, hasConfirmedTrips, isLoadingAwaiting, isLoadingConfirmed]);
 
 
-  const handleAcceptOffer = async (acceptedOffer: Offer, trip: Trip) => {
-    // This function is for the UI simulation for now.
-    // The real Firestore logic will be added when we connect to the backend.
+  const handleAcceptOffer = (acceptedOffer: Offer, trip: Trip) => {
+    // This function is for UI simulation purposes.
+    // The actual logic is now starting inside OfferCard.tsx with the legal disclaimer.
+    // We keep this function for now to demonstrate the UI change.
     
     toast({ title: 'جاري قبول العرض...', description: 'لحظات من فضلك.' });
 
@@ -224,7 +225,7 @@ export default function HistoryPage() {
                                         <AccordionTrigger className="p-4 bg-card/80 hover:no-underline data-[state=closed]:rounded-b-lg">
                                             <div className="flex justify-between items-center w-full">
                                                 <div className="text-right">
-                                                    <div className="flex items-baseline gap-3">
+                                                    <div className="flex items-center gap-3">
                                                         <p className="font-bold text-xl">طلب رحلة: {trip.origin} إلى {trip.destination}</p>
                                                         <p className="text-sm text-muted-foreground">({new Date(trip.departureDate).toLocaleDateString('ar-SA')})</p>
                                                     </div>
