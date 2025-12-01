@@ -1,7 +1,7 @@
+
 'use client';
 
 import type { Offer, CarrierProfile, Trip } from '@/lib/data';
-import { mockCarriers } from '@/lib/data'; // Import mock carriers
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
@@ -11,6 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from './ui/skeleton';
 import { useState } from 'react';
 import { LegalDisclaimerDialog } from './legal-disclaimer-dialog';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+
 
 interface OfferCardProps {
   offer: Offer;
@@ -19,9 +22,13 @@ interface OfferCardProps {
 }
 
 const CarrierInfo = ({ carrierId }: { carrierId: string }) => {
-    // MOCK DATA USAGE: Find carrier from mockCarriers array
-    const carrier = mockCarriers.find(c => c.id === carrierId);
-    const isLoading = false; // Mock data is never loading
+    const firestore = useFirestore();
+    const carrierRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, 'carriers', carrierId);
+    }, [firestore, carrierId]);
+
+    const { data: carrier, isLoading } = useDoc<CarrierProfile>(carrierRef);
     const carrierImage = PlaceHolderImages.find((img) => img.id === 'user-avatar');
 
     if (isLoading) {
@@ -43,7 +50,7 @@ const CarrierInfo = ({ carrierId }: { carrierId: string }) => {
               <AvatarFallback>{carrier?.name?.charAt(0) || 'C'}</AvatarFallback>
             </Avatar>
             <div>
-                <p className="font-bold text-md" style={{color: '#13060A'}}>{carrier?.name || 'ناقل غير معروف'}</p>
+                <p className="font-bold text-md text-white">{carrier?.name || 'ناقل غير معروف'}</p>
                 <div className="flex items-center text-xs text-muted-foreground gap-1">
                     <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
                     <span>{carrier?.averageRating || 'جديد'}</span>
@@ -56,7 +63,6 @@ const CarrierInfo = ({ carrierId }: { carrierId: string }) => {
 export function OfferCard({ offer, trip, onAccept }: OfferCardProps) {
   
   const handleAcceptClick = () => {
-    // Instead of directly calling onAccept, we now open the legal disclaimer first.
     onAccept();
   };
   

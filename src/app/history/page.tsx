@@ -31,8 +31,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Notification, Offer, Booking } from '@/lib/data';
-import { mockOffers, tripHistory } from '@/lib/data';
-import { collection, query, where, doc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, updateDoc } from 'firebase/firestore';
 import { Bell, CheckCircle, PackageOpen, Ship, Hourglass, XCircle } from 'lucide-react';
 import { OfferCard } from '@/components/offer-card';
 import { useToast } from '@/hooks/use-toast';
@@ -68,14 +67,18 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
     const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
-    // MOCK DATA USAGE: Using mockOffers instead of fetching from Firestore
-    const offers = mockOffers.filter(offer => offer.tripId === trip.id && offer.status === 'Pending');
-    const isLoadingOffers = false; // Mock data is never loading
+    const offersQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, `trips/${trip.id}/offers`), where('status', '==', 'Pending'));
+    }, [firestore, trip.id]);
+
+    const { data: offers, isLoading: isLoadingOffers } = useCollection<Offer>(offersQuery);
     
     const bookingRef = useMemoFirebase(() => {
         if (!firestore || !trip.currentBookingId) return null;
         return doc(firestore, 'bookings', trip.currentBookingId);
     }, [firestore, trip.currentBookingId]);
+
     const { data: booking, isLoading: isLoadingBooking } = useDoc<Booking>(bookingRef);
 
     const handleAcceptClick = (offer: Offer) => {
@@ -86,6 +89,11 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
     const handleDisclaimerContinue = async () => {
         setIsDisclaimerOpen(false);
         if (!firestore || !user || !selectedOffer || !trip.passengers) return;
+
+        toast({
+            title: "جاري إرسال طلب التأكيد...",
+            description: "سيتم إعلام الناقل بطلبك.",
+        });
 
         const bookingsCollection = collection(firestore, 'bookings');
         const newBookingRef = doc(bookingsCollection);
@@ -112,7 +120,7 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
             await batch.commit();
 
             toast({
-                title: "تم استلام طلبك",
+                title: "تم استلام طلبك بنجاح",
                 description: "تم إرسال طلبك للناقل وبانتظار تأكيد المقاعد.",
             });
         } catch (error) {
@@ -134,11 +142,12 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
         try {
             const batch = writeBatch(firestore);
             batch.delete(bookingRef);
-            batch.update(tripRef, {
+            // Use updateDoc for unsetting fields
+            await updateDoc(tripRef, {
                 acceptedOfferId: null,
                 currentBookingId: null,
             });
-            await batch.commit();
+
             toast({
                 title: 'تم الإلغاء',
                 description: 'تم إلغاء طلب تأكيد الحجز. يمكنك الآن اختيار عرض آخر.',
@@ -167,7 +176,7 @@ const BookingStatusManager = ({ trip }: { trip: Trip; }) => {
         return (
              <div className="text-center p-8 bg-background/30">
                 <Hourglass className="mx-auto h-12 w-12 text-accent mb-4 animate-spin" />
-                <h3 className="text-xl font-bold mb-2">نحن بانتظار الناقل ليؤكد المقاعد لك</h3>
+                <h3 className="text-xl font-bold mb-2">نحن في سفريات ننتظر الناقل ليؤكد المقاعد لك.</h3>
                 <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
                     بمجرد أن يفتح شاشة الحجز، سيصلك إشعار فورًا لتكمل حجزك بسهولة. هدفنا أن تكون العملية سلسة ومنظمة دون تراكم حجوزات عند الناقل.
                 </p>
@@ -213,23 +222,29 @@ export default function HistoryPage() {
   
   const [openAccordion, setOpenAccordion] = useState<string[]>([]);
   
-  // Using MOCK data for now. This will be replaced by Firestore queries.
-  // We simulate the separation of trips based on their state.
-  const [allUserTrips, setAllUserTrips] = useState(tripHistory); // This will come from useCollection
-  const isLoading = false; // This will be from useCollection
+  const userTripsQuery = useMemoFirebase(() => {
+      if (!firestore || !user) return null;
+      return query(collection(firestore, 'trips'), where('userId', '==', user.uid));
+  }, [firestore, user]);
 
-  const awaitingTrips = allUserTrips.filter(t => t.status === 'Awaiting-Offers');
-  const confirmedTrips = allUserTrips.filter(t => ['Planned', 'Completed', 'Cancelled'].includes(t.status));
+  const { data: allUserTrips, isLoading } = useCollection<Trip>(userTripsQuery);
+
+  const awaitingTrips = allUserTrips?.filter(t => t.status === 'Awaiting-Offers') || [];
+  const confirmedTrips = allUserTrips?.filter(t => ['Planned', 'Completed', 'Cancelled'].includes(t.status)) || [];
   
-  const hasAwaitingOffers = !isLoading && awaitingTrips && awaitingTrips.length > 0;
-  const hasConfirmedTrips = !isLoading && confirmedTrips && confirmedTrips.length > 0;
+  const hasAwaitingOffers = !isLoading && awaitingTrips.length > 0;
+  const hasConfirmedTrips = !isLoading && confirmedTrips.length > 0;
   
-  const notifications: Notification[] = []; // This will be connected to Firestore later
+  const notificationsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/notifications`));
+  }, [firestore, user]);
+  const { data: notifications } = useCollection<Notification>(notificationsQuery);
   const notificationCount = notifications?.length || 0;
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-        // router.push('/login');
+        router.push('/login');
     }
   }, [user, isUserLoading, router]);
 
@@ -302,12 +317,12 @@ export default function HistoryPage() {
                   <CardDescription className="mb-4 px-6">
                     هنا تظهر طلباتك التي أرسلتها. يمكنك استعراض العروض المقدمة من الناقلين لكل طلب.
                   </CardDescription>
-                  <Accordion type="single" collapsible className="w-full space-y-4">
+                  <Accordion type="single" collapsible className="w-full">
                        {awaitingTrips.map(trip => {
                             return (
                                 <AccordionItem value={trip.id} key={trip.id} className="border-none">
-                                    <Card className="overflow-hidden rounded-none md:rounded-lg">
-                                        <AccordionTrigger className="p-4 bg-card/80 hover:no-underline data-[state=closed]:rounded-b-lg">
+                                    <Card className="overflow-hidden rounded-none">
+                                        <AccordionTrigger className="p-4 bg-card/80 hover:no-underline data-[state=closed]:rounded-b-none">
                                             <div className="flex justify-between items-center w-full">
                                                 <div className="text-right">
                                                     <div className="flex items-center gap-3">
@@ -354,8 +369,8 @@ export default function HistoryPage() {
                             {confirmedTrips.map(trip => (
                                <TableRow key={trip.id}>
                                   <TableCell>{trip.carrierName || 'غير محدد'}</TableCell>
-                                  <TableCell>{trip.origin}</TableCell>
-                                  <TableCell>{trip.destination}</TableCell>
+                                  <TableCell>{cities[trip.origin as keyof typeof cities] || trip.origin}</TableCell>
+                                  <TableCell>{cities[trip.destination as keyof typeof cities] || trip.destination}</TableCell>
                                   <TableCell>{new Date(trip.departureDate).toLocaleDateString('ar-SA')}</TableCell>
                                   <TableCell><Badge variant={statusVariantMap[trip.status]}>{statusMap[trip.status]}</Badge></TableCell>
                                </TableRow>
@@ -383,3 +398,4 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
+

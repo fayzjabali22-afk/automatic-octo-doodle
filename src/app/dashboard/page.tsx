@@ -38,7 +38,7 @@ import {
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useCollection, useFirestore, useUser, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc, addDoc } from 'firebase/firestore';
 import { LegalDisclaimerDialog } from '@/components/legal-disclaimer-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -113,14 +113,14 @@ export default function DashboardPage() {
     const searchInputNormalized = normalizePhoneNumber(carrierSearchInput);
 
     const foundTrip = allTrips.find(trip => {
-        const nameMatch = trip.carrierName.toLowerCase().includes(carrierSearchInput.toLowerCase());
+        const nameMatch = trip.carrierName?.toLowerCase().includes(carrierSearchInput.toLowerCase());
         const phoneMatch = trip.carrierPhoneNumber && normalizePhoneNumber(trip.carrierPhoneNumber).includes(searchInputNormalized);
         return nameMatch || phoneMatch;
     });
 
     if (foundTrip) {
         setSelectedCarrierName(foundTrip.carrierName);
-        setCarrierSearchInput(foundTrip.carrierName); 
+        setCarrierSearchInput(foundTrip.carrierName || ''); 
         toast({ title: 'تم العثور على الناقل', description: `يتم الآن عرض رحلات: ${foundTrip.carrierName}` });
     } else {
         setSelectedCarrierName(null);
@@ -158,7 +158,7 @@ export default function DashboardPage() {
         filteredTrips = filteredTrips.filter(trip => trip.destination === searchDestinationCity);
     }
     if (searchSeats > 0) {
-        filteredTrips = filteredTrips.filter(trip => trip.availableSeats >= searchSeats);
+        filteredTrips = filteredTrips.filter(trip => (trip.availableSeats || 0) >= searchSeats);
     }
     if (date) {
         filteredTrips = filteredTrips.filter(trip => new Date(trip.departureDate).toDateString() === date.toDateString());
@@ -232,23 +232,21 @@ export default function DashboardPage() {
   
   const handleBookingRequestSubmit = async () => {
       // This function is now only for 'all-carriers' (tendering)
-      const tripsCollection = collection(firestore!, 'trips');
-      addDocumentNonBlocking(tripsCollection, {
-          userId: user!.uid,
+      if (!firestore || !user) return;
+      const tripsCollection = collection(firestore, 'trips');
+      const newTripDoc = doc(tripsCollection); // Create a reference with a new ID
+      
+      const newTripData: Trip = {
+          id: newTripDoc.id,
+          userId: user.uid,
           origin: searchOriginCity,
           destination: searchDestinationCity,
           passengers: searchSeats,
           status: 'Awaiting-Offers',
           departureDate: date ? date.toISOString() : new Date().toISOString(),
-          // Add other required fields with default/empty values if necessary
-          carrierName: '',
-          carrierPhoneNumber: '',
-          cargoDetails: '',
-          vehicleType: '',
-          vehicleCategory: 'small', // Or a sensible default
-          vehicleModelYear: new Date().getFullYear(),
-          availableSeats: 0,
-      }).then(() => {
+      };
+      
+      addDocumentNonBlocking(tripsCollection, newTripData).then(() => {
           toast({
               title: "تم إرسال طلبك بنجاح!",
               description: "سيتم توجيهك الآن لصفحة حجوزاتك لمتابعة طلبك.",
@@ -558,6 +556,7 @@ export default function DashboardPage() {
       <LegalDisclaimerDialog 
         isOpen={isDisclaimerOpen}
         onOpenChange={setIsDisclaimerOpen}
+        onContinue={handleBookingRequest}
       />
     </AppLayout>
   );
