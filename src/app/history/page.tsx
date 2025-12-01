@@ -103,7 +103,7 @@ const TripOffers = ({ trip }: { trip: Trip; }) => {
         <>
             <div className="p-0 md:p-0 space-y-4">
                 <p className="text-center text-accent font-semibold px-4 pt-4">انتظر، قد تصلك عروض أفضل.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 md:p-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                     {offers.map(offer => (
                         <OfferCard key={offer.id} offer={offer} trip={trip} onAccept={() => handleAcceptClick(offer)} />
                     ))}
@@ -169,8 +169,8 @@ export default function HistoryPage() {
 
   return (
     <AppLayout>
-      <div className="bg-[#130609] p-2 md:p-8 rounded-lg space-y-8">
-        <Card style={{ backgroundColor: '#EDC17C' }}>
+      <div className="bg-[#130609] p-0 md:p-8 rounded-lg space-y-8">
+        <Card style={{ backgroundColor: '#EDC17C' }} className="rounded-none md:rounded-lg">
           <CardHeader className="p-4">
             <div className="flex justify-between items-start">
               <div className="text-black">
@@ -207,26 +207,26 @@ export default function HistoryPage() {
           
           {isLoadingAwaiting && renderSkeleton()}
           {hasAwaitingOffers && (
-            <Card>
-                <AccordionItem value="awaiting" className="border-none">
+            <AccordionItem value="awaiting" className="border-none">
+              <Card className="rounded-none md:rounded-lg">
                 <AccordionTrigger className="p-6 text-lg hover:no-underline">
                   <div className='flex items-center gap-2'><PackageOpen className="h-6 w-6 text-primary" /><CardTitle>طلبات بانتظار العروض</CardTitle></div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <CardContent className="p-0 md:p-0">
+                  <CardContent className="p-0">
                     <CardDescription className="mb-4 px-6">
                       هنا تظهر طلباتك التي أرسلتها. يمكنك استعراض العروض المقدمة من الناقلين لكل طلب.
                     </CardDescription>
-                    <Accordion type="single" collapsible className="w-full space-y-4 px-6">
+                    <Accordion type="single" collapsible className="w-full space-y-4 px-0 md:px-6">
                        {awaitingTrips.map(trip => {
                             return (
-                                <AccordionItem value={trip.id} key={trip.id}>
-                                    <Card className="overflow-hidden">
+                                <AccordionItem value={trip.id} key={trip.id} className="border-none">
+                                    <Card className="overflow-hidden rounded-none md:rounded-lg">
                                         <AccordionTrigger className="p-4 bg-card/80 hover:no-underline data-[state=closed]:rounded-b-lg">
                                             <div className="flex justify-between items-center w-full">
                                                 <div className="text-right">
                                                     <div className="flex items-center gap-3">
-                                                        <p className="font-bold text-lg">{cities[trip.origin as keyof typeof cities] || trip.origin} إلى {cities[trip.destination as keyof typeof cities] || trip.destination}</p>
+                                                        <p className="font-bold text-base">{cities[trip.origin as keyof typeof cities] || trip.origin} إلى {cities[trip.destination as keyof typeof cities] || trip.destination}</p>
                                                         <p className="text-sm text-muted-foreground">({new Date(trip.departureDate).toLocaleDateString('ar-SA')})</p>
                                                     </div>
                                                 </div>
@@ -242,19 +242,19 @@ export default function HistoryPage() {
                     </Accordion>
                   </CardContent>
                 </AccordionContent>
-                </AccordionItem>
-            </Card>
+                </Card>
+            </AccordionItem>
           )}
           
           {isLoadingConfirmed && renderSkeleton()}
           {hasConfirmedTrips && (
-              <Card>
-                <AccordionItem value="confirmed" className="border-none">
+              <AccordionItem value="confirmed" className="border-none">
+                <Card className="rounded-none md:rounded-lg">
                   <AccordionTrigger className="p-6 text-lg hover:no-underline">
                     <div className='flex items-center gap-2'><CheckCircle className="h-6 w-6 text-green-500" /><CardTitle>رحلاتي السابقة والمؤكدة</CardTitle></div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <CardContent className="space-y-6">
+                    <CardContent className="space-y-6 p-4 md:p-6">
                       <CardDescription className="mb-4">سجل رحلاتك التي قمت بحجزها بالفعل.</CardDescription>
                       <Table>
                         <TableHeader>
@@ -280,8 +280,8 @@ export default function HistoryPage() {
                       </Table>
                     </CardContent>
                   </AccordionContent>
-                </AccordionItem>
-              </Card>
+                </Card>
+              </AccordionItem>
             )
           }
         </Accordion>
