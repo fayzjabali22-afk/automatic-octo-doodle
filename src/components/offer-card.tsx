@@ -7,21 +7,23 @@ import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card'
 import { HandCoins, Star, Car, Loader2, MessageSquarePlus } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Skeleton } from './ui/skeleton';
-import { useDoc, useFirestore, useMemoFirebase, addDocumentNonBlocking, useUser } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc, collection, writeBatch } from 'firebase/firestore';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import React from 'react';
 
 interface OfferCardProps {
   offer: Offer;
   trip: Trip;
   onAccept: () => void;
+  onActionComplete: () => void; // New prop for resetting state
   isAccepting: boolean;
 }
 
-const formatCurrency = (value: number) => {
-    if (isNaN(value)) return 'N/A';
+const formatCurrency = (value: number | undefined) => {
+    if (typeof value !== 'number' || isNaN(value)) return 'N/A';
     return new Intl.NumberFormat('ar-JO', {
         style: 'currency',
         currency: 'JOD',
@@ -30,8 +32,7 @@ const formatCurrency = (value: number) => {
     }).format(value);
 };
 
-
-const CarrierInfo = ({ carrierId }: { carrierId: string }) => {
+const CarrierInfo = React.memo(({ carrierId }: { carrierId: string }) => {
   const firestore = useFirestore();
   const carrierRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -78,9 +79,11 @@ const CarrierInfo = ({ carrierId }: { carrierId: string }) => {
       </div>
     </div>
   );
-};
+});
+CarrierInfo.displayName = 'CarrierInfo';
 
-export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps) {
+
+export function OfferCard({ offer, trip, onAccept, onActionComplete, isAccepting }: OfferCardProps) {
   const router = useRouter();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -96,8 +99,7 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
 
     try {
         const batch = writeBatch(firestore);
-
-        // 1. Create a new chat document
+        
         const chatId = `${trip.id}_${user.uid}_${offer.carrierId}`;
         const chatRef = doc(firestore, 'chats', chatId);
 
@@ -106,13 +108,12 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
             participants: [user.uid, offer.carrierId],
             updatedAt: new Date().toISOString(),
             lastMessage: "بدأت المحادثة...",
-        }, { merge: true }); // Use merge to not overwrite if chat exists
+        }, { merge: true });
 
-        // 2. Create the first message
         const messageRef = doc(collection(firestore, 'chats', chatId, 'messages'));
         batch.set(messageRef, {
             senderId: user.uid,
-            content: `مرحبًا، أنا مهتم بعرضكم لرحلة ${trip.origin} إلى ${trip.destination}.`,
+            content: `مرحباً، بخصوص عرضكم لرحلة ${trip.origin} إلى ${trip.destination}، أود مناقشة بعض التفاصيل.`,
             timestamp: new Date().toISOString(),
         });
         
@@ -122,8 +123,7 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
     } catch (error) {
         console.error("Error starting chat:", error);
         toast({ variant: 'destructive', title: 'فشل بدء المحادثة', description: 'حدث خطأ ما، يرجى المحاولة مرة أخرى.' });
-        // Reset loading state in parent if there's an error
-        onAccept(); 
+        onActionComplete(); // Reset loading state on error
     }
   };
 
@@ -131,7 +131,7 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
   const vehicleImage = PlaceHolderImages.find((img) => img.id === 'car-placeholder');
 
   return (
-    <Card className="w-full overflow-hidden shadow-lg transition-all hover:shadow-primary/20 border-2 border-border/60 flex flex-col justify-between bg-card">
+    <Card dir="rtl" className="w-full overflow-hidden shadow-lg transition-all hover:shadow-primary/20 border-2 border-border/60 flex flex-col justify-between bg-card">
       <CardHeader>
         <CarrierInfo carrierId={offer.carrierId} />
       </CardHeader>

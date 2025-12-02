@@ -42,6 +42,10 @@ export function TripOffers({ trip, onAcceptOffer }: TripOffersProps) {
     // but good practice to have error handling.
   };
 
+  const handleActionComplete = () => {
+    setAcceptingOfferId(null);
+  }
+
   // ✅ حالة التحميل
   if (isLoading) {
     return (
@@ -73,7 +77,8 @@ export function TripOffers({ trip, onAcceptOffer }: TripOffersProps) {
           offer={offer}
           trip={trip}
           onAccept={() => handleAcceptClick(offer)}
-          isAccepting={acceptingOfferId === offer.id} // Pass dynamic loading state
+          onActionComplete={handleActionComplete}
+          isAccepting={acceptingOfferId === offer.id}
         />
       ))}
     </div>
