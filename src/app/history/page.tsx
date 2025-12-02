@@ -1,4 +1,5 @@
 'use client';
+
 import { AppLayout } from '@/components/app-layout';
 import {
   Accordion,
@@ -14,14 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -31,13 +24,14 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Notification, Offer } from '@/lib/data';
-import { Bell, CheckCircle, PackageOpen, Ship, Star, AlertCircle, Phone, Pencil, SendHorizonal, Paperclip } from 'lucide-react';
+import { Bell, CheckCircle, PackageOpen, AlertCircle, Phone, Pencil, SendHorizonal, Paperclip } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { arSA } from 'date-fns/locale';
 
-
+// --- Helper Functions ---
 const statusMap: Record<string, string> = {
     'Awaiting-Offers': 'بانتظار العروض',
     'Planned': 'مؤكدة',
@@ -52,7 +46,23 @@ const statusVariantMap: Record<string, "default" | "secondary" | "destructive" |
     'Cancelled': 'destructive',
 }
 
-// --- START: DUMMY DATA FOR TESTING ---
+// Safe Date Formatter to handle String, Date object, or Firebase Timestamp
+const safeDateFormat = (dateInput: any, formatStr: string = 'PPP'): string => {
+    if (!dateInput) return 'N/A';
+    try {
+        let dateObj;
+        if (typeof dateInput.toDate === 'function') {
+            dateObj = dateInput.toDate(); // Firebase Timestamp
+        } else {
+            dateObj = new Date(dateInput); // String or Date
+        }
+        return format(dateObj, formatStr, { locale: arSA });
+    } catch (error) {
+        return 'تاريخ غير صالح';
+    }
+};
+
+// --- DUMMY DATA ---
 const dummyAwaitingTrips: Trip[] = [
     { id: 'DUMMY01', userId: 'test-user', origin: 'الرياض', destination: 'عمّان', departureDate: new Date().toISOString(), status: 'Awaiting-Offers', carrierName: '', passengers: 2 },
 ];
@@ -61,8 +71,6 @@ const dummyConfirmedTrips: Trip[] = [
     { id: 'DUMMY03', userId: 'test-user', origin: 'الدمام', destination: 'دبي', departureDate: '2024-07-25T09:15:00Z', status: 'Planned', carrierId: 'carrier02', carrierName: 'الناقل الدولي', cargoDetails: 'مواد بناء', vehicleType: 'Ford Transit', passengers: 4, price: 400 },
     { id: 'DUMMY04', userId: 'test-user', origin: 'عمان', destination: 'الرياض', departureDate: '2024-07-15T12:00:00Z', status: 'Completed', carrierId: 'carrier03', carrierName: 'شركة النقل السريع', cargoDetails: 'أغراض شخصية', vehicleType: 'Hyundai Staria', passengers: 3, price: 100 },
 ];
-// --- END: DUMMY DATA FOR TESTING ---
-
 
 export default function HistoryPage() {
   const { user, isUserLoading } = useUser();
@@ -71,8 +79,7 @@ export default function HistoryPage() {
   const { toast } = useToast();
   
   const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
-  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
-  const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
+  // Removed unused state: selectedTrip, isTicketDialogOpen
   
   // --- REAL DATA FETCHING ---
   const awaitingTripsQuery = useMemoFirebase(() => {
@@ -89,17 +96,13 @@ export default function HistoryPage() {
   const confirmedTrips: Trip[] | null = dummyConfirmedTrips;
   const isLoadingConfirmed = false;
   const hasConfirmedTrips = !isLoadingConfirmed && confirmedTrips && confirmedTrips.length > 0;
-  // --- END REAL DATA ---
   
   // --- FALLBACK LOGIC ---
   const awaitingTrips = (realAwaitingTrips && realAwaitingTrips.length > 0) ? realAwaitingTrips : dummyAwaitingTrips;
-  const useDummyOffers = !realAwaitingTrips || realAwaitingTrips.length === 0;
   const hasAwaitingSection = !isLoadingAwaiting && awaitingTrips && awaitingTrips.length > 0;
-  // --- END FALLBACK LOGIC ---
 
-  const notifications: Notification[] = []; // Dummy notifications
+  const notifications: Notification[] = []; 
   const notificationCount = notifications?.length || 0;
-
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -110,6 +113,7 @@ export default function HistoryPage() {
   useEffect(() => {
     if (isLoadingAwaiting || isLoadingConfirmed) return;
     
+    // Auto-open logic
     if (hasConfirmedTrips) {
         setOpenAccordion('confirmed');
     } else if (hasAwaitingSection) {
@@ -120,7 +124,6 @@ export default function HistoryPage() {
   }, [hasAwaitingSection, hasConfirmedTrips, isLoadingAwaiting, isLoadingConfirmed]);
 
   const handleAcceptOffer = (offer: Offer) => {
-    // Placeholder for Phase 3
     toast({
       title: "قيد الإنشاء (المرحلة 3)",
       description: `سيتم تفعيل قبول العرض ${offer.id} في المرحلة القادمة.`,
@@ -134,7 +137,6 @@ export default function HistoryPage() {
   );
 
   if (isUserLoading) return <AppLayout>{renderSkeleton()}</AppLayout>;
-
 
   return (
     <AppLayout>
@@ -182,15 +184,15 @@ export default function HistoryPage() {
                 </AccordionTrigger>
                 <AccordionContent>
                     {awaitingTrips.map(trip => (
-                         <CardContent key={trip.id} className="border-t pt-6">
+                          <CardContent key={trip.id} className="border-t pt-6">
                             <div className="mb-4">
                                 <CardTitle className="text-md">طلب رحلة: {trip.origin} إلى {trip.destination}</CardTitle>
                                 <CardDescription className="text-xs">
-                                    تاريخ الطلب: {new Date(trip.departureDate).toLocaleDateString('ar-SA')} | عدد الركاب: {trip.passengers || 'غير محدد'}
+                                    تاريخ الطلب: {safeDateFormat(trip.departureDate)} | عدد الركاب: {trip.passengers || 'غير محدد'}
                                 </CardDescription>
                             </div>
                             <TripOffers trip={trip} onAcceptOffer={handleAcceptOffer} />
-                         </CardContent>
+                          </CardContent>
                     ))}
                 </AccordionContent>
               </Card>
@@ -223,10 +225,11 @@ export default function HistoryPage() {
                                     <h3 className="font-bold border-b pb-2 mb-3">التذكرة الإلكترونية</h3>
                                     <div className="space-y-3 text-sm">
                                         <p><strong>الناقل:</strong> {trip.carrierName}</p>
-                                        <p><strong>وقت الحجز:</strong> {new Date().toLocaleDateString('ar-SA')}</p>
+                                        {/* FIX: Removed Hydration Error (new Date), using static text or trip date */}
+                                        <p><strong>تاريخ الحجز:</strong> {safeDateFormat(trip.departureDate)}</p>
                                         <p><strong>القيمة الإجمالية:</strong> {trip.price} ريال</p>
                                         <p><strong>الركاب:</strong> {trip.passengers} راكب</p>
-                                        <p><strong>تاريخ الانطلاق:</strong> {new Date(trip.departureDate).toLocaleString('ar-SA', { dateStyle: 'full', timeStyle: 'short' })}</p>
+                                        <p><strong>تاريخ الانطلاق:</strong> {safeDateFormat(trip.departureDate, 'PPP p')}</p>
                                         <div className="border-t my-2"></div>
                                         <p className="text-xs text-amber-500"><strong>تعليمات:</strong> التواجد في موقع الانطلاق قبل ساعة ونصف من وقت الانطلاق.</p>
                                     </div>
@@ -246,6 +249,7 @@ export default function HistoryPage() {
                                     
                                     <div className="flex-grow flex flex-col space-y-2 h-72">
                                         <div className="flex-grow bg-muted/30 rounded-lg p-2 md:p-4 space-y-4 overflow-y-auto flex flex-col">
+                                            {/* Chat Mockup */}
                                             <div className="flex items-end gap-2 max-w-md">
                                                 <div className="bg-gray-700 text-white p-3 rounded-lg rounded-bl-none">
                                                     <p className="text-sm">أهلاً بك، تم تأكيد حجزك. هل لديك أي استفسارات؟</p>
@@ -284,7 +288,6 @@ export default function HistoryPage() {
           )}
         </Accordion>
       </div>
-
     </AppLayout>
   );
 }
