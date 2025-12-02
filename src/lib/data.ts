@@ -91,6 +91,32 @@ export const mockCarriers: CarrierProfile[] = [
     { id: 'carrier04', name: 'الجبالي للنقل', contactEmail: 'jebali.transport@email.com', averageRating: 4.0 },
 ];
 
+export const scheduledTrips: Trip[] = [
+    {
+        id: 'TRIP-SCHEDULED-001',
+        userId: 'user123',
+        carrierId: 'carrier01',
+        carrierName: 'شركة النقل السريع',
+        origin: 'riyadh',
+        destination: 'amman',
+        departureDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+        status: 'Planned',
+        passengers: 4,
+    },
+    {
+        id: 'TRIP-SCHEDULED-002',
+        userId: 'user456',
+        carrierId: 'carrier02',
+        carrierName: 'سفريات الأمان',
+        origin: 'cairo',
+        destination: 'jeddah',
+        departureDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
+        status: 'Planned',
+        passengers: 2,
+    },
+];
+
+
 export const tripHistory: Trip[] = [];
 
 export const mockOffers: Offer[] = [
@@ -140,5 +166,3 @@ export const mockOffers: Offer[] = [
 
 // This is now empty as requested
 export const mockConfirmedTrips: Trip[] = [];
-
-    
