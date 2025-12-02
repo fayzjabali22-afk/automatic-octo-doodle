@@ -22,6 +22,8 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { BookingDialog } from '@/components/booking-dialog';
+import { ScheduledTripCard } from '@/components/scheduled-trip-card';
+
 
 // --- Helper Functions & Data ---
 const cities: { [key: string]: string } = {
@@ -289,33 +291,16 @@ export default function HistoryPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <CardContent className="space-y-6 pt-6">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 p-6">
                     {confirmedTrips.map(trip => (
-                      <Card key={trip.id} className="bg-background/50 border-green-500/50">
-                        <CardHeader>
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-base font-bold">رحلة {cities[trip.origin] || trip.origin} إلى {cities[trip.destination] || trip.destination}</CardTitle>
-                            <Badge variant={statusVariantMap[trip.status] || 'outline'}>{statusMap[trip.status] || trip.status}</Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-6 p-4">
-                          {/* Details */}
-                          <div className="p-4 border rounded-lg bg-card/50 space-y-3">
-                            <h3 className="font-bold border-b pb-2 mb-3">التذكرة الإلكترونية</h3>
-                            <p><strong>الناقل:</strong> {trip.carrierName || 'جاري التعيين'}</p>
-                            <p><strong>تاريخ الرحلة:</strong> {safeDateFormat(trip.departureDate)}</p>
-                            <p><strong>القيمة:</strong> {trip.price ? `${trip.price} ريال` : 'غير محدد'}</p>
-                          </div>
-                          {/* Status */}
-                          <div className="p-4 border rounded-lg bg-card/50 flex flex-col items-center justify-center text-center space-y-2">
-                            <CheckCircle className="h-8 w-8 text-green-500" aria-hidden="true" />
-                            <p className="font-bold text-sm">رحلة مؤكدة</p>
-                            <p className="text-sm text-muted-foreground">نتمنى لك رحلة سعيدة!</p>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <ScheduledTripCard
+                        key={trip.id}
+                        trip={trip}
+                        onBookNow={() => {}} // No action needed here for now
+                        context="history"
+                      />
                     ))}
-                  </CardContent>
+                  </div>
                 </AccordionContent>
               </Card>
             </AccordionItem>
