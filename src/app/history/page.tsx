@@ -19,16 +19,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, writeBatch, orderBy, limit } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Notification, Offer } from '@/lib/data';
-import { Bell, CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX } from 'lucide-react';
+import { Bell, CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, RefreshCcw } from 'lucide-react';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { arSA } from 'date-fns/locale';
-import { BookingDialog, type PassengerDetails } from '@/components/booking-dialog';
+
+// Lazy load BookingDialog for performance optimization
+const BookingDialog = React.lazy(() => import('@/components/booking-dialog').then(module => ({ default: module.BookingDialog })));
 
 // --- Helper Functions ---
 const statusMap: Record<string, string> = {
@@ -115,7 +117,7 @@ export default function HistoryPage() {
     setIsBookingDialogOpen(true);
   };
 
-  const handleConfirmBooking = async (passengers: PassengerDetails[]) => {
+  const handleConfirmBooking = async (passengers: any[]) => {
     if (!firestore || !user || !selectedOfferForBooking) return;
     setIsProcessingBooking(true);
     const { trip, offer } = selectedOfferForBooking;
@@ -166,7 +168,7 @@ export default function HistoryPage() {
   };
 
   const renderSkeleton = () => (
-    <div className="space-y-4">
+    <div className="space-y-4" role="status" aria-label="جار التحميل">
       {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
     </div>
   );
@@ -201,6 +203,9 @@ export default function HistoryPage() {
                 <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
                   <Bell className="h-8 w-8 opacity-20" aria-hidden="true" />
                   <p className="text-sm">لا توجد إشعارات جديدة حالياً.</p>
+                  <Button variant="outline" size="sm" className="mt-2">
+                    <RefreshCcw className="ml-2 h-4 w-4" /> تحديث
+                  </Button>
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -306,14 +311,16 @@ export default function HistoryPage() {
 
       {/* Booking Dialog */}
       {selectedOfferForBooking && (
-        <BookingDialog
-          isOpen={isBookingDialogOpen}
-          onOpenChange={setIsBookingDialogOpen}
-          trip={selectedOfferForBooking.trip}
-          seatCount={selectedOfferForBooking.trip.passengers || selectedOfferForBooking.offer.availableSeats || 1}
-          onConfirm={handleConfirmBooking}
-          isProcessing={isProcessingBooking}
-        />
+        <Suspense fallback={<div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50"><p>جارٍ تحميل نافذة الحجز...</p></div>}>
+          <BookingDialog
+            isOpen={isBookingDialogOpen}
+            onOpenChange={setIsBookingDialogOpen}
+            trip={selectedOfferForBooking.trip}
+            seatCount={selectedOfferForBooking.trip.passengers || selectedOfferForBooking.offer.availableSeats || 1}
+            onConfirm={handleConfirmBooking}
+            isProcessing={isProcessingBooking}
+          />
+        </Suspense>
       )}
     </AppLayout>
   );
