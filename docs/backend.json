@@ -305,18 +305,14 @@
         }
       },
       {
-        "path": "/users/{userId}/notifications/{notificationId}",
+        "path": "/notifications/{notificationId}",
         "definition": {
             "entityName": "Notification",
             "schema": {
                 "$ref": "#/backend/entities/Notification"
             },
-            "description": "Stores notifications for a specific user.",
+            "description": "Stores notifications for all users in a single collection.",
             "params": [
-                {
-                    "name": "userId",
-                    "description": "The unique identifier for the user."
-                },
                 {
                     "name": "notificationId",
                     "description": "The unique identifier for the notification."

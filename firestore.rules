@@ -13,24 +13,22 @@ service cloud.firestore {
     
     match /users/{userId} {
       // The user can read and write their own profile document.
+      // Any subcollections are secured by the rules below.
       allow read, write: if isOwner(userId);
-
-      // Rules for the 'notifications' subcollection
-      match /notifications/{notificationId} {
-        // The owner can list, read, and update their own notifications.
-        // 'list' is crucial for useCollection to work.
-        // 'read' is for fetching single notifications.
-        // 'update' is for marking notifications as read.
-        allow list, read, update: if isOwner(userId);
-
-        // Any signed-in user (e.g., a carrier) can create a notification for another user.
-        allow create: if isSignedIn();
-      }
     }
     
     match /carriers/{carrierId} {
       allow read: if true;
       allow write: if isSignedIn(); // For dev, allow any user to create/update carriers
+    }
+
+    match /notifications/{notificationId} {
+      // Users can list and read notifications intended for them.
+      // They can also update them (e.g., to mark as read).
+      allow list, read, update: if isOwner(resource.data.userId);
+
+      // Any signed-in user can create a notification.
+      allow create: if isSignedIn();
     }
 
     match /trips/{tripId} {

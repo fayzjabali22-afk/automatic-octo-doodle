@@ -82,11 +82,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const { data: userProfile } = useDoc(userProfileRef);
 
-  // ✅ Optimization: Added limit(10) to prevent fetching thousands of docs
+  // ✅ Query from the root 'notifications' collection
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
-        collection(firestore, `users/${user.uid}/notifications`), 
+        collection(firestore, 'notifications'), 
+        where("userId", "==", user.uid), // Filter for the current user
         where("isRead", "==", false),
         orderBy("createdAt", "desc"),
         limit(10) 
@@ -94,13 +95,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [firestore, user]);
 
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
-  // Note: unreadCount here will show max 10, if you need real total count you need a separate aggregation query, 
-  // but for UI badge "10+" style or just showing available is often enough for MVP.
   const unreadCount = notifications?.length || 0;
   
   const handleNotificationClick = (notification: Notification) => {
     if (firestore && user && !notification.isRead) {
-        const notifRef = doc(firestore, `users/${user.uid}/notifications`, notification.id);
+        // ✅ Path to the root notification document
+        const notifRef = doc(firestore, 'notifications', notification.id);
         setDocumentNonBlocking(notifRef, { isRead: true }, { merge: true });
     }
     if (notification.link) {

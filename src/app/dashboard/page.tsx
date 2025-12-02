@@ -232,7 +232,8 @@ export default function DashboardPage() {
         addDocumentNonBlocking(bookingsCollection, newBooking);
 
         if (selectedTripForBooking.carrierId) {
-            const notificationsCollection = collection(firestore, 'users', selectedTripForBooking.carrierId, 'notifications');
+            // ✅ Use root collection for notifications
+            const notificationsCollection = collection(firestore, 'notifications');
             addDocumentNonBlocking(notificationsCollection, {
                 userId: selectedTripForBooking.carrierId,
                 title: 'طلب حجز جديد',
@@ -333,7 +334,8 @@ export default function DashboardPage() {
         });
 
         // 2. Send a notification ONLY to that carrier
-        const notificationsCollection = collection(firestore, 'users', selectedCarrier.id, 'notifications');
+        // ✅ Use root collection for notifications
+        const notificationsCollection = collection(firestore, 'notifications');
         await addDoc(notificationsCollection, {
             userId: selectedCarrier.id,
             title: 'لديك طلب رحلة خاص',

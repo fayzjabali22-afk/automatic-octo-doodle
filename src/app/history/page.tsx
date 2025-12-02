@@ -18,7 +18,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, doc, writeBatch, orderBy, limit } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -110,8 +110,8 @@ export default function HistoryPage() {
   const hasPendingConfirmationTrips = pendingConfirmationTrips && pendingConfirmationTrips.length > 0;
   const hasConfirmedTrips = confirmedTrips && confirmedTrips.length > 0;
 
-  const notifications: Notification[] = [];
-  const notificationCount = notifications.length;
+  // This is now handled by app-layout
+  const notificationCount = 0;
 
   useEffect(() => {
     if (!isUserLoading && !user) router.push('/login');
@@ -163,7 +163,8 @@ export default function HistoryPage() {
         carrierId: offer.carrierId,
       });
 
-      batch.set(doc(collection(firestore, `users/${offer.carrierId}/notifications`)), {
+      // ✅ Use root collection for notifications
+      addDocumentNonBlocking(collection(firestore, 'notifications'), {
         userId: offer.carrierId,
         title: `طلب حجز جديد لرحلة ${trip.origin} - ${trip.destination}`,
         message: `لديك طلب حجز جديد من المستخدم ${user.displayName || user.email}.`,
@@ -202,31 +203,6 @@ export default function HistoryPage() {
               <CardTitle>إدارة الحجز</CardTitle>
               <CardDescription>تابع عروضك وحجوزاتك من هنا</CardDescription>
             </div>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative" aria-label="عرض الإشعارات">
-                  <Bell className="h-5 w-5" aria-hidden="true" />
-                  {notificationCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-4 w-4 justify-center p-0 text-xs">
-                      {notificationCount}
-                    </Badge>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>الإشعارات</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
-                  <Bell className="h-8 w-8 opacity-20" aria-hidden="true" />
-                  <p className="text-sm">لا توجد إشعارات جديدة حالياً.</p>
-                  <Button variant="outline" size="sm" className="mt-2">
-                    <RefreshCcw className="ml-2 h-4 w-4" /> تحديث
-                  </Button>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
           </CardHeader>
         </Card>
 
@@ -366,5 +342,3 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
-
-    
