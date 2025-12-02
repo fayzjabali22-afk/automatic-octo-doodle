@@ -76,14 +76,6 @@ export function TripCard({ trip, onBookNow }: { trip: Trip; onBookNow: (trip: Tr
             setIsAuthRedirectOpen(true);
             return;
         }
-        if (user && !user.emailVerified) {
-            toast({
-                variant: "destructive",
-                title: "الحساب غير مفعل",
-                description: "الرجاء تفعيل حسابك أولاً لتتمكن من الحجز.",
-            });
-            return;
-        }
         onBookNow(trip);
     }
 

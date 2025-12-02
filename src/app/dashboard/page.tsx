@@ -202,14 +202,6 @@ export default function DashboardPage() {
             setIsAuthRedirectOpen(true);
             return;
         }
-        if (!user.emailVerified) {
-            toast({
-                variant: 'destructive',
-                title: 'الحساب غير مفعل',
-                description: 'الرجاء تفعيل حسابك أولاً لتتمكن من الحجز.',
-            });
-            return;
-        }
         setSelectedTripForBooking(trip);
         setIsBookingDialogOpen(true);
     };
@@ -260,14 +252,6 @@ export default function DashboardPage() {
     // Shared validation for all modes
      if (!user) {
         setIsAuthRedirectOpen(true);
-        return;
-      }
-      if (user && !user.emailVerified) {
-        toast({
-            variant: "destructive",
-            title: "الحساب غير مفعل",
-            description: "الرجاء التحقق من بريدك الإلكتروني أولاً لتتمكن من إرسال الطلبات.",
-        });
         return;
       }
        if (!searchOriginCity || !searchDestinationCity) {
