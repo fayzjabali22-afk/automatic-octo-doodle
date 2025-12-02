@@ -256,10 +256,8 @@ export default function DashboardPage() {
 
 
   const handleMainActionButtonClick = () => {
-    if (searchMode === 'all-carriers') {
-      handleBookingRequest();
-    } else {
-      if (!user) {
+    // Shared validation for all modes
+     if (!user) {
         setIsAuthRedirectOpen(true);
         return;
       }
@@ -271,6 +269,19 @@ export default function DashboardPage() {
         });
         return;
       }
+       if (!searchOriginCity || !searchDestinationCity) {
+          toast({
+              title: "بيانات غير مكتملة",
+              description: "الرجاء اختيار مدينة الانطلاق والوصول.",
+              variant: "destructive",
+          });
+          return;
+      }
+
+    // Mode-specific logic
+    if (searchMode === 'all-carriers') {
+      handleGeneralBookingRequestSubmit();
+    } else { // 'specific-carrier' mode
       if (!selectedCarrier) {
         toast({
           title: "الرجاء تحديد ناقل أولاً",
@@ -279,14 +290,11 @@ export default function DashboardPage() {
         });
         return;
       }
-      toast({
-          title: "جاري إرسال الطلب...",
-          description: `سيتم إرسال طلبك إلى ${selectedCarrier.name}.`,
-      });
+      handleSpecificCarrierRequestSubmit();
     }
   };
   
-  const handleBookingRequestSubmit = async () => {
+  const handleGeneralBookingRequestSubmit = async () => {
       if (!firestore || !user) return;
       const tripsCollection = collection(firestore, 'trips');
       try {
@@ -308,28 +316,43 @@ export default function DashboardPage() {
       }
   };
   
-  const handleBookingRequest = () => {
-      if (!user) {
-          setIsAuthRedirectOpen(true);
-          return;
-      }
-      if (user && !user.emailVerified) {
-          toast({
-              variant: "destructive",
-              title: "الحساب غير مفعل",
-              description: "الرجاء التحقق من بريدك الإلكتروني أولاً لتتمكن من إرسال الطلبات.",
-          });
-          return;
-      }
-      if (!searchOriginCity || !searchDestinationCity) {
-          toast({
-              title: "بيانات غير مكتملة",
-              description: "الرجاء اختيار مدينة الانطلاق والوصول.",
-              variant: "destructive",
-          });
-          return;
-      }
-      handleBookingRequestSubmit();
+  const handleSpecificCarrierRequestSubmit = async () => {
+    if (!firestore || !user || !selectedCarrier) return;
+
+    try {
+        // 1. Create a new trip document directed at the specific carrier
+        const tripsCollection = collection(firestore, 'trips');
+        const newTripRef = await addDoc(tripsCollection, {
+            userId: user.uid,
+            carrierId: selectedCarrier.id, // Direct the request to this carrier
+            origin: searchOriginCity,
+            destination: searchDestinationCity,
+            passengers: searchSeats,
+            status: 'Awaiting-Offers',
+            departureDate: date ? date.toISOString() : new Date().toISOString(),
+        });
+
+        // 2. Send a notification ONLY to that carrier
+        const notificationsCollection = collection(firestore, 'users', selectedCarrier.id, 'notifications');
+        await addDoc(notificationsCollection, {
+            userId: selectedCarrier.id,
+            title: 'لديك طلب رحلة خاص',
+            message: `المستخدم ${user.displayName || user.email} أرسل لك طلبًا مباشرًا لرحلة من ${cities[searchOriginCity]} إلى ${cities[searchDestinationCity]}.`,
+            type: 'new_booking_request', // Can be a more specific type later
+            isRead: false,
+            createdAt: new Date().toISOString(),
+            link: `/history#${newTripRef.id}` // Link to the specific offer
+        });
+
+        toast({
+            title: `تم إرسال طلبك إلى ${selectedCarrier.name}`,
+            description: "سيتم توجيهك الآن لصفحة حجوزاتك لمتابعة العرض.",
+        });
+        router.push('/history');
+
+    } catch (e) {
+        toast({ title: 'خطأ', description: 'لم نتمكن من إرسال الطلب.', variant: 'destructive'});
+    }
   };
   
 
@@ -601,4 +624,3 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
- 
