@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper Functions
+    // دوال مساعدة
     function isSignedIn() {
       return request.auth != null;
     }
@@ -12,79 +12,77 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     
-    // Check if the user is a participant in the new data being written
+    // التحقق من أن المستخدم طرف في البيانات الجديدة (للإنشاء)
     function isParticipant(data) {
        return isSignedIn() && (request.auth.uid in data.participants);
     }
 
-    // --- Users ---
-    // Strict: Only the user can read/write their own profile
+    // --- المستخدمون ---
     match /users/{userId} {
       allow read, write: if isOwner(userId);
       
+      // تم توحيد الإشعارات في مجموعة جذرية
       match /notifications/{notificationId} {
         allow read, update, create, list: if isOwner(userId);
       }
     }
     
-    // --- Carriers ---
+    // --- الناقلون ---
     match /carriers/{carrierId} {
-      allow read: if true; // Public profiles
-      // FIXED: Only the carrier themselves can edit their profile
-      allow write: if isOwner(carrierId);
+      allow read: if true; // مسموح للجميع رؤية بروفايل الشركة
+      allow write: if isOwner(carrierId); // تصحيح: الكتابة لصاحب الشركة فقط
     }
 
-    // --- Notifications (Root Collection) ---
+    // --- الإشعارات (الجذرية) ---
     match /notifications/{notificationId} {
-        // This rule is tricky. A user should only be able to list their own notifications.
-        // This relies on the client query being `where('userId', '==', request.auth.uid)`
+        // القائمة: فقط إشعاراتي (تعتمد على استعلام العميل)
         allow list: if isSignedIn() && request.query.where.size() > 0 && request.query.where.userId == request.auth.uid;
+        // قراءة وتحديث لصاحب الإشعار فقط
         allow read, update: if isSignedIn() && resource.data.userId == request.auth.uid;
-        // Create should ideally be server-side. If client-side, restrict it.
+        // الإنشاء مسموح إذا كان الإشعار موجه لنفسي (أو يتم عبر الخادم)
         allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
 
 
-    // --- Trips ---
+    // --- الرحلات (العصب الرئيسي) ---
     match /trips/{tripId} {
-      // READ LOGIC:
-      // 1. Owner can read.
-      // 2. OR any signed-in user (like a carrier) can read if status is 'Awaiting-Offers' (Public market).
-      // 3. OR if the user is the assigned carrier for the trip.
+      // القراءة: (تصحيح جوهري لعمل السوق)
+      // 1. صاحب الرحلة
+      // 2. أو الرحلة معروضة في السوق (Awaiting-Offers)
+      // 3. أو أنا الناقل المكلف بها
       allow read: if isSignedIn() && (
         isOwner(resource.data.userId) || 
         resource.data.status == 'Awaiting-Offers' ||
         resource.data.carrierId == request.auth.uid
       );
       
-      // LIST LOGIC: Allow querying if you are the owner or if you are querying for public trips
+      // القائمة: مسموح للجميع البحث (مع تطبيق فلاتر القراءة أعلاه تلقائياً)
       allow list: if isSignedIn(); 
 
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
       
-      // FIXED: Update restricted to owner ONLY (or carrier under specific conditions)
+      // تصحيح: التعديل للمالك فقط أو الناقل في حالات محددة
       allow update: if isSignedIn() && (isOwner(resource.data.userId) || resource.data.carrierId == request.auth.uid);
       
       allow delete: if isOwner(resource.data.userId);
 
-      // --- Offers (Sub-collection) ---
+      // --- العروض ---
       match /offers/{offerId} {
-        // Only Trip Owner OR Offer Owner can see the offer
+        // القراءة: صاحب الرحلة + صاحب العرض فقط (لمنع التجسس بين المنافسين)
         allow read, list: if isSignedIn() && (
            get(/databases/$(database)/documents/trips/$(tripId)).data.userId == request.auth.uid ||
            resource.data.carrierId == request.auth.uid
         );
         
-        // A carrier creates an offer for a trip.
         allow create: if isSignedIn() && isOwner(request.resource.data.carrierId);
         
-        // FIXED: Only offer owner can update their offer
+        // تصحيح: التعديل لصاحب العرض فقط
         allow update: if isSignedIn() && isOwner(resource.data.carrierId);
         allow delete: if isSignedIn() && isOwner(resource.data.carrierId);
       }
     }
 
-    // --- Bookings ---
+    // --- الحجوزات ---
     match /bookings/{bookingId} {
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
       
@@ -93,33 +91,32 @@ service cloud.firestore {
         isOwner(resource.data.carrierId)
       );
       
-      // FIXED: Updates require complex logic (e.g., User pays, Carrier confirms)
-      // For now, strict check: user or carrier involved can update
+      // تصحيح: التحديث لأطراف العقد فقط (العميل أو الناقل)
       allow update: if isSignedIn() && (
         isOwner(resource.data.userId) || 
         isOwner(resource.data.carrierId)
       );
       
-      allow delete: if false; // Bookings usually shouldn't be deleted, only cancelled
+      allow delete: if false; // يفضل عدم حذف الحجوزات بل تغيير حالتها إلى ملغى
     }
 
-    // --- Ratings ---
+    // --- التقييمات ---
     match /ratings/{ratingId} {
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
       allow read: if true;
       allow update, delete: if false;
     }
 
-    // --- Chats ---
+    // --- المحادثات ---
     match /chats/{chatId} {
-      // FIXED: Handle 'create' (request.resource) and 'read/update' (resource) separately
+      // تصحيح: فصل الإنشاء عن التحديث
       allow create: if isParticipant(request.resource.data);
       allow read, update: if isSignedIn() && (request.auth.uid in resource.data.participants);
-       // Allow listing chats where the user is a participant.
+       // السماح بسرد المحادثات التي يكون المستخدم طرفًا فيها.
       allow list: if isSignedIn() && request.query.where[0][2] == request.auth.uid;
 
       match /messages/{messageId} {
-        // Read parent chat to check participation
+        // قراءة وإنشاء الرسائل فقط للمشاركين في المحادثة
         allow read, create: if isSignedIn() && 
           request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
         allow update, delete: if false;
