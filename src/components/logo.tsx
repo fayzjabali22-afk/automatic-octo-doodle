@@ -1,4 +1,7 @@
+'use client';
+
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 export function Logo({ className }: { className?: string }) {
   return (
@@ -8,6 +11,13 @@ export function Logo({ className }: { className?: string }) {
         className
       )}
     >
+      <Image
+        src="/logo.png"
+        alt="Safar Carrier Logo"
+        width={145}
+        height={110}
+        priority
+      />
     </div>
   );
 }
