@@ -77,6 +77,7 @@ export default function DashboardPage() {
   const [searchMode, setSearchMode] = useState<'all-carriers' | 'specific-carrier'>('all-carriers');
   const [filterVehicle, setFilterVehicle] = useState('all');
   const [carrierSearch, setCarrierSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState<'default' | 'date' | 'price'>('default');
   
   useEffect(() => {
     setSearchOriginCity('');
@@ -136,7 +137,7 @@ export default function DashboardPage() {
   };
 
   const filteredScheduledTrips = useMemo(() => {
-    return scheduledTrips.filter(trip => {
+    let trips = scheduledTrips.filter(trip => {
       const originMatch = !searchOriginCity || trip.origin === searchOriginCity;
       const destinationMatch = !searchDestinationCity || trip.destination === searchDestinationCity;
       const carrierMatch = !carrierSearch || (trip.carrierName && trip.carrierName.toLowerCase().includes(carrierSearch.toLowerCase()));
@@ -144,7 +145,16 @@ export default function DashboardPage() {
       // const vehicleMatch = filterVehicle === 'all' || (trip.vehicleType === filterVehicle); 
       return originMatch && destinationMatch && carrierMatch;
     });
-  }, [searchOriginCity, searchDestinationCity, carrierSearch, filterVehicle]);
+
+    if (sortOrder === 'date') {
+        trips = trips.sort((a, b) => new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime());
+    } else if (sortOrder === 'price') {
+        trips = trips.sort((a, b) => (a.price || Infinity) - (b.price || Infinity));
+    }
+    
+    return trips;
+
+  }, [searchOriginCity, searchDestinationCity, carrierSearch, filterVehicle, sortOrder]);
 
 
   return (
@@ -341,11 +351,11 @@ export default function DashboardPage() {
                         اطلب أسعار من الناقلين لرحلتك
                     </Button>
                     <div className="flex flex-col sm:flex-row gap-2">
-                        <Button variant="outline" className="w-full">
+                        <Button variant="outline" className="w-full" onClick={() => setSortOrder('date')}>
                             <ArrowDownUp className="ml-2 h-4 w-4" />
                             أقرب التواريخ
                         </Button>
-                        <Button variant="outline" className="w-full">
+                        <Button variant="outline" className="w-full" onClick={() => setSortOrder('price')}>
                            <DollarSign className="ml-2 h-4 w-4" />
                             فلترة أقل الأسعار
                         </Button>
