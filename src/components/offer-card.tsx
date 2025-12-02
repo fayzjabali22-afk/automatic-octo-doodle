@@ -4,7 +4,7 @@ import type { Offer, CarrierProfile, Trip } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
-import { HandCoins, MessageCircle, Star, Car, Send, Loader2 } from 'lucide-react';
+import { HandCoins, MessageCircle, Star, Car, Send, Loader2, MessageSquarePlus } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Skeleton } from './ui/skeleton';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -147,12 +147,12 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
               {isAccepting ? (
                   <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
+                      جار المعالجة...
                   </>
               ) : (
                   <>
-                      <Send className="mr-2 h-4 w-4" />
-                      Send Booking Request
+                      <MessageSquarePlus className="mr-2 h-4 w-4" />
+                      بدء محادثة مع الناقل
                   </>
               )}
           </Button>
@@ -160,3 +160,5 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
     </Card>
   );
 }
+
+    

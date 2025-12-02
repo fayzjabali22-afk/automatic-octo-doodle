@@ -269,6 +269,32 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "tripId", "carrierId", "userId", "ratingValue", "createdAt"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "type": "object",
+      "description": "Represents a chat channel between a user and a carrier for a specific trip.",
+      "properties": {
+        "id": { "type": "string" },
+        "tripId": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "tripId", "participants", "updatedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a single message within a chat.",
+      "properties": {
+        "id": { "type": "string" },
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "chatId", "senderId", "content", "timestamp"]
     }
   },
   "auth": {
@@ -377,7 +403,25 @@
           "schema": { "$ref": "#/backend/entities/Rating" },
           "description": "Stores ratings for trips provided by carriers."
         }
+      },
+      {
+        "path": "/chats/{chatId}",
+        "definition": {
+          "entityName": "Chat",
+          "schema": { "$ref": "#/backend/entities/Chat" },
+          "description": "Stores chat channel metadata."
+        }
+      },
+      {
+        "path": "/chats/{chatId}/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": { "$ref": "#/backend/entities/Message" },
+          "description": "Stores all messages for a specific chat channel."
+        }
       }
     ]
   }
 }
+
+    

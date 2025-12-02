@@ -53,5 +53,15 @@ service cloud.firestore {
       allow read: if true;
       allow update, delete: if false;
     }
+
+    match /chats/{chatId} {
+      allow read, write: if isSignedIn() && request.auth.uid in resource.data.participants;
+      match /messages/{messageId} {
+        allow read, create: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow update, delete: if false;
+      }
+    }
   }
 }
+
+    
