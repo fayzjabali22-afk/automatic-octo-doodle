@@ -10,7 +10,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Skeleton } from './ui/skeleton';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-
+import Image from 'next/image';
 
 interface OfferCardProps {
   offer: Offer;
@@ -65,6 +65,8 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
   };
   
   const depositAmount = offer.price * ((offer.depositPercentage || 20) / 100);
+  const vehicleImage = PlaceHolderImages.find((img) => img.id === 'car-placeholder');
+
 
   return (
     
@@ -73,18 +75,26 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
                 <CarrierInfo carrierId={offer.carrierId} />
             </CardHeader>
             <CardContent className="space-y-4">
-                {/* Vehicle Details */}
+                 {vehicleImage && (
+                  <div className="relative aspect-video w-full overflow-hidden rounded-md">
+                      <Image 
+                          src={vehicleImage.imageUrl}
+                          alt="صورة المركبة" 
+                          fill
+                          className="object-cover"
+                      />
+                  </div>
+                 )}
                 <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">
                     <p className='flex items-center gap-2 font-bold'><Car className="h-4 w-4 text-accent" /> بيانات المركبة:</p>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-6">
                         <p><strong>النوع:</strong> {offer.vehicleType || 'غير محدد'}</p>
-                        <p><strong>الموديل:</strong> {offer.vehicleModelYear || 'غير محدد'}</p>
+                        <p><strong>سنة الصنع:</strong> {offer.vehicleModelYear || 'غير محدد'}</p>
                         <p><strong>الفئة:</strong> {offer.vehicleCategory || 'غير محدد'}</p>
                         <p><strong>المقاعد:</strong> {offer.availableSeats || 'غير محدد'}</p>
                     </div>
                 </div>
 
-                {/* Pricing Details */}
                  <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">
                     <p className='flex items-center gap-2 font-bold'><HandCoins className="h-4 w-4 text-accent" /> تفاصيل السعر:</p>
                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-6">
@@ -95,7 +105,7 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
 
               {offer.notes && (
                 <div className="text-sm text-muted-foreground p-3 bg-background/50 rounded-md border border-dashed border-border">
-                    <p className='flex gap-2'><MessageCircle className="h-4 w-4 mt-0.5" /> <strong>ملاحظات الناقل:</strong></p>
+                    <p className='flex gap-2'><MessageCircle className="h-4 w-4 mt-0.5" /> <strong>إضافات:</strong></p>
                     <p>{offer.notes}</p>
                 </div>
               )}
@@ -120,5 +130,7 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
     
   );
 }
+
+    
 
     
