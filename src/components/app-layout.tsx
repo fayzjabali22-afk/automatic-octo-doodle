@@ -203,66 +203,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <TooltipProvider>
     <div className="flex min-h-screen w-full flex-col bg-background">
       <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-[#D4C87D] px-4 text-black md:px-6 shadow-md">
-        {/* Mobile: Left side (Menu) */}
-        <div className="flex items-center md:hidden">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-white/20">
-                <Menu className="h-4 w-4" />
-                <span className="sr-only">Toggle navigation menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent
-              side="left"
-              className="w-full max-w-xs p-0 bg-secondary text-secondary-foreground"
-            >
-              <SheetTitle className="sr-only">القائمة الرئيسية</SheetTitle>
-              <nav className="grid gap-6 text-lg font-medium p-6">
-                <Link
-                  href="/dashboard"
-                  className="-ml-4 mb-4 flex items-center gap-2 text-lg font-semibold"
-                >
-                  <span className="sr-only">Safar Carrier</span>
-                </Link>
-                {mobileMenuItems.map((item) => {
-                    const isDisabled = item.auth && !user;
-                    if (isDisabled) {
-                      return (
-                          <span key={item.label} className="flex items-center font-bold text-white/50 cursor-not-allowed">
-                            <Lock className="ml-2 h-4 w-4" />
-                            {item.label}
-                        </span>
-                      )
-                    }
-                    return (
-                        <Link
-                            key={item.label}
-                            href={item.href}
-                            className={cn("font-bold text-white hover:text-white/80", pathname === item.href && "underline")}
-                        >
-                            {item.label}
-                        </Link>
-                    );
-                })}
-              </nav>
-            </SheetContent>
-          </Sheet>
-        </div>
         
-        {/* Center Section: Title */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-             <Image 
-                src="https://i.postimg.cc/rzXN6mS5/lwjw-sfryat.png" 
-                alt="Safar Carrier Logo"
-                width={145}
-                height={110}
-                priority
-             />
-        </div>
-
-        {/* Desktop: Right Side Elements & Mobile: Far left user menu */}
-        <div className="flex items-center gap-4 ml-auto">
-          
+        {/* Left side: User Menu */}
+        <div className="flex items-center gap-4">
           {/* Desktop User Menu */}
           <div className="hidden md:flex">
              <DropdownMenu>
@@ -314,6 +257,63 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </DropdownMenuContent>
             </DropdownMenu>
           </div>
+        </div>
+
+        {/* Center Section: Title */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+             <Image 
+                src="https://i.postimg.cc/rzXN6mS5/lwjw-sfryat.png" 
+                alt="Safar Carrier Logo"
+                width={145}
+                height={110}
+                priority
+             />
+        </div>
+
+        {/* Right side: Mobile Menu Trigger */}
+        <div className="flex items-center md:hidden">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-white/20">
+                <Menu className="h-4 w-4" />
+                <span className="sr-only">Toggle navigation menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="w-full max-w-xs p-0 bg-secondary text-secondary-foreground"
+            >
+              <SheetTitle className="sr-only">القائمة الرئيسية</SheetTitle>
+              <nav className="grid gap-6 text-lg font-medium p-6">
+                <Link
+                  href="/dashboard"
+                  className="-ml-4 mb-4 flex items-center gap-2 text-lg font-semibold"
+                >
+                  <span className="sr-only">Safar Carrier</span>
+                </Link>
+                {mobileMenuItems.map((item) => {
+                    const isDisabled = item.auth && !user;
+                    if (isDisabled) {
+                      return (
+                          <span key={item.label} className="flex items-center font-bold text-white/50 cursor-not-allowed">
+                            <Lock className="ml-2 h-4 w-4" />
+                            {item.label}
+                        </span>
+                      )
+                    }
+                    return (
+                        <Link
+                            key={item.label}
+                            href={item.href}
+                            className={cn("font-bold text-white hover:text-white/80", pathname === item.href && "underline")}
+                        >
+                            {item.label}
+                        </Link>
+                    );
+                })}
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 
