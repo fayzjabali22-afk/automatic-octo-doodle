@@ -10,7 +10,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase'; // تمت إزالة addDocumentNonBlocking لعدم الحاجة إليها خارج الـ batch
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, writeBatch, limit } from 'firebase/firestore';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -153,8 +153,7 @@ export default function HistoryPage() {
         acceptedOfferId: offer.id,
         currentBookingId: bookingRef.id,
         carrierId: offer.carrierId,
-        // Add carrierName to the trip for easier display
-        carrierName: offer.carrierName, // Assuming carrierName is on the offer
+        carrierName: offer.carrierName,
       });
 
       const notificationRef = doc(collection(firestore, 'notifications'));
