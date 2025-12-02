@@ -7,23 +7,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase'; // تمت إزالة addDocumentNonBlocking لعدم الحاجة إليها خارج الـ batch
 import { collection, query, where, doc, writeBatch, orderBy, limit } from 'firebase/firestore';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Trip, Notification, Offer } from '@/lib/data';
-import { Bell, CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, RefreshCcw, Hourglass } from 'lucide-react';
+import type { Trip, Offer } from '@/lib/data';
+import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass } from 'lucide-react';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -69,11 +62,14 @@ export default function HistoryPage() {
   const [isProcessingBooking, setIsProcessingBooking] = useState(false);
 
   // --- Queries ---
+  // تمت إضافة limit(50) لحماية الأداء وفقاً لتوصيات التدقيق
   const userTripsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, 'trips'),
-      where('userId', '==', user.uid)
+      where('userId', '==', user.uid),
+      orderBy('departureDate', 'desc'),
+      limit(50) 
     );
   }, [firestore, user]);
   
@@ -83,12 +79,9 @@ export default function HistoryPage() {
     if (!allUserTrips) {
       return { awaitingTrips: [], pendingConfirmationTrips: [], confirmedTrips: [] };
     }
-    // Sort trips by date descending after fetching
-    const sortedTrips = [...allUserTrips].sort((a, b) => new Date(b.departureDate).getTime() - new Date(a.departureDate).getTime());
-
-    const awaiting = sortedTrips.filter(t => t.status === 'Awaiting-Offers');
-    const pending = sortedTrips.filter(t => t.status === 'Pending-Carrier-Confirmation');
-    const confirmed = sortedTrips.filter(t => ['Planned', 'Completed', 'Cancelled'].includes(t.status));
+    const awaiting = allUserTrips.filter(t => t.status === 'Awaiting-Offers');
+    const pending = allUserTrips.filter(t => t.status === 'Pending-Carrier-Confirmation');
+    const confirmed = allUserTrips.filter(t => ['Planned', 'Completed', 'Cancelled'].includes(t.status));
     
     return { 
         awaitingTrips: awaiting, 
@@ -101,9 +94,6 @@ export default function HistoryPage() {
   const hasAwaitingTrips = awaitingTrips && awaitingTrips.length > 0;
   const hasPendingConfirmationTrips = pendingConfirmationTrips && pendingConfirmationTrips.length > 0;
   const hasConfirmedTrips = confirmedTrips && confirmedTrips.length > 0;
-
-  // This is now handled by app-layout
-  const notificationCount = 0;
 
   useEffect(() => {
     if (!isUserLoading && !user) router.push('/login');
@@ -133,8 +123,9 @@ export default function HistoryPage() {
 
     try {
       const batch = writeBatch(firestore);
+      
+      // 1. مرجع الحجز
       const bookingRef = doc(collection(firestore, 'bookings'));
-
       batch.set(bookingRef, {
         id: bookingRef.id,
         tripId: trip.id,
@@ -148,6 +139,7 @@ export default function HistoryPage() {
         createdAt: new Date().toISOString(),
       });
 
+      // 2. تحديث الرحلة
       batch.update(doc(firestore, 'trips', trip.id), {
         status: 'Pending-Carrier-Confirmation',
         acceptedOfferId: offer.id,
@@ -155,22 +147,26 @@ export default function HistoryPage() {
         carrierId: offer.carrierId,
       });
 
-      // ✅ Use root collection for notifications
-      addDocumentNonBlocking(collection(firestore, 'notifications'), {
+      // 3. إنشاء الإشعار (داخل الـ Batch لضمان التزامن)
+      const notificationRef = doc(collection(firestore, 'notifications'));
+      batch.set(notificationRef, {
         userId: offer.carrierId,
         title: `طلب حجز جديد لرحلة ${trip.origin} - ${trip.destination}`,
         message: `لديك طلب حجز جديد من المستخدم ${user.displayName || user.email}.`,
         type: 'new_booking_request',
         isRead: false,
         createdAt: new Date().toISOString(),
-        link: `/carrier-dashboard/bookings`,
+        link: `/carrier-dashboard/bookings`, // تأكد أن هذا الرابط صحيح في لوحة تحكم الناقل
       });
 
+      // تنفيذ كل العمليات دفعة واحدة
       await batch.commit();
+      
       toast({ title: 'تم إرسال طلب الحجز بنجاح!', description: 'بانتظار موافقة الناقل. تم نقل الطلب إلى قسم "حجوزات بانتظار التأكيد".' });
       setIsBookingDialogOpen(false);
       setSelectedOfferForBooking(null);
-    } catch {
+    } catch (error) {
+      console.error("Booking Error:", error); // إضافة سجل للخطأ لأغراض التصحيح
       toast({ variant: 'destructive', title: 'فشلت العملية', description: 'حدث خطأ أثناء الحجز، حاول لاحقاً.' });
     } finally {
       setIsProcessingBooking(false);
