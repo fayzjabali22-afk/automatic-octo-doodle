@@ -1,9 +1,11 @@
 'use client';
 
+import React from 'react';
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
+import { FirebaseContext } from './provider';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
@@ -61,6 +63,3 @@ export function useAuth(): Auth | null {
     }
     return context.auth;
 }
-
-import React from 'react';
-import { FirebaseContext } from './provider';
