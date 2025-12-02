@@ -153,9 +153,9 @@ export default function HistoryPage() {
       batch.update(doc(firestore, 'trips', trip.id), {
         status: 'Pending-Carrier-Confirmation',
         acceptedOfferId: offer.id,
-        currentBookingId: bookingRef.id,
+        bookingIds: [bookingRef.id], // Use bookingIds array
         carrierId: offer.carrierId,
-        carrierName: offer.carrierName,
+        // carrierName can be fetched from offer if it's there
       });
 
       const notificationRef = doc(collection(firestore, 'notifications'));
