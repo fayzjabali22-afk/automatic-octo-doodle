@@ -21,7 +21,7 @@ import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star } from 
 import { useState, useEffect, useMemo } from 'react';
 import type { Trip, CarrierProfile } from '@/lib/data';
 import { scheduledTrips, mockCarriers } from '@/lib/data'; 
-import { TripCard } from '@/components/trip-card';
+import { ScheduledTripCard } from '@/components/scheduled-trip-card';
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -563,7 +563,7 @@ export default function DashboardPage() {
                                 <AccordionContent>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                                         {tripsForDate.map(trip => (
-                                            <TripCard key={trip.id} trip={trip} onBookNow={handleBookNowClick} />
+                                            <ScheduledTripCard key={trip.id} trip={trip} onBookNow={handleBookNowClick} />
                                         ))}
                                     </div>
                                 </AccordionContent>
