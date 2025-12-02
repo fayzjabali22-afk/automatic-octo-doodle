@@ -64,13 +64,12 @@ const safeDateFormat = (dateInput: any, formatStr: string = 'PPP'): string => {
     }
 };
 
-// --- DUMMY DATA ---
+// --- DUMMY DATA FOR FALLBACK ONLY ---
 const dummyAwaitingTrips: Trip[] = [
     { id: 'DUMMY01', userId: 'test-user', origin: 'الرياض', destination: 'عمّان', departureDate: new Date().toISOString(), status: 'Awaiting-Offers', carrierName: '', passengers: 2 },
 ];
 const dummyConfirmedTrips: Trip[] = [
     { id: 'DUMMY02', userId: 'test-user', origin: 'جدة', destination: 'القاهرة', departureDate: '2024-08-10T20:00:00Z', status: 'Planned', carrierId: 'carrier01', carrierName: 'سفريات الأمان', cargoDetails: 'أمتعة شخصية', vehicleType: 'GMC Yukon', passengers: 1, price: 250 },
-    { id: 'DUMMY03', userId: 'test-user', origin: 'الدمام', destination: 'دبي', departureDate: '2024-07-25T09:15:00Z', status: 'Planned', carrierId: 'carrier02', carrierName: 'الناقل الدولي', cargoDetails: 'مواد بناء', vehicleType: 'Ford Transit', passengers: 4, price: 400 },
 ];
 
 export default function HistoryPage() {
@@ -132,12 +131,12 @@ export default function HistoryPage() {
     // Auto-open logic
     if (awaitingTrips.length > 0 && awaitingTrips[0].id !== 'DUMMY01') {
       setOpenAccordion('awaiting');
-    } else if (hasConfirmedTrips) {
+    } else if (confirmedTrips.length > 0 && confirmedTrips[0].id !== 'DUMMY02') {
       setOpenAccordion('confirmed');
     } else {
       setOpenAccordion(undefined);
     }
-  }, [awaitingTrips, hasConfirmedTrips, isLoadingAwaiting, isLoadingConfirmed]);
+  }, [awaitingTrips, confirmedTrips, isLoadingAwaiting, isLoadingConfirmed]);
 
   const handleAcceptOffer = (trip: Trip, offer: Offer) => {
     // --- POLICY: DUMMY DATA CHECK ---
