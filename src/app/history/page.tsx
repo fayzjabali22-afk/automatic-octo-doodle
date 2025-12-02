@@ -36,7 +36,6 @@ import { Bell, CheckCircle, PackageOpen, Ship, Hourglass, XCircle, Info, Loader2
 import { OfferCard } from '@/components/offer-card';
 import { useToast } from '@/hooks/use-toast';
 import { mockOffers, mockCarriers } from '@/lib/data';
-import { TripReportCard } from '@/components/trip-report-card';
 import { LegalDisclaimerDialog } from '@/components/legal-disclaimer-dialog';
 
 
@@ -170,13 +169,22 @@ const TripOfferManager = ({ trip }: { trip: Trip; }) => {
         }
     };
     
-    // This is the "Ready for Payment" or "Completed" or other final states
     if (trip.status === 'Planned' && booking && acceptedOffer) {
-        return <TripReportCard trip={trip} booking={booking} offer={acceptedOffer} />;
+        // Placeholder for the new payment UI
+        return (
+             <div className="flex flex-col items-center justify-center p-8 text-center bg-background rounded-b-lg">
+                <CreditCard className="h-12 w-12 text-primary mb-4" />
+                <h3 className="text-xl font-bold">بانتظار الدفع</h3>
+                <p className="text-muted-foreground mt-2">
+                    تم تأكيد حجزك من قبل الناقل. الرجاء المتابعة لإتمام عملية الدفع.
+                </p>
+                <Button className="mt-4">الانتقال إلى الدفع</Button>
+            </div>
+        )
     }
     
-    // This is the "Waiting for Carrier" state - we are skipping this for now
-    if (trip.status === 'Planned' && booking?.status === 'Pending-Carrier-Confirmation') {
+    // This is the "Waiting for Carrier" state
+    if (booking?.status === 'Pending-Carrier-Confirmation') {
         return (
             <div className="flex flex-col items-center justify-center p-8 text-center bg-background rounded-b-lg">
                 <Hourglass className="h-12 w-12 text-primary animate-bounce mb-4" />
@@ -233,18 +241,29 @@ export default function HistoryPage() {
   }, [firestore, user]);
 
   const { data: allUserTrips, isLoading } = useCollection<Trip>(userTripsQuery);
+  
+   const userBookingsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'bookings'), where('userId', '==', user.uid));
+  }, [firestore, user]);
+
+  const { data: userBookings } = useCollection<Booking>(userBookingsQuery);
 
   const awaitingTrips = useMemo(() => allUserTrips?.filter(t => t.status === 'Awaiting-Offers') || [], [allUserTrips]);
-  const plannedTrips = useMemo(() => allUserTrips?.filter(t => t.status === 'Planned') || [], [allUserTrips]);
-  const pastTrips: Trip[] = useMemo(() => allUserTrips?.filter(t => t.status === 'Completed' || t.status === 'Cancelled') || [], [allUserTrips]);
   
+  const pendingConfirmationBookings = useMemo(() => userBookings?.filter(b => b.status === 'Pending-Carrier-Confirmation') || [], [userBookings]);
+  const pendingPaymentBookings = useMemo(() => userBookings?.filter(b => b.status === 'Pending-Payment') || [], [userBookings]);
+  const pastBookings = useMemo(() => userBookings?.filter(b => b.status === 'Completed' || b.status === 'Cancelled') || [], [userBookings]);
+
+
   const defaultOpenAccordion = useMemo(() => {
       if(isLoading) return [];
-      if(plannedTrips.length > 0) return ['planned'];
+      if(pendingConfirmationBookings.length > 0) return ['pendingConfirmation'];
+      if(pendingPaymentBookings.length > 0) return ['pendingPayment'];
       if(awaitingTrips.length > 0) return ['awaiting'];
-      if(pastTrips.length > 0) return ['past'];
+      if(pastBookings.length > 0) return ['past'];
       return [];
-  }, [isLoading, awaitingTrips, plannedTrips, pastTrips]);
+  }, [isLoading, awaitingTrips, pendingConfirmationBookings, pendingPaymentBookings, pastBookings]);
 
   
   const notificationsQuery = useMemoFirebase(() => {
@@ -310,9 +329,9 @@ export default function HistoryPage() {
           </CardHeader>
         </Card>
 
-        {(isLoading && !allUserTrips) && renderSkeleton()}
+        {(isLoading && !allUserTrips && !userBookings) && renderSkeleton()}
 
-        {!isLoading && allUserTrips?.length === 0 && (
+        {!isLoading && allUserTrips?.length === 0 && userBookings?.length === 0 && (
              <div className="text-center text-muted-foreground py-12">
                 <Ship className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
                 <p className="text-lg">لا يوجد لديك أي حجوزات أو طلبات حالياً.</p>
@@ -361,37 +380,40 @@ export default function HistoryPage() {
             </AccordionItem>
           )}
 
-          {plannedTrips.length > 0 && (
-             <AccordionItem value="planned" className="border-none">
+          {pendingConfirmationBookings.length > 0 && (
+             <AccordionItem value="pendingConfirmation" className="border-none">
               <Card className="rounded-none md:rounded-lg overflow-hidden">
                 <AccordionTrigger className="p-6 text-lg hover:no-underline bg-card">
-                  <div className='flex items-center gap-2'><Hourglass className="h-6 w-6 text-yellow-500" /><CardTitle>حجوزات مؤكدة بانتظار الدفع</CardTitle></div>
+                  <div className='flex items-center gap-2'><Hourglass className="h-6 w-6 text-yellow-500" /><CardTitle>طلبات بانتظار موافقة الناقل</CardTitle></div>
+                </AccordionTrigger>
+                <AccordionContent className="p-0">
+                    <CardDescription className="mb-4 px-6 pt-4 bg-card">
+                        تم إرسال هذه الطلبات وهي بانتظار تأكيد الحجز من قبل الناقل. سيصلك إشعار بالنتيجة.
+                    </CardDescription>
+                     <div className="p-4 space-y-2">
+                        {pendingConfirmationBookings.map(booking => (
+                            <div key={booking.id} className="p-4 border rounded-lg bg-background">
+                                <p>طلب حجز لرحلة رقم: {booking.tripId.substring(0, 8)}...</p>
+                                <p>الحالة: بانتظار موافقة الناقل</p>
+                            </div>
+                        ))}
+                    </div>
+                </AccordionContent>
+              </Card>
+            </AccordionItem>
+          )}
+
+          {pendingPaymentBookings.length > 0 && (
+             <AccordionItem value="pendingPayment" className="border-none">
+              <Card className="rounded-none md:rounded-lg overflow-hidden">
+                <AccordionTrigger className="p-6 text-lg hover:no-underline bg-card">
+                  <div className='flex items-center gap-2'><CreditCard className="h-6 w-6 text-green-500" /><CardTitle>حجوزات بانتظار الدفع</CardTitle></div>
                 </AccordionTrigger>
                 <AccordionContent className="p-0">
                     <CardDescription className="mb-4 px-6 pt-4 bg-card">
                         هذه الحجوزات تم تأكيدها من قبل الناقل وهي بانتظار إتمام عملية الدفع من طرفك.
                     </CardDescription>
-                    <Accordion type="single" collapsible className="w-full">
-                        {plannedTrips.map(trip => (
-                            <AccordionItem value={trip.id} key={trip.id} className="border-t border-border/50">
-                                 <Card className="overflow-hidden rounded-none shadow-none border-none">
-                                     <AccordionTrigger className="p-4 bg-card/80 hover:no-underline hover:bg-accent/10 data-[state=closed]:rounded-b-none">
-                                        <div className="flex justify-between items-center w-full">
-                                            <div className="text-right">
-                                                <div className="flex items-center gap-3">
-                                                    <p className="font-bold text-base">{cities[trip.origin as keyof typeof cities] || trip.origin} إلى {cities[trip.destination as keyof typeof cities] || trip.destination}</p>
-                                                     <Badge variant="secondary">{trip.carrierName || "اسم الناقل"}</Badge>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent className="p-0 border-t border-border/50">
-                                        <TripOfferManager trip={trip} />
-                                    </AccordionContent>
-                                </Card>
-                            </AccordionItem>
-                        ))}
-                    </Accordion>
+                    {/* Placeholder for payment UI for each booking */}
                 </AccordionContent>
               </Card>
             </AccordionItem>
@@ -406,25 +428,23 @@ export default function HistoryPage() {
               <AccordionContent>
                 <CardContent className="space-y-6 p-4 md:p-6">
                   <CardDescription className="mb-4">سجل رحلاتك المكتملة أو الملغاة.</CardDescription>
-                   {pastTrips.length > 0 ? (
+                   {pastBookings.length > 0 ? (
                       <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="text-right">الناقل</TableHead>
-                                <TableHead className="text-right">من</TableHead>
-                                <TableHead className="text-right">إلى</TableHead>
+                                <TableHead className="text-right">الرحلة</TableHead>
                                 <TableHead className="text-right">تاريخ الرحلة</TableHead>
                                 <TableHead className="text-right">الحالة</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {pastTrips.map(trip => (
-                               <TableRow key={trip.id}>
-                                  <TableCell>{trip.carrierName || 'غير محدد'}</TableCell>
-                                  <TableCell>{cities[trip.origin as keyof typeof cities] || trip.origin}</TableCell>
-                                  <TableCell>{cities[trip.destination as keyof typeof cities] || trip.destination}</TableCell>
-                                  <TableCell>{new Date(trip.departureDate).toLocaleDateString('ar-SA')}</TableCell>
-                                  <TableCell><Badge variant={statusVariantMap[trip.status]}>{statusMap[trip.status]}</Badge></TableCell>
+                            {pastBookings.map(booking => (
+                               <TableRow key={booking.id}>
+                                  <TableCell>{'اسم الناقل'}</TableCell>
+                                  <TableCell>{'تفاصيل الرحلة'}</TableCell>
+                                  <TableCell>{'تاريخ'}</TableCell>
+                                  <TableCell><Badge variant={booking.status === 'Completed' ? 'default' : 'destructive'}>{booking.status}</Badge></TableCell>
                                </TableRow>
                             ))}
                         </TableBody>
