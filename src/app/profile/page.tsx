@@ -31,6 +31,7 @@ import { deleteUser, sendEmailVerification } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, Trash2, MailCheck } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { actionCodeSettings } from '@/firebase/config';
 
 
 const profileFormSchema = z.object({
@@ -115,21 +116,44 @@ export default function ProfilePage() {
   };
 
     const handleDeleteAccount = async () => {
-    if (!user || !auth) {
-        toast({ variant: 'destructive', title: 'خطأ', description: 'لم يتم العثور على المستخدم.' });
+    if (!user || !auth || !firestore) {
+        toast({ variant: 'destructive', title: 'خطأ', description: 'لم يتم العثور على المستخدم أو خدمات Firebase.' });
+        setIsDeleteConfirmOpen(false);
         return;
     }
+
+    const userDocRef = doc(firestore, 'users', user.uid);
+
     try {
-      await deleteUser(user);
-      toast({ title: 'تم حذف الحساب بنجاح', description: 'نأمل أن نراك مرة أخرى قريبًا.' });
-      router.push('/signup');
+        // Step 1: Delete the user's profile document from Firestore.
+        // This makes the account "resettable" for testing even if auth deletion fails.
+        await deleteDoc(userDocRef);
+        toast({ title: 'تم حذف ملف Firestore', description: 'تم حذف ملفك الشخصي من قاعدة البيانات.' });
+
+        // Step 2: Attempt to delete the user from Firebase Authentication.
+        await deleteUser(user);
+        
+        toast({ title: 'تم حذف الحساب بنجاح', description: 'نأمل أن نراك مرة أخرى قريبًا.' });
+        router.push('/signup');
+
     } catch (error: any) {
         console.error("Delete account error:", error);
-        toast({
-            variant: 'destructive',
-            title: 'فشل حذف الحساب',
-            description: 'هذه العملية تتطلب إعادة تسجيل دخول حديثة. الرجاء تسجيل الخروج ثم الدخول مرة أخرى والمحاولة مجددًا.',
-        });
+        
+        if (error.code === 'auth/requires-recent-login') {
+            toast({
+                variant: 'destructive',
+                title: 'فشل حذف المصادقة',
+                description: 'هذه العملية تتطلب إعادة تسجيل دخول حديثة. تم حذف بياناتك، يرجى تسجيل الخروج والدخول مرة أخرى لإكمال الحذف.',
+            });
+             // Even if auth deletion fails, we redirect because the firestore doc is gone.
+            router.push('/login'); 
+        } else {
+             toast({
+                variant: 'destructive',
+                title: 'فشل حذف الحساب',
+                description: 'حدث خطأ أثناء محاولة حذف الحساب.',
+            });
+        }
     } finally {
         setIsDeleteConfirmOpen(false);
     }
