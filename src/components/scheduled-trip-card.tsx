@@ -24,6 +24,8 @@ import { Skeleton } from './ui/skeleton';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Badge } from './ui/badge';
+import Image from 'next/image';
+
 
 const cities: { [key: string]: string } = {
     damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص',
@@ -78,6 +80,7 @@ const CarrierInfo = ({ carrierId, carrierName }: { carrierId: string; carrierNam
 
 export function ScheduledTripCard({ trip }: { trip: Trip }) {
   const depositAmount = (trip.price || 0) * ((trip.depositPercentage || 0) / 100);
+  const vehicleImage = PlaceHolderImages.find((img) => img.id === 'car-placeholder');
 
   return (
     <Card className="w-full overflow-hidden shadow-lg transition-all hover:shadow-primary/20 border-2 border-border/60 flex flex-col justify-between" style={{ backgroundColor: '#13060A' }}>
@@ -95,25 +98,33 @@ export function ScheduledTripCard({ trip }: { trip: Trip }) {
             </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 text-xs">
-        <div className="flex justify-between items-center bg-background/30 p-2 rounded-md">
-          <span className="text-muted-foreground flex items-center gap-1.5"><HandCoins className="h-4 w-4"/>السعر</span>
-          <span className="font-bold text-base text-primary">{trip.price} JOD</span>
+      <CardContent className="space-y-4">
+        {vehicleImage && (
+            <div className="relative aspect-video w-full overflow-hidden rounded-md">
+                <Image 
+                    src={vehicleImage.imageUrl}
+                    alt="صورة المركبة" 
+                    fill
+                    className="object-cover"
+                />
+            </div>
+        )}
+        <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">
+            <p className='flex items-center gap-2 font-bold'><Car className="h-4 w-4 text-accent" /> بيانات المركبة:</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-6">
+                <p><strong>النوع:</strong> {trip.vehicleType || 'غير محدد'}</p>
+                <p><strong>المقاعد المتاحة:</strong> {trip.availableSeats || 'غير محدد'}</p>
+            </div>
         </div>
-        <div className="flex justify-between items-center bg-background/30 p-2 rounded-md">
-          <span className="text-muted-foreground flex items-center gap-1.5"><Percent className="h-4 w-4"/>عربون</span>
-          <span className="font-semibold text-sm">{depositAmount.toFixed(2)} JOD</span>
-        </div>
-        <div className="flex justify-between items-center bg-background/30 p-2 rounded-md">
-          <span className="text-muted-foreground flex items-center gap-1.5"><Users className="h-4 w-4"/>المقاعد المتاحة</span>
-          <span className="font-semibold text-sm">{trip.availableSeats}</span>
+        <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">
+            <p className='flex items-center gap-2 font-bold'><HandCoins className="h-4 w-4 text-accent" /> تفاصيل السعر:</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-6">
+                <p><strong>السعر الإجمالي:</strong> {trip.price} JOD</p>
+                <p><strong>العربون ({trip.depositPercentage || 0}%):</strong> {depositAmount.toFixed(2)} JOD</p>
+            </div>
         </div>
       </CardContent>
       <CardFooter className="flex p-2 bg-background/30 gap-2">
-         <Button variant="outline" size="sm" className="w-full">
-            <Info className="ml-1 h-3 w-3" />
-            تفاصيل المركبة
-        </Button>
         <Button size="sm" className="w-full">
             حجز الآن
         </Button>
