@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -156,49 +156,63 @@ export default function HistoryPage() {
       
       const { trip, offer } = selectedOfferForBooking;
       
-      const newBooking = {
-          tripId: trip.id,
-          offerId: offer.id,
-          userId: user.uid,
-          carrierId: offer.carrierId,
-          seats: passengers.length,
-          passengersDetails: passengers,
-          status: 'Pending-Carrier-Confirmation',
-          totalPrice: offer.price * passengers.length,
-          createdAt: new Date().toISOString(),
-      };
-      
-      // 1. Create the booking document
-      const bookingRef = await addDocumentNonBlocking(collection(firestore, 'bookings'), newBooking);
-      
-      // 2. Update the original trip request
-      const tripRef = doc(firestore, 'trips', trip.id);
-      updateDocumentNonBlocking(tripRef, {
-          status: 'Planned',
-          acceptedOfferId: offer.id,
-          currentBookingId: bookingRef.id,
-          carrierId: offer.carrierId, // Assign carrier to trip
-      });
-      
-      // 3. Send notification to the carrier
-      const carrierNotifRef = collection(firestore, `users/${offer.carrierId}/notifications`);
-      addDocumentNonBlocking(carrierNotifRef, {
-          userId: offer.carrierId,
-          title: `طلب حجز جديد لرحلة ${trip.origin} - ${trip.destination}`,
-          message: `لديك طلب حجز جديد من المستخدم ${user.displayName || user.email}. الرجاء مراجعة قسم الحجوزات للتأكيد.`,
-          type: 'new_booking_request',
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          link: `/carrier-dashboard/bookings`, // Future link
-      });
-      
-      toast({
-          title: 'تم إرسال طلب الحجز بنجاح!',
-          description: 'تم تحويل طلبك إلى حجز مؤكد وفي انتظار موافقة الناقل. سيتم إعلامك بالتحديثات.',
-      });
-      
-      setIsBookingDialogOpen(false);
-      setSelectedOfferForBooking(null);
+      try {
+        const batch = writeBatch(firestore);
+
+        // 1. Create Booking Doc
+        const bookingRef = doc(collection(firestore, 'bookings'));
+        const newBooking = {
+            id: bookingRef.id,
+            tripId: trip.id,
+            offerId: offer.id,
+            userId: user.uid,
+            carrierId: offer.carrierId,
+            seats: passengers.length,
+            passengersDetails: passengers,
+            status: 'Pending-Carrier-Confirmation',
+            totalPrice: offer.price * passengers.length,
+            createdAt: new Date().toISOString(),
+        };
+        batch.set(bookingRef, newBooking);
+
+        // 2. Update Trip Doc
+        const tripRef = doc(firestore, 'trips', trip.id);
+        batch.update(tripRef, {
+            status: 'Planned',
+            acceptedOfferId: offer.id,
+            currentBookingId: bookingRef.id,
+            carrierId: offer.carrierId, // Assign carrier to trip
+        });
+
+        // 3. Notify Carrier
+        const notificationRef = doc(collection(firestore, `users/${offer.carrierId}/notifications`));
+        batch.set(notificationRef, {
+            userId: offer.carrierId,
+            title: `طلب حجز جديد لرحلة ${trip.origin} - ${trip.destination}`,
+            message: `لديك طلب حجز جديد من المستخدم ${user.displayName || user.email}. الرجاء مراجعة قسم الحجوزات للتأكيد.`,
+            type: 'new_booking_request',
+            isRead: false,
+            createdAt: new Date().toISOString(),
+            link: `/carrier-dashboard/bookings`, // Future link
+        });
+
+        await batch.commit();
+
+        toast({
+            title: 'تم إرسال طلب الحجز بنجاح!',
+            description: 'تم تحويل طلبك إلى حجز مؤكد وفي انتظار موافقة الناقل. سيتم إعلامك بالتحديثات.',
+        });
+        
+    } catch (e) {
+        toast({
+            variant: "destructive",
+            title: "فشلت العملية",
+            description: "حدث خطأ أثناء الحجز، يرجى المحاولة لاحقاً.",
+        });
+    } finally {
+        setIsBookingDialogOpen(false);
+        setSelectedOfferForBooking(null);
+    }
   };
 
 
@@ -373,4 +387,3 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
-
