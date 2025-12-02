@@ -20,9 +20,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star } from 'lucide-react';
+import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star, TestTube2 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
-import type { Trip } from '@/lib/data';
+import type { Trip, Offer } from '@/lib/data';
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -32,7 +32,7 @@ import {
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useCollection, useFirestore, useUser, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, addDoc, writeBatch, getDocs, getDoc } from 'firebase/firestore';
+import { collection, query, where, doc, addDoc, writeBatch, getDocs, getDoc, serverTimestamp } from 'firebase/firestore';
 import { AuthRedirectDialog } from '@/components/auth-redirect-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -59,6 +59,8 @@ export default function DashboardPage() {
   const [date, setDate] = useState<Date>();
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const [searchOriginCountry, setSearchOriginCountry] = useState('');
   const [searchOriginCity, setSearchOriginCity] = useState('');
@@ -98,6 +100,61 @@ export default function DashboardPage() {
     // If all fields are valid, navigate to the signup page
     router.push('/signup');
   };
+
+  const handleCreateMockRequest = async () => {
+    if (!firestore || !user) {
+        toast({ title: "Error", description: "You must be logged in as a guest to create a mock request.", variant: "destructive" });
+        return;
+    }
+
+    toast({ title: "Creating Mock Request...", description: "Please wait..." });
+
+    try {
+        const batch = writeBatch(firestore);
+
+        // 1. Create a mock trip
+        const newTripRef = doc(collection(firestore, "trips"));
+        const mockTrip: Trip = {
+            id: newTripRef.id,
+            userId: user.uid,
+            origin: 'riyadh',
+            destination: 'amman',
+            departureDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
+            status: 'Awaiting-Offers',
+            passengers: 2,
+        };
+        batch.set(newTripRef, mockTrip);
+
+        // 2. Create 3 mock offers for the trip
+        const mockCarriers = ['carrier01', 'carrier02', 'carrier03'];
+        const mockPrices = [100, 95, 110];
+        
+        for (let i = 0; i < mockCarriers.length; i++) {
+            const newOfferRef = doc(collection(firestore, `trips/${newTripRef.id}/offers`));
+            const mockOffer: Offer = {
+                id: newOfferRef.id,
+                tripId: newTripRef.id,
+                carrierId: mockCarriers[i],
+                price: mockPrices[i],
+                status: 'Pending',
+                notes: `عرض وهمي ${i + 1} من ناقل وهمي.`,
+                createdAt: serverTimestamp() as unknown as string,
+            };
+            batch.set(newOfferRef, mockOffer);
+        }
+        
+        await batch.commit();
+
+        toast({ title: "Success!", description: "Mock request and offers created. Redirecting..." });
+
+        // 3. Redirect to the history page
+        router.push('/history');
+
+    } catch (error) {
+        console.error("Error creating mock request:", error);
+        toast({ title: "Error", description: "Failed to create mock data.", variant: "destructive" });
+    }
+};
 
 
   return (
@@ -263,9 +320,13 @@ export default function DashboardPage() {
                   
                 </div>
               </CardContent>
-              <CardFooter className="p-4 md:p-6 border-t border-border/60">
+              <CardFooter className="p-4 md:p-6 border-t border-border/60 flex flex-col gap-2">
                  <Button size="lg" className="w-full bg-[#B19C7D] hover:bg-[#a18c6d] text-white" onClick={handlePriceRequest}>
                     طلب أسعار
+                </Button>
+                <Button size="lg" variant="destructive" className="w-full" onClick={handleCreateMockRequest}>
+                    <TestTube2 className="ml-2 h-5 w-5" />
+                    إنشاء طلب وهمي ومتابعة
                 </Button>
               </CardFooter>
             </Card>
@@ -276,3 +337,4 @@ export default function DashboardPage() {
   );
 }
 
+    

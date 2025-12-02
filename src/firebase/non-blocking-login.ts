@@ -15,14 +15,18 @@ import type { UserProfile } from '@/lib/data';
 import { actionCodeSettings } from './config';
 
 /** Initiate anonymous sign-in (non-blocking). */
-export function initiateAnonymousSignIn(authInstance: Auth): void {
-  signInAnonymously(authInstance).catch((error) => {
+export async function initiateAnonymousSignIn(authInstance: Auth): Promise<boolean> {
+  try {
+    await signInAnonymously(authInstance);
+    return true;
+  } catch (error) {
     toast({
         variant: "destructive",
         title: "خطأ في المصادقة",
         description: "لم نتمكن من تسجيل دخولك كمستخدم مجهول.",
     });
-  });
+    return false;
+  }
 }
 
 type UserProfileCreation = Omit<UserProfile, 'id'>;
@@ -163,3 +167,5 @@ export async function initiateGoogleSignIn(auth: Auth, firestore: Firestore): Pr
     return false;
   }
 }
+
+    

@@ -27,9 +27,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useFirestore, initiateEmailSignUp, useAuth, initiateGoogleSignIn } from '@/firebase';
+import { useFirestore, initiateEmailSignUp, useAuth, initiateGoogleSignIn, initiateAnonymousSignIn } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { MailCheck } from 'lucide-react';
+import { MailCheck, TestTube2 } from 'lucide-react';
 
 const signupFormSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
@@ -90,6 +90,18 @@ export default function SignupPage() {
       toast({
         title: 'Signed Up Successfully!',
         description: 'You will be redirected shortly.',
+      });
+      router.push('/dashboard');
+    }
+  };
+
+  const handleGuestSignIn = async () => {
+    if (!auth) return;
+    const success = await initiateAnonymousSignIn(auth);
+    if (success) {
+      toast({
+        title: 'Logged in as Guest',
+        description: 'Developer mode activated.',
       });
       router.push('/dashboard');
     }
@@ -212,6 +224,10 @@ export default function SignupPage() {
               <Button type="submit" className="w-full">
                 Create an account
               </Button>
+              <Button variant="destructive" type="button" className="w-full" onClick={handleGuestSignIn}>
+                <TestTube2 className="ml-2 h-5 w-5" />
+                متابعة كضيف (وضع التطوير)
+              </Button>
             </form>
           </Form>
           <div className="relative my-4">
@@ -239,4 +255,5 @@ export default function SignupPage() {
   );
 }
 
+    
     
