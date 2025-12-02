@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from '@/components/app-layout';
@@ -116,14 +117,17 @@ export default function HistoryPage() {
     if (!isUserLoading && !user) router.push('/login');
   }, [user, isUserLoading, router]);
 
+  const totalLoading = isUserLoading || isLoadingAwaiting || isLoadingPending || isLoadingConfirmed;
+  const noTripsAtAll = !hasAwaitingTrips && !hasPendingConfirmationTrips && !hasConfirmedTrips;
+
   useEffect(() => {
-    if (isLoadingAwaiting || isLoadingConfirmed || isLoadingPending) return;
-    // Set default open accordion based on priority
-    if (hasAwaitingTrips) setOpenAccordion('awaiting');
-    else if (hasPendingConfirmationTrips) setOpenAccordion('pending');
-    else if (hasConfirmedTrips) setOpenAccordion('confirmed');
-    else setOpenAccordion(undefined);
-  }, [hasAwaitingTrips, hasPendingConfirmationTrips, hasConfirmedTrips, isLoadingAwaiting, isLoadingConfirmed, isLoadingPending]);
+    if (!totalLoading) {
+        if (hasAwaitingTrips) setOpenAccordion('awaiting');
+        else if (hasPendingConfirmationTrips) setOpenAccordion('pending');
+        else if (hasConfirmedTrips) setOpenAccordion('confirmed');
+        else setOpenAccordion(undefined);
+    }
+  }, [totalLoading, hasAwaitingTrips, hasPendingConfirmationTrips, hasConfirmedTrips]);
 
   const handleAcceptOffer = (trip: Trip, offer: Offer) => {
     setSelectedOfferForBooking({ trip, offer });
@@ -186,9 +190,6 @@ export default function HistoryPage() {
     </div>
   );
   
-  const totalLoading = isUserLoading || isLoadingAwaiting || isLoadingPending || isLoadingConfirmed;
-  const noTripsAtAll = !hasAwaitingTrips && !hasPendingConfirmationTrips && !hasConfirmedTrips;
-
   if (isUserLoading) return <AppLayout>{renderSkeleton()}</AppLayout>;
 
   return (
@@ -365,3 +366,5 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
+
+    
