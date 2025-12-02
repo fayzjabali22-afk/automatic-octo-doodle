@@ -25,14 +25,27 @@
         },
         "phoneNumber": {
           "type": "string",
-          "description": "The phone number of the user."
+          "description": "The phone number of the user, preferably in E.164 format.",
+          "pattern": "^\\+[1-9]\\d{1,14}$"
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the user profile was created."
+        },
+        "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the user profile was last updated."
         }
       },
       "required": [
         "id",
         "firstName",
         "lastName",
-        "email"
+        "email",
+        "createdAt",
+        "updatedAt"
       ]
     },
     "CarrierProfile": {
@@ -40,13 +53,23 @@
       "type": "object",
       "description": "Represents a carrier's profile in the system.",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "contactEmail": { "type": "string", "format": "email" },
-        "phoneNumber": { "type": "string" },
-        "averageRating": { "type": "number" }
+        "id": { "type": "string", "description": "Unique identifier for the carrier profile." },
+        "name": { "type": "string", "description": "The name of the carrier." },
+        "contactEmail": { "type": "string", "format": "email", "description": "The contact email for the carrier." },
+        "phoneNumber": { "type": "string", "description": "The contact phone number for the carrier." },
+        "averageRating": { "type": "number", "description": "The carrier's average rating, from 0 to 5.", "minimum": 0, "maximum": 5 },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the carrier profile was created."
+        },
+        "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the carrier profile was last updated."
+        }
       },
-      "required": ["id", "name", "contactEmail"]
+      "required": ["id", "name", "contactEmail", "createdAt", "updatedAt"]
     },
     "Trip": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -68,7 +91,7 @@
         },
         "carrierName": {
             "type": "string",
-            "description": "The name of the carrier."
+            "description": "The name of the carrier (denormalized for quick display)."
         },
         "origin": {
           "type": "string",
@@ -105,21 +128,36 @@
           "type": "string",
           "description": "The ID of the offer that the user has accepted."
         },
-        "currentBookingId": {
-            "type": "string",
-            "description": "The ID of the current booking associated with this trip."
+        "bookingIds": {
+            "type": "array",
+            "description": "A list of booking IDs associated with this trip (for ride-sharing).",
+            "items": { "type": "string" }
         },
         "price": {
-            "type": "number"
+            "type": "number",
+            "description": "Price per seat for a scheduled trip."
         },
         "availableSeats": {
-            "type": "number"
+            "type": "number",
+            "description": "Number of available seats for a ride-sharing trip."
         },
         "depositPercentage": {
-            "type": "number"
+            "type": "number",
+            "description": "The percentage of the total price required as a deposit."
         },
         "vehicleType": {
-            "type": "string"
+            "type": "string",
+            "description": "The type of vehicle used for the trip."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the trip was created."
+        },
+        "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the trip was last updated."
         }
       },
       "required": [
@@ -128,7 +166,9 @@
         "origin",
         "destination",
         "departureDate",
-        "status"
+        "status",
+        "createdAt",
+        "updatedAt"
       ]
     },
     "Booking": {
@@ -151,7 +191,7 @@
         },
         "carrierId": {
           "type": "string",
-          "description": "ID of the carrier providing the trip."
+          "description": "ID of the carrier providing the trip (denormalized for rule validation)."
         },
         "seats": {
           "type": "number",
@@ -163,8 +203,8 @@
           "items": {
             "type": "object",
             "properties": {
-              "name": { "type": "string" },
-              "type": { "type": "string", "enum": ["adult", "child"] }
+              "name": { "type": "string", "description": "Full name of the passenger." },
+              "type": { "type": "string", "enum": ["adult", "child"], "description": "Type of passenger (adult or child)." }
             },
             "required": ["name", "type"]
           }
@@ -177,6 +217,16 @@
         "totalPrice": {
             "type": "number",
             "description": "Total price for the booking."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the booking was created."
+        },
+        "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the booking was last updated."
         }
       },
       "required": [
@@ -186,7 +236,9 @@
         "carrierId",
         "seats",
         "status",
-        "passengersDetails"
+        "passengersDetails",
+        "createdAt",
+        "updatedAt"
       ]
     },
     "Offer": {
@@ -204,12 +256,12 @@
           "enum": ["Pending", "Accepted", "Rejected"],
           "description": "The current status of the offer."
         },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "vehicleType": { "type": "string" },
-        "vehicleCategory": { "type": "string", "enum": ["small", "bus"] },
-        "vehicleModelYear": { "type": "number" },
-        "availableSeats": { "type": "number" },
-        "depositPercentage": { "type": "number" }
+        "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the offer was created." },
+        "vehicleType": { "type": "string", "description": "The type of vehicle offered." },
+        "vehicleCategory": { "type": "string", "enum": ["small", "bus"], "description": "The category of the vehicle." },
+        "vehicleModelYear": { "type": "number", "description": "The model year of the vehicle." },
+        "availableSeats": { "type": "number", "description": "The number of available seats in the vehicle." },
+        "depositPercentage": { "type": "number", "description": "The deposit percentage required." }
       },
       "required": ["id", "tripId", "carrierId", "price", "status", "createdAt"]
     },
@@ -260,13 +312,13 @@
       "type": "object",
       "description": "Represents a rating given by a user to a carrier for a trip.",
       "properties": {
-        "id": { "type": "string" },
-        "tripId": { "type": "string" },
-        "carrierId": { "type": "string" },
-        "userId": { "type": "string" },
-        "ratingValue": { "type": "number" },
-        "comment": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "id": { "type": "string", "description": "Unique identifier for the rating." },
+        "tripId": { "type": "string", "description": "ID of the rated trip." },
+        "carrierId": { "type": "string", "description": "ID of the rated carrier." },
+        "userId": { "type": "string", "description": "ID of the user who gave the rating." },
+        "ratingValue": { "type": "number", "description": "The rating value, from 1 to 5.", "minimum": 1, "maximum": 5 },
+        "comment": { "type": "string", "description": "Optional comment from the user." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the rating was created." }
       },
       "required": ["id", "tripId", "carrierId", "userId", "ratingValue", "createdAt"]
     },
@@ -275,11 +327,11 @@
       "type": "object",
       "description": "Represents a chat channel between a user and a carrier for a specific trip.",
       "properties": {
-        "id": { "type": "string" },
-        "tripId": { "type": "string" },
-        "participants": { "type": "array", "items": { "type": "string" } },
-        "lastMessage": { "type": "string" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "id": { "type": "string", "description": "Unique identifier for the chat channel." },
+        "tripId": { "type": "string", "description": "ID of the associated trip." },
+        "participants": { "type": "array", "items": { "type": "string" }, "description": "An array of user IDs participating in the chat." },
+        "lastMessage": { "type": "string", "description": "The content of the last message for display purposes." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "The timestamp of the last message." }
       },
       "required": ["id", "tripId", "participants", "updatedAt"]
     },
@@ -288,11 +340,11 @@
       "type": "object",
       "description": "Represents a single message within a chat.",
       "properties": {
-        "id": { "type": "string" },
-        "chatId": { "type": "string" },
-        "senderId": { "type": "string" },
-        "content": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "id": { "type": "string", "description": "Unique identifier for the message." },
+        "chatId": { "type": "string", "description": "ID of the chat channel this message belongs to." },
+        "senderId": { "type": "string", "description": "The user ID of the message sender." },
+        "content": { "type": "string", "description": "The text content of the message." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "The timestamp when the message was sent." }
       },
       "required": ["id", "chatId", "senderId", "content", "timestamp"]
     }
@@ -323,27 +375,31 @@
         }
       },
       {
-        "path": "/carriers/{carrierId}",
-        "definition": {
-          "entityName": "CarrierProfile",
-          "schema": { "$ref": "#/backend/entities/CarrierProfile" },
-          "description": "Stores public profiles for carriers."
-        }
-      },
-      {
-        "path": "/notifications/{notificationId}",
+        "path": "/users/{userId}/notifications/{notificationId}",
         "definition": {
             "entityName": "Notification",
             "schema": {
                 "$ref": "#/backend/entities/Notification"
             },
-            "description": "Stores notifications for all users in a single collection.",
+            "description": "Stores notifications for a specific user as a sub-collection.",
             "params": [
+                {
+                    "name": "userId",
+                    "description": "The unique identifier for the user."
+                },
                 {
                     "name": "notificationId",
                     "description": "The unique identifier for the notification."
                 }
             ]
+        }
+      },
+      {
+        "path": "/carriers/{carrierId}",
+        "definition": {
+          "entityName": "CarrierProfile",
+          "schema": { "$ref": "#/backend/entities/CarrierProfile" },
+          "description": "Stores public profiles for carriers."
         }
       },
       {
