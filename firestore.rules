@@ -13,9 +13,13 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isOwner(userId);
 
-      // Allow users to manage their own notifications
+      // Allow any signed-in user to create a notification for another user
+      // (e.g. traveler notifying a carrier of a new booking request)
+      // The recipient can still only read/list their own notifications.
       match /notifications/{notificationId} {
-        allow read, list, write: if isOwner(userId);
+        allow read, list: if isOwner(userId);
+        allow create: if isSignedIn(); 
+        allow write: if isOwner(userId);
       }
     }
     
