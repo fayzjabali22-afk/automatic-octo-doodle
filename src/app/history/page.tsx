@@ -19,12 +19,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, orderBy, limit } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Notification, Offer } from '@/lib/data';
-import { Bell, CheckCircle, PackageOpen, AlertCircle, Phone, Pencil, SendHorizonal, Paperclip } from 'lucide-react';
+import { Bell, CheckCircle, PackageOpen, AlertCircle, Phone, Pencil, SendHorizonal, Paperclip, CalendarX, PlusCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +38,7 @@ const statusMap: Record<string, string> = {
     'Planned': 'مؤكدة',
     'Completed': 'مكتملة',
     'Cancelled': 'ملغاة',
+    'Pending-Carrier-Confirmation': 'بانتظار تأكيد الناقل'
 }
 
 const statusVariantMap: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -45,17 +46,17 @@ const statusVariantMap: Record<string, "default" | "secondary" | "destructive" |
     'Planned': 'secondary',
     'Completed': 'default',
     'Cancelled': 'destructive',
+    'Pending-Carrier-Confirmation': 'secondary'
 }
 
-// Safe Date Formatter to handle String, Date object, or Firebase Timestamp
 const safeDateFormat = (dateInput: any, formatStr: string = 'PPP'): string => {
     if (!dateInput) return 'N/A';
     try {
         let dateObj;
         if (typeof dateInput.toDate === 'function') {
-            dateObj = dateInput.toDate(); // Firebase Timestamp
+            dateObj = dateInput.toDate();
         } else {
-            dateObj = new Date(dateInput); // String or Date
+            dateObj = new Date(dateInput);
         }
         return format(dateObj, formatStr, { locale: arSA });
     } catch (error) {
@@ -70,7 +71,6 @@ const dummyAwaitingTrips: Trip[] = [
 const dummyConfirmedTrips: Trip[] = [
     { id: 'DUMMY02', userId: 'test-user', origin: 'جدة', destination: 'القاهرة', departureDate: '2024-08-10T20:00:00Z', status: 'Planned', carrierId: 'carrier01', carrierName: 'سفريات الأمان', cargoDetails: 'أمتعة شخصية', vehicleType: 'GMC Yukon', passengers: 1, price: 250 },
     { id: 'DUMMY03', userId: 'test-user', origin: 'الدمام', destination: 'دبي', departureDate: '2024-07-25T09:15:00Z', status: 'Planned', carrierId: 'carrier02', carrierName: 'الناقل الدولي', cargoDetails: 'مواد بناء', vehicleType: 'Ford Transit', passengers: 4, price: 400 },
-    { id: 'DUMMY04', userId: 'test-user', origin: 'عمان', destination: 'الرياض', departureDate: '2024-07-15T12:00:00Z', status: 'Completed', carrierId: 'carrier03', carrierName: 'شركة النقل السريع', cargoDetails: 'أغراض شخصية', vehicleType: 'Hyundai Staria', passengers: 3, price: 100 },
 ];
 
 export default function HistoryPage() {
@@ -80,11 +80,9 @@ export default function HistoryPage() {
   const { toast } = useToast();
   
   const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
-  
-  // State for Booking Dialog
   const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
   const [selectedOfferForBooking, setSelectedOfferForBooking] = useState<{trip: Trip, offer: Offer} | null>(null);
-
+  const [isProcessingBooking, setIsProcessingBooking] = useState(false);
   
   // --- REAL DATA FETCHING ---
   const awaitingTripsQuery = useMemoFirebase(() => {
@@ -92,7 +90,9 @@ export default function HistoryPage() {
     return query(
       collection(firestore, 'trips'), 
       where('userId', '==', user.uid),
-      where('status', '==', 'Awaiting-Offers')
+      where('status', '==', 'Awaiting-Offers'),
+      orderBy('departureDate', 'asc'),
+      limit(10)
     );
   }, [firestore, user]);
   const { data: realAwaitingTrips, isLoading: isLoadingAwaiting } = useCollection<Trip>(awaitingTripsQuery);
@@ -102,7 +102,9 @@ export default function HistoryPage() {
     return query(
         collection(firestore, 'trips'),
         where('userId', '==', user.uid),
-        where('status', '==', 'Planned')
+        where('status', 'in', ['Planned', 'Pending-Carrier-Confirmation', 'Completed']),
+        orderBy('departureDate', 'desc'),
+        limit(10)
     );
   }, [firestore, user]);
   const { data: realConfirmedTrips, isLoading: isLoadingConfirmed } = useCollection<Trip>(confirmedTripsQuery);
@@ -154,14 +156,14 @@ export default function HistoryPage() {
   const handleConfirmBooking = async (passengers: PassengerDetails[]) => {
       if (!firestore || !user || !selectedOfferForBooking) return;
       
+      setIsProcessingBooking(true);
       const { trip, offer } = selectedOfferForBooking;
       
       try {
         const batch = writeBatch(firestore);
 
-        // 1. Create Booking Doc
         const bookingRef = doc(collection(firestore, 'bookings'));
-        const newBooking = {
+        batch.set(bookingRef, {
             id: bookingRef.id,
             tripId: trip.id,
             offerId: offer.id,
@@ -172,19 +174,16 @@ export default function HistoryPage() {
             status: 'Pending-Carrier-Confirmation',
             totalPrice: offer.price * passengers.length,
             createdAt: new Date().toISOString(),
-        };
-        batch.set(bookingRef, newBooking);
-
-        // 2. Update Trip Doc
-        const tripRef = doc(firestore, 'trips', trip.id);
-        batch.update(tripRef, {
-            status: 'Planned',
-            acceptedOfferId: offer.id,
-            currentBookingId: bookingRef.id,
-            carrierId: offer.carrierId, // Assign carrier to trip
         });
 
-        // 3. Notify Carrier
+        const tripRef = doc(firestore, 'trips', trip.id);
+        batch.update(tripRef, {
+            status: 'Pending-Carrier-Confirmation',
+            acceptedOfferId: offer.id,
+            currentBookingId: bookingRef.id,
+            carrierId: offer.carrierId,
+        });
+
         const notificationRef = doc(collection(firestore, `users/${offer.carrierId}/notifications`));
         batch.set(notificationRef, {
             userId: offer.carrierId,
@@ -193,16 +192,19 @@ export default function HistoryPage() {
             type: 'new_booking_request',
             isRead: false,
             createdAt: new Date().toISOString(),
-            link: `/carrier-dashboard/bookings`, // Future link
+            link: `/carrier-dashboard/bookings`,
         });
 
         await batch.commit();
 
         toast({
             title: 'تم إرسال طلب الحجز بنجاح!',
-            description: 'تم تحويل طلبك إلى حجز مؤكد وفي انتظار موافقة الناقل. سيتم إعلامك بالتحديثات.',
+            description: 'تم تحويل طلبك إلى حجز وفي انتظار موافقة الناقل. سيتم إعلامك بالتحديثات.',
         });
         
+        setIsBookingDialogOpen(false);
+        setSelectedOfferForBooking(null);
+
     } catch (e) {
         toast({
             variant: "destructive",
@@ -210,8 +212,7 @@ export default function HistoryPage() {
             description: "حدث خطأ أثناء الحجز، يرجى المحاولة لاحقاً.",
         });
     } finally {
-        setIsBookingDialogOpen(false);
-        setSelectedOfferForBooking(null);
+        setIsProcessingBooking(false);
     }
   };
 
@@ -234,31 +235,25 @@ export default function HistoryPage() {
                 <CardTitle>إدارة الحجز</CardTitle>
                 <CardDescription>تابع العروض والحجوزات من هنا</CardDescription>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5" />
-                    {notificationCount > 0 && <Badge className="absolute -top-1 -right-1 h-4 w-4 justify-center p-0 text-xs">{notificationCount}</Badge>}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
-                  <DropdownMenuLabel>الإشعارات</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {notifications?.length > 0 ? (
-                    notifications.map((notif) => (
-                      <DropdownMenuItem key={notif.id} className="flex flex-col items-start gap-1">
-                        <p className="font-bold">{notif.title}</p>
-                        <p className="text-xs text-muted-foreground">{notif.message}</p>
-                      </DropdownMenuItem>
-                    ))
-                  ) : (
-                    <div className="p-4 text-center text-sm text-muted-foreground">لا توجد إشعارات جديدة.</div>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button variant="ghost" size="icon" className="relative" aria-label="عرض الإشعارات">
+                  <Bell className="h-5 w-5" aria-hidden="true" />
+                  {notificationCount > 0 && <Badge className="absolute -top-1 -right-1 h-4 w-4 justify-center p-0 text-xs">{notificationCount}</Badge>}
+              </Button>
             </div>
           </CardHeader>
         </Card>
+        
+        {!isLoadingAwaiting && !isLoadingConfirmed && !hasAwaitingSection && !hasConfirmedTrips && (
+             <div className="text-center py-16 border-2 border-dashed rounded-lg bg-card/50">
+                <CalendarX className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" aria-hidden="true" />
+                <h3 className="text-xl font-bold">لا يوجد سجل رحلات</h3>
+                <p className="text-muted-foreground mt-2 mb-6">يبدو أنك لم تقم بإنشاء أي طلبات بعد.</p>
+                <Button onClick={() => router.push('/dashboard')}>
+                    <PlusCircle className="ml-2 h-4 w-4" />
+                    إنشاء طلب رحلة جديد
+                </Button>
+             </div>
+        )}
 
         <Accordion type="single" collapsible className="w-full space-y-6" value={openAccordion} onValueChange={setOpenAccordion}>
           {isLoadingAwaiting ? renderSkeleton() : (
@@ -266,7 +261,7 @@ export default function HistoryPage() {
             <AccordionItem value="awaiting" className="border-none">
               <Card className="bg-card/90 border-border/50">
                 <AccordionTrigger className="p-6 text-lg hover:no-underline">
-                  <div className='flex items-center gap-2'><PackageOpen className="h-6 w-6 text-primary" /><CardTitle>عروض الناقلين</CardTitle></div>
+                  <div className='flex items-center gap-2'><PackageOpen className="h-6 w-6 text-primary" aria-hidden="true" /><CardTitle>عروض الناقلين ({awaitingTrips.length})</CardTitle></div>
                 </AccordionTrigger>
                 <AccordionContent>
                     {awaitingTrips.map(trip => (
@@ -291,12 +286,10 @@ export default function HistoryPage() {
               <AccordionItem value="confirmed" className="border-none">
                 <Card className="bg-card/90 border-border/50">
                   <AccordionTrigger className="p-6 text-lg hover:no-underline">
-                    <div className='flex items-center gap-2'><CheckCircle className="h-6 w-6 text-green-500" /><CardTitle>رحلاتي المؤكدة</CardTitle></div>
+                    <div className='flex items-center gap-2'><CheckCircle className="h-6 w-6 text-green-500" aria-hidden="true" /><CardTitle>رحلاتي المؤكدة ({confirmedTrips.length})</CardTitle></div>
                   </AccordionTrigger>
                   <AccordionContent>
                     <CardContent className="space-y-6">
-                      <CardDescription className="mb-4">تابع رحلاتك التي قمت بحجزها بالفعل وأي تحديثات عليها.</CardDescription>
-                      
                       {confirmedTrips.map((trip) => (
                         <Card key={trip.id} className="bg-background/50 border-border/50">
                            <CardHeader>
@@ -326,7 +319,7 @@ export default function HistoryPage() {
 
                                     <div className="p-3 rounded-lg bg-yellow-900/50 border border-yellow-700">
                                         <div className="flex items-center gap-2">
-                                            <AlertCircle className="h-5 w-5 text-yellow-400" />
+                                            <AlertCircle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
                                             <h4 className="font-bold text-yellow-300">تحديث على الموعد</h4>
                                         </div>
                                         <p className="text-sm mt-2">لا توجد تحديثات جديدة على موعد الرحلة.</p>
@@ -347,12 +340,12 @@ export default function HistoryPage() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 mt-auto bg-background p-2 rounded-lg border">
-                                            <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0">
-                                                <Paperclip className="h-5 w-5" />
+                                            <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0" aria-label="إرفاق ملف">
+                                                <Paperclip className="h-5 w-5" aria-hidden="true" />
                                             </Button>
                                             <Textarea placeholder="اكتب رسالتك هنا..." className="flex-grow bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 resize-none h-10 p-2" rows={1} />
-                                            <Button size="icon" variant="default" className="h-10 w-10 shrink-0 bg-accent hover:bg-accent/90">
-                                                <SendHorizonal className="h-5 w-5" />
+                                            <Button size="icon" variant="default" className="h-10 w-10 shrink-0 bg-accent hover:bg-accent/90" aria-label="إرسال الرسالة">
+                                                <SendHorizonal className="h-5 w-5" aria-hidden="true" />
                                             </Button>
                                         </div>
                                     </div>
@@ -379,9 +372,9 @@ export default function HistoryPage() {
             isOpen={isBookingDialogOpen}
             onOpenChange={setIsBookingDialogOpen}
             trip={selectedOfferForBooking.trip}
-            // Use passengers from original trip, or available seats from offer as a fallback
             seatCount={selectedOfferForBooking.trip.passengers || selectedOfferForBooking.offer.availableSeats || 1}
             onConfirm={handleConfirmBooking}
+            isProcessing={isProcessingBooking}
         />
     )}
     </AppLayout>

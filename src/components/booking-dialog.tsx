@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
 import type { Trip } from '@/lib/data';
-import { Send } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
@@ -31,9 +31,10 @@ interface BookingDialogProps {
   trip: Trip;
   seatCount: number;
   onConfirm: (passengers: PassengerDetails[]) => void;
+  isProcessing: boolean;
 }
 
-export function BookingDialog({ isOpen, onOpenChange, trip, seatCount, onConfirm }: BookingDialogProps) {
+export function BookingDialog({ isOpen, onOpenChange, trip, seatCount, onConfirm, isProcessing }: BookingDialogProps) {
     const { toast } = useToast();
     const [passengers, setPassengers] = useState<PassengerDetails[]>([]);
 
@@ -111,10 +112,14 @@ export function BookingDialog({ isOpen, onOpenChange, trip, seatCount, onConfirm
                 </ScrollArea>
                 
                 <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>إلغاء</Button>
-                <Button type="submit" onClick={handleSubmit}>
-                    <Send className="ml-2 h-4 w-4" />
-                    إرسال طلب الحجز
+                <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={isProcessing}>إلغاء</Button>
+                <Button type="submit" onClick={handleSubmit} disabled={isProcessing}>
+                    {isProcessing ? (
+                        <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                    ) : (
+                        <Send className="ml-2 h-4 w-4" />
+                    )}
+                    {isProcessing ? 'جاري الإرسال...' : 'إرسال طلب الحجز'}
                 </Button>
                 </DialogFooter>
             </DialogContent>
