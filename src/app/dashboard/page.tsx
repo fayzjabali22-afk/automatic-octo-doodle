@@ -371,12 +371,14 @@ export default function DashboardPage() {
                     <Select onValueChange={setFilterOrigin} value={filterOrigin}>
                       <SelectTrigger><SelectValue placeholder="أي نقطة انطلاق" /></SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="">أي نقطة انطلاق</SelectItem>
                         {Object.entries(cities).map(([key, city]) => <SelectItem key={key} value={key}>{city}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <Select onValueChange={setFilterDestination} value={filterDestination}>
                       <SelectTrigger><SelectValue placeholder="أي نقطة وصول" /></SelectTrigger>
                       <SelectContent>
+                         <SelectItem value="">أي نقطة وصول</SelectItem>
                         {Object.entries(cities).map(([key, city]) => <SelectItem key={key} value={key}>{city}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -434,3 +436,5 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
+
+    
