@@ -22,12 +22,13 @@ service cloud.firestore {
     match /carriers/{carrierId} {
       // Publicly readable, but only writable by authenticated users (e.g. the carrier themselves)
       allow read: if true;
-      allow write: if isOwner(carrierId);
+      allow write: if isSignedIn(); // Allow any signed-in user to become a carrier
     }
 
     match /trips/{tripId} {
       allow read, list: if true;
-      allow create: if isOwner(request.resource.data.userId);
+      // Allow any signed-in user (including anonymous) to create a trip, as long as they set themselves as the owner.
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
       // Allow the user who owns the trip to update it (e.g. to add an accepted offer and booking ID)
       allow update: if isOwner(resource.data.userId);
       allow delete: if isOwner(resource.data.userId);
@@ -66,5 +67,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
