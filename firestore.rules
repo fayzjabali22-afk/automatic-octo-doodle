@@ -33,7 +33,8 @@ service cloud.firestore {
     }
 
     match /trips/{tripId} {
-      allow read, list: if true;
+      // Allow a user to list trips where their UID is the 'userId'.
+      allow list, read: if isSignedIn() && (request.query.where.userId == request.auth.uid || resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
       allow update: if isSignedIn(); // Allow any signed-in user to update for dev purposes
       allow delete: if isSignedIn() && isOwner(resource.data.userId);

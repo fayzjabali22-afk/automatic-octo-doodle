@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, doc, writeBatch, orderBy, limit } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Notification, Offer } from '@/lib/data';
@@ -70,41 +70,32 @@ export default function HistoryPage() {
   const [isProcessingBooking, setIsProcessingBooking] = useState(false);
 
   // --- Queries ---
-  const awaitingTripsQuery = useMemoFirebase(() => {
+  const userTripsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, 'trips'),
       where('userId', '==', user.uid),
-      where('status', '==', 'Awaiting-Offers'),
-      orderBy('departureDate', 'asc'),
-      limit(10)
+      orderBy('departureDate', 'desc')
     );
   }, [firestore, user]);
-  const { data: awaitingTrips, isLoading: isLoadingAwaiting } = useCollection<Trip>(awaitingTripsQuery);
   
-  const pendingConfirmationQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'trips'),
-      where('userId', '==', user.uid),
-      where('status', '==', 'Pending-Carrier-Confirmation'),
-      orderBy('departureDate', 'desc'),
-      limit(10)
-    );
-  }, [firestore, user]);
-  const { data: pendingConfirmationTrips, isLoading: isLoadingPending } = useCollection<Trip>(pendingConfirmationQuery);
+  const { data: allUserTrips, isLoading: isLoadingTrips } = useCollection<Trip>(userTripsQuery);
 
-  const confirmedTripsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'trips'),
-      where('userId', '==', user.uid),
-      where('status', 'in', ['Planned', 'Completed', 'Cancelled']),
-      orderBy('departureDate', 'desc'),
-      limit(10)
-    );
-  }, [firestore, user]);
-  const { data: confirmedTrips, isLoading: isLoadingConfirmed } = useCollection<Trip>(confirmedTripsQuery);
+  const { awaitingTrips, pendingConfirmationTrips, confirmedTrips } = useMemo(() => {
+    if (!allUserTrips) {
+      return { awaitingTrips: [], pendingConfirmationTrips: [], confirmedTrips: [] };
+    }
+    const awaiting = allUserTrips.filter(t => t.status === 'Awaiting-Offers');
+    const pending = allUserTrips.filter(t => t.status === 'Pending-Carrier-Confirmation');
+    const confirmed = allUserTrips.filter(t => ['Planned', 'Completed', 'Cancelled'].includes(t.status));
+    
+    return { 
+        awaitingTrips: awaiting, 
+        pendingConfirmationTrips: pending, 
+        confirmedTrips: confirmed 
+    };
+  }, [allUserTrips]);
+
 
   const hasAwaitingTrips = awaitingTrips && awaitingTrips.length > 0;
   const hasPendingConfirmationTrips = pendingConfirmationTrips && pendingConfirmationTrips.length > 0;
@@ -117,8 +108,8 @@ export default function HistoryPage() {
     if (!isUserLoading && !user) router.push('/login');
   }, [user, isUserLoading, router]);
 
-  const totalLoading = isUserLoading || isLoadingAwaiting || isLoadingPending || isLoadingConfirmed;
-  const noTripsAtAll = !hasAwaitingTrips && !hasPendingConfirmationTrips && !hasConfirmedTrips;
+  const totalLoading = isUserLoading || isLoadingTrips;
+  const noTripsAtAll = !totalLoading && !hasAwaitingTrips && !hasPendingConfirmationTrips && !hasConfirmedTrips;
 
   useEffect(() => {
     if (!totalLoading) {
@@ -207,7 +198,7 @@ export default function HistoryPage() {
         </Card>
 
         {/* Empty State */}
-        {!totalLoading && noTripsAtAll && (
+        {noTripsAtAll && (
           <div className="text-center py-16 border-2 border-dashed rounded-lg bg-card/50">
             <CalendarX className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" aria-hidden="true" />
             <h3 className="text-xl font-bold">لا يوجد سجل رحلات</h3>
@@ -222,7 +213,7 @@ export default function HistoryPage() {
         {/* Accordion Sections */}
         <Accordion type="single" collapsible className="space-y-6" value={openAccordion} onValueChange={setOpenAccordion}>
           {/* Awaiting Offers */}
-          {isLoadingAwaiting ? renderSkeleton() : hasAwaitingTrips && (
+          {isLoadingTrips ? renderSkeleton() : hasAwaitingTrips && (
             <AccordionItem value="awaiting" className="border-none">
               <Card>
                 <AccordionTrigger className="p-6 text-lg hover:no-underline">
@@ -249,7 +240,7 @@ export default function HistoryPage() {
           )}
           
           {/* Pending Confirmation */}
-          {isLoadingPending ? renderSkeleton() : hasPendingConfirmationTrips && (
+          {isLoadingTrips ? renderSkeleton() : hasPendingConfirmationTrips && (
              <AccordionItem value="pending" className="border-none">
               <Card>
                 <AccordionTrigger className="p-6 text-lg hover:no-underline">
@@ -284,7 +275,7 @@ export default function HistoryPage() {
           )}
 
           {/* Confirmed Trips */}
-          {isLoadingConfirmed ? renderSkeleton() : hasConfirmedTrips && (
+          {isLoadingTrips ? renderSkeleton() : hasConfirmedTrips && (
             <AccordionItem value="confirmed" className="border-none">
               <Card>
                 <AccordionTrigger className="p-6 text-lg hover:no-underline">
