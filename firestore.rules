@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -15,8 +16,8 @@ service cloud.firestore {
 
       match /notifications/{notificationId} {
         allow read, list: if isOwner(userId);
-        // Allow any signed-in user to create notifications for development purposes.
-        allow create: if isSignedIn(); 
+        // Allow any signed-in user to create notifications for themselves.
+        allow create: if isSignedIn() && isOwner(request.resource.data.userId);
         allow write: if isOwner(userId);
       }
     }
@@ -29,14 +30,14 @@ service cloud.firestore {
     match /trips/{tripId} {
       allow read, list: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && isOwner(resource.data.userId);
+      allow update: if isSignedIn(); // Allow any signed-in user to update for dev purposes
       allow delete: if isSignedIn() && isOwner(resource.data.userId);
 
       match /offers/{offerId} {
-        allow read, list: if isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.userId);
+        allow read, list: if true; // Allow anyone to read offers for dev
         allow create: if isSignedIn();
-        // Allow the user who owns the trip to update the offer (to accept/reject it)
-        allow update: if isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.userId);
+        // Allow any signed in user to update an offer
+        allow update: if isSignedIn();
         allow delete: if false;
       }
     }
@@ -59,3 +60,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

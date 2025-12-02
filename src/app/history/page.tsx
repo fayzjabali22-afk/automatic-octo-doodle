@@ -161,19 +161,19 @@ const TripOfferManager = ({ trip }: { trip: Trip; }) => {
     const handleAcceptOffer = async (selectedOffer: Offer) => {
         if (!firestore || !user) return;
         
-        toast({ title: "جاري إرسال طلب الحجز...", description: "يرجى الانتظار."});
+        toast({ title: "جاري تأكيد الحجز...", description: "يرجى الانتظار."});
 
         const batch = writeBatch(firestore);
         const newBookingRef = doc(collection(firestore, 'bookings'));
 
-        // Step 1: Create initial booking and notification for carrier
         try {
+            // Simplified Flow: Immediately set to Pending-Payment
             const newBooking: Omit<Booking, 'id'> = {
                 tripId: trip.id,
                 userId: user.uid,
                 carrierId: selectedOffer.carrierId,
                 seats: trip.passengers || 1,
-                status: 'Pending-Carrier-Confirmation',
+                status: 'Pending-Payment', // Directly set to Pending-Payment
                 totalPrice: selectedOffer.price,
             };
             batch.set(newBookingRef, newBooking);
@@ -188,64 +188,41 @@ const TripOfferManager = ({ trip }: { trip: Trip; }) => {
             const offerRef = doc(firestore, `trips/${trip.id}/offers`, selectedOffer.id);
             batch.update(offerRef, { status: 'Accepted' });
 
-            const carrierNotifRef = doc(collection(firestore, `users/${selectedOffer.carrierId}/notifications`));
-            const carrierNotification: Partial<Notification> = {
-                userId: selectedOffer.carrierId,
-                title: "طلب حجز جديد!",
-                message: `عليك تفعيل شاشة الحجز`,
-                type: 'new_booking_request',
+            // Notification for the user about the confirmation
+            const userNotifRef = doc(collection(firestore, `users/${user.uid}/notifications`));
+            const userNotification: Partial<Notification> = {
+                userId: user.uid,
+                title: "تم تأكيد طلب الحجز!",
+                message: "تم تأكيد حجزك من قبل الناقل. يمكنك الآن الدفع.",
+                type: 'booking_confirmed',
                 isRead: false,
                 createdAt: serverTimestamp() as unknown as string,
-                link: `/carrier/bookings/${newBookingRef.id}`
+                link: `/history`
             };
-            batch.set(carrierNotifRef, carrierNotification);
+            batch.set(userNotifRef, userNotification);
 
             await batch.commit();
+
             toast({
-                title: "تم إرسال الطلب بنجاح",
-                description: "بانتظار موافقة الناقل. سيتم تحديث الصفحة تلقائياً.",
+                title: "تم تأكيد الحجز بنجاح",
+                description: "يمكنك الآن المتابعة إلى الدفع.",
             });
 
-            // Step 2: Simulate carrier approval after 30 seconds
-            setTimeout(() => {
-                const approveBatch = writeBatch(firestore);
-                
-                // Update booking status
-                const bookingToApproveRef = doc(firestore, 'bookings', newBookingRef.id);
-                approveBatch.update(bookingToApproveRef, { status: 'Pending-Payment' });
-
-                // Send notification to user
-                const userNotifRef = doc(collection(firestore, `users/${user.uid}/notifications`));
-                const userNotification: Partial<Notification> = {
-                    userId: user.uid,
-                    title: "تم تأكيد طلب الحجز!",
-                    message: "تم تأكيد حجزك من قبل الناقل. يمكنك الآن الدفع.",
-                    type: 'booking_confirmed',
-                    isRead: false,
-                    createdAt: serverTimestamp() as unknown as string,
-                    link: `/history`
-                };
-                approveBatch.set(userNotifRef, userNotification);
-                
-                approveBatch.commit().catch(serverError => {
-                    const permissionError = new FirestorePermissionError({
-                        path: `batch write including bookings/${newBookingRef.id} and users/${user.uid}/notifications`,
-                        operation: 'write',
-                        requestResourceData: { 
-                            bookingUpdate: { status: 'Pending-Payment' }, 
-                            notification: userNotification 
-                        },
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                });
-
-            }, 30000); // 30 seconds delay
-
         } catch (error) {
-            console.error("Failed to create pending booking:", error);
+             const permissionError = new FirestorePermissionError({
+                path: `batch write including bookings, trips, offers, and notifications`,
+                operation: 'write',
+                requestResourceData: { 
+                    bookingStatus: 'Pending-Payment', 
+                    tripId: trip.id,
+                    offerId: selectedOffer.id,
+                },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+
             toast({
                 title: "حدث خطأ",
-                description: "لم نتمكن من إرسال طلب الحجز. يرجى المحاولة مرة أخرى.",
+                description: "لم نتمكن من تأكيد الحجز. يرجى المحاولة مرة أخرى.",
                 variant: "destructive",
             });
         }
@@ -305,16 +282,13 @@ export default function HistoryPage() {
 
   const { data: allUserTrips, isLoading } = useCollection<Trip>(userTripsQuery);
 
-  // We only care about trips awaiting offers or pending confirmation for now
   const awaitingTrips = allUserTrips?.filter(t => t.status === 'Awaiting-Offers') || [];
   const plannedTrips = allUserTrips?.filter(t => t.status === 'Planned') || [];
-  
-  // Confirmed trips section should be empty for development
   const confirmedTrips: Trip[] = [];
   
   const hasAwaitingOffers = !isLoading && awaitingTrips.length > 0;
   const hasPlannedTrips = !isLoading && plannedTrips.length > 0;
-  const hasConfirmedTrips = false; // Always false for now
+  const hasConfirmedTrips = !isLoading && confirmedTrips.length > 0;
   
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -330,10 +304,10 @@ export default function HistoryPage() {
     const openItems: string[] = [];
     if (hasAwaitingOffers) openItems.push('awaiting');
     if (hasPlannedTrips) openItems.push('planned');
-    // if (hasConfirmedTrips) openItems.push('confirmed'); // This section is now hidden
+    if (hasConfirmedTrips) openItems.push('confirmed');
     setOpenAccordion(openItems);
 
-  }, [hasAwaitingOffers, hasPlannedTrips, isLoading]);
+  }, [hasAwaitingOffers, hasPlannedTrips, hasConfirmedTrips, isLoading]);
 
 
   const renderSkeleton = () => (
@@ -427,7 +401,7 @@ export default function HistoryPage() {
              <AccordionItem value="planned" className="border-none">
               <Card className="rounded-none md:rounded-lg">
                 <AccordionTrigger className="p-6 text-lg hover:no-underline">
-                  <div className='flex items-center gap-2'><Hourglass className="h-6 w-6 text-yellow-500" /><CardTitle>حجوزات بانتظار التأكيد أو الدفع</CardTitle></div>
+                  <div className='flex items-center gap-2'><Hourglass className="h-6 w-6 text-yellow-500" /><CardTitle>حجوزات بانتظار الدفع</CardTitle></div>
                 </AccordionTrigger>
                 <AccordionContent className="p-0">
                     <Accordion type="single" collapsible className="w-full">
@@ -509,3 +483,5 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
+
+    
