@@ -20,7 +20,6 @@ import { Label } from '@/components/ui/label';
 import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import type { Trip } from '@/lib/data';
-import { scheduledTrips } from '@/lib/data'; 
 import { TripCard } from '@/components/trip-card';
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -38,7 +37,7 @@ import {
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { collection, query, addDoc } from 'firebase/firestore';
+import { collection, query, addDoc, where } from 'firebase/firestore';
 import { AuthRedirectDialog } from '@/components/auth-redirect-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -69,12 +68,15 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const [isAuthRedirectOpen, setIsAuthRedirectOpen] = useState(false);
-  const [tripRequestData, setTripRequestData] = useState<Omit<Trip, 'id' | 'userId' | 'status' | 'departureDate'> | null>(null);
-
   const { toast } = useToast();
 
-  const allTrips = scheduledTrips;
-  const isLoading = false; 
+  const tripsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    // Fetch only scheduled trips that are 'Planned'
+    return query(collection(firestore, 'trips'), where('status', '==', 'Planned'));
+  }, [firestore]);
+
+  const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
 
   const [searchOriginCountry, setSearchOriginCountry] = useState('');
   const [searchOriginCity, setSearchOriginCity] = useState('');
@@ -103,10 +105,7 @@ export default function DashboardPage() {
         return;
     }
     
-    const normalizePhoneNumber = (phone: string) => phone.replace(/[\s+()-]/g, '');
-    const searchInputNormalized = normalizePhoneNumber(carrierSearchInput);
-
-    const foundTrip = allTrips.find(trip => {
+    const foundTrip = (allTrips || []).find(trip => {
         const carrierName = trip.carrierName || '';
         const nameMatch = carrierName.toLowerCase().includes(carrierSearchInput.toLowerCase());
         return nameMatch;
@@ -125,15 +124,16 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let baseTrips: Trip[] = [];
+    const tripsSource = allTrips || [];
     
     if (searchMode === 'specific-carrier') {
         if (selectedCarrierName) {
-            baseTrips = allTrips.filter(trip => trip.carrierName === selectedCarrierName);
+            baseTrips = tripsSource.filter(trip => trip.carrierName === selectedCarrierName);
         } else {
             baseTrips = [];
         }
     } else {
-        baseTrips = [...allTrips];
+        baseTrips = [...tripsSource];
     }
 
     let filteredTrips = [...baseTrips];
