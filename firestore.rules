@@ -55,6 +55,7 @@ service cloud.firestore {
     }
 
     match /chats/{chatId} {
+      allow list: if isSignedIn() && request.query.where[0][2] == request.auth.uid;
       allow read, write: if isSignedIn() && request.auth.uid in resource.data.participants;
       match /messages/{messageId} {
         allow read, create: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
@@ -63,5 +64,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
