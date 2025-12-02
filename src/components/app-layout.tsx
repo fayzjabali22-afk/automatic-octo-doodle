@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert, Lock, AlertTriangle, Check } from 'lucide-react';
+import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert, Lock, AlertTriangle, MessageSquare, Check } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,12 +48,20 @@ const menuItems = [
     href: '/dashboard',
     label: 'لوحة التحكم',
     auth: false,
+    icon: null,
   },
   {
     href: '/history',
     label: 'إدارة الحجز',
     auth: true,
+    icon: null,
   },
+  {
+    href: '/chats',
+    label: 'الدردشات',
+    auth: true,
+    icon: MessageSquare,
+  }
 ];
 
 const mobileMenuItems = [
@@ -62,6 +70,7 @@ const mobileMenuItems = [
     href: '/profile',
     label: 'ملفي الشخصي',
     auth: true,
+    icon: Settings
   },
 ];
 
@@ -209,7 +218,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <span className="sr-only">القائمة الرئيسية</span>
                 </Button>
               </SheetTrigger>
-              {/* Change: side="right" for Arabic */}
               <SheetContent
                 side="right"
                 className="w-full max-w-xs p-0 bg-secondary text-secondary-foreground"
@@ -233,8 +241,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       <Link
                         key={item.label}
                         href={item.href}
-                        className={cn("font-bold text-white hover:text-white/80", pathname === item.href && "underline")}
+                        className={cn("font-bold text-white hover:text-white/80 flex items-center gap-2", pathname.startsWith(item.href) && "underline")}
                       >
+                        {item.icon && <item.icon className="h-4 w-4" />}
                         {item.label}
                       </Link>
                     );
@@ -261,7 +270,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {/* Left side: User Menu & Notifications */}
           <div className="flex items-center gap-2 ms-auto">
             
-            {/* Notifications - Added Logic here */}
             {user && (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -305,7 +313,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </DropdownMenu>
             )}
 
-            {/* Desktop User Menu */}
             <div className="hidden md:flex">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -333,13 +340,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Secondary Navigation Header (Desktop Only) */}
         <nav className="sticky top-16 z-40 hidden h-12 items-center justify-center gap-8 border-b border-b-border/10 bg-secondary px-6 text-secondary-foreground shadow-sm md:flex">
           {menuItems.map((item) => {
             const isDisabled = item.auth && !user;
             const linkClass = cn(
               "text-sm font-bold transition-colors hover:text-white/80 flex items-center gap-2",
-              pathname === item.href && !isDisabled && "text-white underline decoration-2 underline-offset-4",
+              pathname.startsWith(item.href) && !isDisabled && "text-white underline decoration-2 underline-offset-4",
               isDisabled && "cursor-not-allowed text-white/50"
             );
 
@@ -365,6 +371,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 className={linkClass}
               >
+                {item.icon && <item.icon className="h-4 w-4" />}
                 {item.label}
               </Link>
             )
@@ -381,7 +388,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <main className="flex flex-1 flex-col">
           {children}
         </main>
       </div>
@@ -408,5 +415,3 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </TooltipProvider>
   );
 }
-
-    
