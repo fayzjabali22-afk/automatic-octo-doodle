@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Trip } from '@/lib/data';
 import { Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -33,8 +33,17 @@ interface BookingDialogProps {
 
 export function BookingDialog({ isOpen, onOpenChange, trip, seatCount, onConfirm }: BookingDialogProps) {
     const { toast } = useToast();
-    const initialPassengers: PassengerDetails[] = Array(seatCount).fill({ name: '', type: 'adult' });
-    const [passengers, setPassengers] = useState<PassengerDetails[]>(initialPassengers);
+    
+    // Initialize state based on seatCount prop
+    const [passengers, setPassengers] = useState<PassengerDetails[]>([]);
+
+    useEffect(() => {
+        // When the dialog opens or seatCount changes, reset the passengers state
+        if (isOpen) {
+            setPassengers(Array(seatCount).fill({ name: '', type: 'adult' }));
+        }
+    }, [isOpen, seatCount]);
+
 
     const handlePassengerChange = (index: number, field: 'name' | 'type', value: string) => {
         const newPassengers = [...passengers];
@@ -55,14 +64,6 @@ export function BookingDialog({ isOpen, onOpenChange, trip, seatCount, onConfirm
         onConfirm(passengers);
     };
     
-    // Reset state when dialog is re-opened with new props
-    useState(() => {
-        if(isOpen) {
-            setPassengers(Array(seatCount).fill({ name: '', type: 'adult' }))
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen, seatCount]);
-
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent dir="rtl" className="sm:max-w-[480px]">
@@ -121,4 +122,3 @@ export function BookingDialog({ isOpen, onOpenChange, trip, seatCount, onConfirm
         </Dialog>
     );
 }
-    
