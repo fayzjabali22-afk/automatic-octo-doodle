@@ -109,23 +109,12 @@ const TripOfferManager = ({ trip }: { trip: Trip; }) => {
         const tripDocRef = doc(firestore, 'trips', trip.id);
         const offerDocRef = doc(firestore, `trips/${trip.id}/offers`, selectedOffer.id);
 
-        const initialBatch = writeBatch(firestore);
-
-        // 1. Create the booking document
-        initialBatch.set(bookingDocRef, {
-            tripId: trip.id,
-            userId: user.uid,
-            carrierId: selectedOffer.carrierId,
-            seats: trip.passengers || 1,
-            status: 'Pending-Carrier-Confirmation',
-            totalPrice: selectedOffer.price,
-        });
+        const batch = writeBatch(firestore);
         
         const carrier = mockCarriers.find(c => c.id === selectedOffer.carrierId);
-
-
-        // 2. Update the trip document
-        initialBatch.update(tripDocRef, {
+        
+        // 1. Update the trip: Set status to 'Planned', link accepted offer, booking, and carrier info
+        batch.update(tripDocRef, {
             status: 'Planned',
             acceptedOfferId: selectedOffer.id,
             currentBookingId: bookingDocRef.id,
@@ -133,54 +122,49 @@ const TripOfferManager = ({ trip }: { trip: Trip; }) => {
             carrierName: carrier?.name || 'اسم الناقل الوهمي',
         });
         
-        // 3. Update the offer status
-        initialBatch.update(offerDocRef, { status: 'Accepted' });
+        // 2. Create the booking document with 'Pending-Payment' status directly
+         batch.set(bookingDocRef, {
+            tripId: trip.id,
+            userId: user.uid,
+            carrierId: selectedOffer.carrierId,
+            seats: trip.passengers || 1,
+            status: 'Pending-Payment', // Directly set to pending payment
+            totalPrice: selectedOffer.price,
+        });
+
+        // 3. Update the accepted offer status
+        batch.update(offerDocRef, { status: 'Accepted' });
+        
+        // 4. Create a user notification for the confirmed booking
+        const userNotifRef = doc(collection(firestore, `users/${user.uid}/notifications`));
+        const userNotification: Partial<Notification> = {
+            userId: user.uid,
+            title: "تم تأكيد الحجز!",
+            message: `وافق الناقل على طلبك لرحلة ${cities[trip.origin]} إلى ${cities[trip.destination]}. الرجاء إتمام الدفع.`,
+            type: 'booking_confirmed',
+            isRead: false,
+            createdAt: serverTimestamp() as any,
+            link: `/history`
+        };
+        batch.set(userNotifRef, userNotification);
+
 
         try {
-            await initialBatch.commit();
-
-            toast({ title: "تم إرسال الطلب!", description: "الآن، بانتظار موافقة الناقل الوهمية (5 ثوانٍ)." });
-            
-            // Simulate carrier confirmation after 5 seconds
-            setTimeout(async () => {
-                if (!firestore || !user) return;
-                
-                const approveBatch = writeBatch(firestore);
-
-                // 1. Update booking status to Pending-Payment
-                approveBatch.update(bookingDocRef, { status: 'Pending-Payment' });
-
-                // 2. Create a notification for the user
-                const userNotifRef = doc(collection(firestore, `users/${user.uid}/notifications`));
-                const userNotification: Partial<Notification> = {
-                    userId: user.uid,
-                    title: "تم تأكيد الحجز!",
-                    message: `وافق الناقل على طلبك لرحلة ${cities[trip.origin]} إلى ${cities[trip.destination]}. الرجاء إتمام الدفع.`,
-                    type: 'booking_confirmed',
-                    isRead: false,
-                    createdAt: serverTimestamp() as any,
-                    link: `/history`
-                };
-                approveBatch.set(userNotifRef, userNotification);
-                
-                try {
-                    await approveBatch.commit();
-                    toast({ title: "تم تأكيد الحجز من الناقل!", description: "تم تحديث حالة حجزك وهو الآن بانتظار الدفع." });
-                } catch(e) {
-                     toast({
-                        title: "حدث خطأ",
-                        description: "لم نتمكن من تحديث الحجز بعد موافقة الناقل.",
-                        variant: "destructive",
-                    });
-                } finally {
-                    setIsAccepting(null);
-                }
-
-            }, 5000); 
+            await batch.commit();
+            toast({ 
+                title: "تم تأكيد الحجز بنجاح!", 
+                description: "تم تحديث حالة حجزك وهو الآن بانتظار الدفع.",
+                duration: 5000,
+            });
 
         } catch (err) {
-            console.error("Error creating initial booking:", err);
-            toast({ variant: 'destructive', title: 'خطأ', description: 'لم نتمكن من إنشاء طلب الحجز.'})
+            console.error("Error accepting offer:", err);
+            toast({ 
+                variant: 'destructive', 
+                title: 'خطأ', 
+                description: 'لم نتمكن من قبول العرض وإنشاء الحجز.'
+            })
+        } finally {
             setIsAccepting(null);
         }
     };
@@ -190,7 +174,7 @@ const TripOfferManager = ({ trip }: { trip: Trip; }) => {
         return <TripReportCard trip={trip} booking={booking} offer={acceptedOffer} />;
     }
     
-    // This is the "Waiting for Carrier" state
+    // This is the "Waiting for Carrier" state - we are skipping this for now
     if (trip.status === 'Planned' && booking?.status === 'Pending-Carrier-Confirmation') {
         return (
             <div className="flex flex-col items-center justify-center p-8 text-center bg-background rounded-b-lg">
