@@ -202,7 +202,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider>
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-[#EDC17C] px-4 text-black md:px-6 shadow-sm">
+      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-white px-4 text-black md:px-6 shadow-sm">
         {/* Mobile: Left side (Menu) */}
         <div className="flex items-center md:hidden">
           <Sheet>
@@ -215,10 +215,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <SheetContent
               side="left"
               style={{
-                backgroundColor: '#EDC17C',
+                backgroundColor: '#FFFFFF',
                 borderRight: '2px solid #8B0000',
               }}
-              className="w-full max-w-xs p-0"
+              className="w-full max-w-xs p-0 text-black"
             >
               <SheetTitle className="sr-only">القائمة الرئيسية</SheetTitle>
               <nav className="grid gap-6 text-lg font-medium p-6">
@@ -357,7 +357,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Secondary Navigation Header */}
-      <nav className="sticky top-16 z-40 hidden h-12 items-center justify-center gap-8 border-b border-b-white bg-[#EDC17C] px-6 md:flex shadow-sm">
+      <nav className="sticky top-16 z-40 hidden h-12 items-center justify-center gap-8 border-b border-b-black/10 bg-white px-6 text-black md:flex shadow-sm">
         {menuItems.map((item) => {
             const isDisabled = item.auth && !user;
             const linkClass = cn(
