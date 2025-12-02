@@ -331,7 +331,7 @@ export default function DashboardPage() {
               
               <Card className="w-full shadow-lg rounded-lg border-border/60 bg-card/80 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>نتائج البحث للرحلات المجدولة</CardTitle>
+                  <CardTitle className="text-cyan-400">يمكنك اختيار الرحلة المناسبة لك مباشرة</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -371,7 +371,6 @@ export default function DashboardPage() {
                   </Table>
                 </CardContent>
                  <CardFooter className="p-4 md:p-6 border-t border-border/60 flex flex-col gap-2">
-                    <p className="text-sm text-muted-foreground text-center mb-2">لم تجد رحلة مناسبة في الجدول أعلاه؟</p>
                     <Button size="lg" className="w-full bg-[#B19C7D] hover:bg-[#a18c6d] text-white" onClick={handleCreateTripRequest}>
                         اطلب أسعار من الناقلين لرحلتك
                     </Button>
@@ -386,4 +385,5 @@ export default function DashboardPage() {
       <LegalDisclaimerDialog isOpen={isLegalDisclaimerOpen} onOpenChange={setIsLegalDisclaimerOpen} onContinue={handleLegalConfirm} />
     </AppLayout>
   );
-}
+
+    
