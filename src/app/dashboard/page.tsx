@@ -43,7 +43,6 @@ import { AuthRedirectDialog } from '@/components/auth-redirect-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
-import { LegalDisclaimerDialog } from '@/components/legal-disclaimer-dialog';
 
 
 // Mock data for countries and cities
@@ -70,7 +69,6 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const [isAuthRedirectOpen, setIsAuthRedirectOpen] = useState(false);
-  const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
   const [tripRequestData, setTripRequestData] = useState<Omit<Trip, 'id' | 'userId' | 'status' | 'departureDate'> | null>(null);
 
   const { toast } = useToast();
@@ -256,13 +254,9 @@ export default function DashboardPage() {
           });
           return;
       }
-      setIsDisclaimerOpen(true);
+      handleBookingRequestSubmit();
   };
   
-  const onConfirmDisclaimer = () => {
-      setIsDisclaimerOpen(false);
-      handleBookingRequestSubmit();
-  }
 
   const showFilterMessage = searchMode === 'specific-carrier' && selectedCarrierName && Object.keys(groupedAndFilteredTrips).length > 0;
   const showAllCarriersMessage = searchMode === 'all-carriers' && Object.keys(groupedAndFilteredTrips).length > 0;
@@ -519,11 +513,6 @@ export default function DashboardPage() {
       <AuthRedirectDialog 
         isOpen={isAuthRedirectOpen}
         onOpenChange={setIsAuthRedirectOpen}
-      />
-       <LegalDisclaimerDialog 
-        isOpen={isDisclaimerOpen}
-        onOpenChange={setIsDisclaimerOpen}
-        onContinue={onConfirmDisclaimer}
       />
     </AppLayout>
   );
