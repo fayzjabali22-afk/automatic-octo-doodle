@@ -23,7 +23,15 @@ import { format } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { BookingDialog } from '@/components/booking-dialog';
 
-// --- Helper Functions ---
+// --- Helper Functions & Data ---
+const cities: { [key: string]: string } = {
+    damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص',
+    amman: 'عمّان', irbid: 'إربد', zarqa: 'الزرقاء',
+    riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام',
+    cairo: 'القاهرة', alexandria: 'الاسكندرية', giza: 'الجيزة',
+    dubai: 'دبي', kuwait: 'الكويت'
+};
+
 const statusMap: Record<string, string> = {
   'Awaiting-Offers': 'بانتظار العروض',
   'Pending-Carrier-Confirmation': 'بانتظار تأكيد الناقل',
