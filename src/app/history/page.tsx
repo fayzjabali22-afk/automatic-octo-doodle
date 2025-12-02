@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AppLayout } from '@/components/app-layout';
@@ -74,8 +73,7 @@ export default function HistoryPage() {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, 'trips'),
-      where('userId', '==', user.uid),
-      orderBy('departureDate', 'desc')
+      where('userId', '==', user.uid)
     );
   }, [firestore, user]);
   
@@ -85,9 +83,12 @@ export default function HistoryPage() {
     if (!allUserTrips) {
       return { awaitingTrips: [], pendingConfirmationTrips: [], confirmedTrips: [] };
     }
-    const awaiting = allUserTrips.filter(t => t.status === 'Awaiting-Offers');
-    const pending = allUserTrips.filter(t => t.status === 'Pending-Carrier-Confirmation');
-    const confirmed = allUserTrips.filter(t => ['Planned', 'Completed', 'Cancelled'].includes(t.status));
+    // Sort trips by date descending after fetching
+    const sortedTrips = [...allUserTrips].sort((a, b) => new Date(b.departureDate).getTime() - new Date(a.departureDate).getTime());
+
+    const awaiting = sortedTrips.filter(t => t.status === 'Awaiting-Offers');
+    const pending = sortedTrips.filter(t => t.status === 'Pending-Carrier-Confirmation');
+    const confirmed = sortedTrips.filter(t => ['Planned', 'Completed', 'Cancelled'].includes(t.status));
     
     return { 
         awaitingTrips: awaiting, 
