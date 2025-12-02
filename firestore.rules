@@ -13,6 +13,10 @@ service cloud.firestore {
     
     match /users/{userId} {
       allow read, write: if isOwner(userId);
+
+      match /notifications/{notificationId} {
+        allow read, update, create, list: if isOwner(userId);
+      }
     }
     
     match /carriers/{carrierId} {
@@ -21,17 +25,15 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      allow list: if isSignedIn() && request.query.where[0][2] == request.auth.uid;
       allow read, update: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn();
+      allow list: if isSignedIn() && request.query.where[0][2] == request.auth.uid;
     }
 
     match /trips/{tripId} {
-      allow list: if isSignedIn() && request.query.where[0][2] == request.auth.uid;
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn() && isOwner(resource.data.userId);
+      allow read, update, delete: if isSignedIn() && isOwner(resource.data.userId);
+      allow list: if isSignedIn() && request.query.where[0][2] == request.auth.uid;
 
       match /offers/{offerId} {
         allow read, list: if true; 
@@ -55,8 +57,9 @@ service cloud.firestore {
     }
 
     match /chats/{chatId} {
-      allow list: if isSignedIn() && request.query.where[0][2] == request.auth.uid;
       allow read, write: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow list: if isSignedIn() && request.auth.uid in request.query.where[2];
+
       match /messages/{messageId} {
         allow read, create: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
         allow update, delete: if false;
