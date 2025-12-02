@@ -66,7 +66,6 @@ const TripOfferManager = ({ trip }: { trip: Trip; }) => {
     const firestore = useFirestore();
     const { user } = useUser();
     const [isAccepting, setIsAccepting] = useState<string | null>(null);
-    const [showWaitingScreen, setShowWaitingScreen] = useState(false);
 
     const offersQuery = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -93,72 +92,51 @@ const TripOfferManager = ({ trip }: { trip: Trip; }) => {
         if (!firestore || !user || isAccepting) return;
 
         setIsAccepting(selectedOffer.id);
-        toast({ title: "جاري إرسال طلب الحجز...", description: "سنقوم بإعلام الناقل بطلبك." });
         
-        const bookingRef = doc(collection(firestore, 'bookings'));
-        const carrierNotifRef = doc(collection(firestore, `users/${selectedOffer.carrierId}/notifications`));
-        const tripRef = doc(firestore, 'trips', trip.id);
-        const offerRef = doc(firestore, `trips/${trip.id}/offers`, selectedOffer.id);
-        
-        const requestBatch = writeBatch(firestore);
+        const approveBatch = writeBatch(firestore);
 
-        const newBooking: Omit<Booking, 'id'> = {
-            tripId: trip.id,
-            userId: user.uid,
-            carrierId: selectedOffer.carrierId,
-            seats: trip.passengers || 1,
-            status: 'Pending-Carrier-Confirmation',
-            totalPrice: selectedOffer.price,
-        };
-        requestBatch.set(bookingRef, newBooking);
-        
-        requestBatch.update(tripRef, { 
-            status: 'Planned', // Directly update status to "Planned" (awaiting payment)
-            acceptedOfferId: selectedOffer.id,
-            currentBookingId: bookingRef.id,
-        });
-        
-        requestBatch.update(offerRef, { status: 'Accepted' });
+        const bookingRef = doc(firestore, 'bookings', trip.currentBookingId!);
+        approveBatch.update(bookingRef, { status: 'Pending-Payment' });
 
+        const userNotifRef = doc(collection(firestore, `users/${user.uid}/notifications`));
         const userNotification: Partial<Notification> = {
             userId: user.uid,
-            title: "تم تأكيد طلب الحجز!",
-            message: "تم تأكيد حجزك من قبل الناقل. يمكنك الآن الدفع.",
+            title: "تم تأكيد الحجز!",
+            message: `وافق الناقل على طلبك لرحلة ${cities[trip.origin]} إلى ${cities[trip.destination]}. الرجاء إتمام الدفع.`,
             type: 'booking_confirmed',
             isRead: false,
             createdAt: serverTimestamp() as any,
             link: `/history`
         };
-        const userNotifRef = doc(collection(firestore, `users/${user.uid}/notifications`));
-        requestBatch.set(userNotifRef, userNotification);
+        approveBatch.set(userNotifRef, userNotification);
 
-
-        requestBatch.commit().then(() => {
-            toast({ title: "تم تأكيد الحجز!", description: "طلبك قيد المراجعة، انتقل إلى الدفع." });
-            // No need for waiting screen, UI will update automatically
+        approveBatch.commit().then(() => {
+            toast({ title: "تم تأكيد الحجز!", description: "تم تحديث حالة حجزك وهو الآن بانتظار الدفع." });
         }).catch((error) => {
-            console.error("Error sending booking request:", error);
+            console.error("Error approving booking:", error);
             const permissionError = new FirestorePermissionError({
-                path: `batch write including bookings, trips, and notifications`,
+                path: `batch write including bookings/${trip.currentBookingId} and users/${user.uid}/notifications`,
                 operation: 'write',
-                requestResourceData: { tripId: trip.id, offerId: selectedOffer.id },
+                requestResourceData: { bookingStatus: 'Pending-Payment' },
             });
             errorEmitter.emit('permission-error', permissionError);
-
             toast({
                 title: "حدث خطأ",
-                description: "لم نتمكن من إرسال طلب الحجز. يرجى المحاولة مرة أخرى.",
+                description: "لم نتمكن من تحديث الحجز. يرجى المحاولة مرة أخرى.",
                 variant: "destructive",
             });
+        }).finally(() => {
             setIsAccepting(null);
         });
     };
     
-    if (trip.status === 'Planned' && booking && acceptedOffer) {
+    // This is the "Ready for Payment" state
+    if (trip.status === 'Planned' && booking?.status === 'Pending-Payment' && acceptedOffer) {
         return <TripReportCard trip={trip} booking={booking} offer={acceptedOffer} />;
     }
     
-    if (isLoadingBooking || isLoadingOffer || (trip.status === 'Pending-Carrier-Confirmation' && showWaitingScreen)) {
+    // This is the "Waiting for Carrier" state
+    if (trip.status === 'Planned' && booking?.status === 'Pending-Carrier-Confirmation') {
         return (
             <div className="flex flex-col items-center justify-center p-8 text-center">
                 <Hourglass className="h-12 w-12 text-primary animate-bounce mb-4" />
@@ -172,6 +150,7 @@ const TripOfferManager = ({ trip }: { trip: Trip; }) => {
         )
     }
 
+    // This is the "Awaiting Offers" state
     const availableOffers = offers && offers.length > 0 ? offers : trip.id === 'TRIP-AWAITING-001' ? mockOffers : [];
 
     return (
@@ -184,7 +163,50 @@ const TripOfferManager = ({ trip }: { trip: Trip; }) => {
                 ) : availableOffers.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {availableOffers.map(offer => (
-                            <OfferCard key={offer.id} offer={offer} trip={trip} onAccept={() => handleAcceptOffer(offer)} isAccepting={isAccepting === offer.id} />
+                            <OfferCard key={offer.id} offer={offer} trip={trip} onAccept={() => {
+                                // This is the "fake carrier" logic for demonstration
+                                if (!firestore || !user) return;
+                                setIsAccepting(offer.id);
+                                toast({ title: "جاري إرسال طلب الحجز...", description: "سنقوم بمحاكاة موافقة الناقل." });
+
+                                const bookingDocRef = doc(collection(firestore, 'bookings'));
+                                const tripDocRef = doc(firestore, 'trips', trip.id);
+                                const offerDocRef = doc(firestore, `trips/${trip.id}/offers`, offer.id);
+
+                                const initialBatch = writeBatch(firestore);
+
+                                initialBatch.set(bookingDocRef, {
+                                    tripId: trip.id,
+                                    userId: user.uid,
+                                    carrierId: offer.carrierId,
+                                    seats: trip.passengers || 1,
+                                    status: 'Pending-Carrier-Confirmation',
+                                    totalPrice: offer.price,
+                                });
+
+                                initialBatch.update(tripDocRef, {
+                                    status: 'Planned',
+                                    acceptedOfferId: offer.id,
+                                    currentBookingId: bookingDocRef.id,
+                                    carrierName: 'اسم الناقل الوهمي',
+                                });
+                                
+                                initialBatch.update(offerDocRef, { status: 'Accepted' });
+
+                                initialBatch.commit().then(() => {
+                                    toast({ title: "تم إرسال الطلب!", description: "الآن، بانتظار موافقة الناقل الوهمية (30 ثانية)." });
+                                    
+                                    // Start the 30-second "fake carrier" timer
+                                    setTimeout(() => {
+                                        handleAcceptOffer(offer);
+                                    }, 5000); // 5 seconds for faster testing
+
+                                }).catch(err => {
+                                    console.error("Error creating initial booking:", err);
+                                    toast({ variant: 'destructive', title: 'Error', description: 'Could not create booking request.'})
+                                    setIsAccepting(null);
+                                })
+                            }} isAccepting={isAccepting === offer.id} />
                         ))}
                     </div>
                 ) : (

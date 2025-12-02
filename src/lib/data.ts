@@ -163,5 +163,3 @@ export const mockOffers: Offer[] = [
         depositPercentage: 25,
     }
 ];
-
-    
