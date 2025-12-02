@@ -321,7 +321,7 @@ export default function DashboardPage() {
             <div className="w-full max-w-4xl space-y-4">
                <CardTitle className="text-cyan-400 text-center">يمكنك اختيار الرحلة المناسبة لك مباشرة</CardTitle>
               
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredScheduledTrips.map(trip => (
                   <ScheduledTripCard key={trip.id} trip={trip} />
                 ))}
