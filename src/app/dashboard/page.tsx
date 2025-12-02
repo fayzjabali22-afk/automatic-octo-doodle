@@ -19,8 +19,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
-import type { Trip } from '@/lib/data';
-import { scheduledTrips } from '@/lib/data'; 
+import type { Trip, CarrierProfile } from '@/lib/data';
+import { scheduledTrips, mockCarriers } from '@/lib/data'; 
 import { TripCard } from '@/components/trip-card';
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -38,7 +38,7 @@ import {
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useCollection, useFirestore, useUser, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { AuthRedirectDialog } from '@/components/auth-redirect-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -86,7 +86,7 @@ export default function DashboardPage() {
   const [searchDestinationCity, setSearchDestinationCity] = useState('');
   const [searchSeats, setSearchSeats] = useState(1);
   const [carrierSearchInput, setCarrierSearchInput] = useState('');
-  const [selectedCarrierName, setSelectedCarrierName] = useState<string | null>(null);
+  const [selectedCarrier, setSelectedCarrier] = useState<CarrierProfile | null>(null);
   const [searchVehicleType, setSearchVehicleType] = useState('all');
   const [searchMode, setSearchMode] = useState<'specific-carrier' | 'all-carriers'>('all-carriers');
 
@@ -101,28 +101,41 @@ export default function DashboardPage() {
     setSearchDestinationCity('');
   }, [searchDestinationCountry]);
 
-  const handleCarrierSearch = () => {
+  const handleCarrierSearch = async () => {
     if (!carrierSearchInput) {
-        toast({ title: 'الرجاء إدخال اسم الناقل أو رقم هاتفه', variant: 'destructive' });
+        toast({ title: 'الرجاء إدخال اسم الناقل', variant: 'destructive' });
         return;
     }
+    if (!firestore) {
+        toast({ title: 'خطأ', description: 'خدمة قاعدة البيانات غير متوفرة', variant: 'destructive' });
+        return;
+    }
+
+    let foundCarrier: CarrierProfile | null = null;
+
+    // 1. Search in Firestore
+    const carriersRef = collection(firestore, 'carriers');
+    const q = query(carriersRef, where("name", "==", carrierSearchInput));
+    const querySnapshot = await getDocs(q);
     
-    const normalizePhoneNumber = (phone: string) => phone.replace(/[\s+()-]/g, '');
-    const searchInputNormalized = normalizePhoneNumber(carrierSearchInput);
-
-    const foundTrip = allTrips.find(trip => {
-        const carrierName = trip.carrierName || '';
-        const nameMatch = carrierName.toLowerCase().includes(carrierSearchInput.toLowerCase());
-        return nameMatch;
-    });
-
-    if (foundTrip) {
-        setSelectedCarrierName(foundTrip.carrierName);
-        setCarrierSearchInput(foundTrip.carrierName!); 
-        toast({ title: 'تم العثور على الناقل', description: `يتم الآن عرض رحلات: ${foundTrip.carrierName}` });
+    if (!querySnapshot.empty) {
+        const carrierDoc = querySnapshot.docs[0];
+        foundCarrier = { id: carrierDoc.id, ...carrierDoc.data() } as CarrierProfile;
     } else {
-        setSelectedCarrierName(null);
-        toast({ title: 'الناقل غير موجود', description: 'لم يتم العثور على ناقل بهذا الاسم أو الرقم.', variant: 'destructive' });
+        // 2. Fallback to mock data if not found in Firestore
+        const mockMatch = mockCarriers.find(c => c.name.toLowerCase() === carrierSearchInput.toLowerCase());
+        if (mockMatch) {
+            foundCarrier = mockMatch;
+        }
+    }
+
+    if (foundCarrier) {
+        setSelectedCarrier(foundCarrier);
+        setCarrierSearchInput(foundCarrier.name); // Normalize input field
+        toast({ title: 'تم العثور على الناقل', description: `يتم الآن عرض رحلات: ${foundCarrier.name}` });
+    } else {
+        setSelectedCarrier(null);
+        toast({ title: 'الناقل غير موجود', description: 'لم يتم العثور على ناقل بهذا الاسم.', variant: 'destructive' });
     }
   };
 
@@ -131,8 +144,8 @@ export default function DashboardPage() {
     let baseTrips: Trip[] = [];
     
     if (searchMode === 'specific-carrier') {
-        if (selectedCarrierName) {
-            baseTrips = allTrips.filter(trip => trip.carrierName === selectedCarrierName);
+        if (selectedCarrier) {
+            baseTrips = allTrips.filter(trip => trip.carrierName === selectedCarrier.name);
         } else {
             baseTrips = [];
         }
@@ -181,7 +194,7 @@ export default function DashboardPage() {
         setOpenAccordion([]);
     }
 
-  }, [searchOriginCity, searchDestinationCity, searchSeats, date, allTrips, searchMode, selectedCarrierName, searchVehicleType]);
+  }, [searchOriginCity, searchDestinationCity, searchSeats, date, allTrips, searchMode, selectedCarrier, searchVehicleType]);
 
 
     const handleBookNowClick = (trip: Trip) => {
@@ -258,7 +271,7 @@ export default function DashboardPage() {
         });
         return;
       }
-      if (!selectedCarrierName) {
+      if (!selectedCarrier) {
         toast({
           title: "الرجاء تحديد ناقل أولاً",
           description: "ابحث عن ناقل لتتمكن من إرسال طلب له.",
@@ -268,7 +281,7 @@ export default function DashboardPage() {
       }
       toast({
           title: "جاري إرسال الطلب...",
-          description: `سيتم إرسال طلبك إلى ${selectedCarrierName}.`,
+          description: `سيتم إرسال طلبك إلى ${selectedCarrier.name}.`,
       });
     }
   };
@@ -320,7 +333,7 @@ export default function DashboardPage() {
   };
   
 
-  const showFilterMessage = searchMode === 'specific-carrier' && selectedCarrierName && Object.keys(groupedAndFilteredTrips).length > 0;
+  const showFilterMessage = searchMode === 'specific-carrier' && selectedCarrier && Object.keys(groupedAndFilteredTrips).length > 0;
   const showAllCarriersMessage = searchMode === 'all-carriers' && Object.keys(groupedAndFilteredTrips).length > 0;
   const showNoResultsMessage = Object.keys(groupedAndFilteredTrips).length === 0;
 
@@ -355,19 +368,19 @@ export default function DashboardPage() {
 
                   {searchMode === 'specific-carrier' && (
                     <div className="grid gap-2">
-                      <Label htmlFor="carrier-search">البحث عن ناقل (بالاسم او رقم الهاتف)</Label>
+                      <Label htmlFor="carrier-search">البحث عن ناقل (بالاسم)</Label>
                       <div className="flex gap-2">
                         <Input 
                             id="carrier-search" 
-                            placeholder="مثال: شركة النقل السريع أو 966501234567+" 
+                            placeholder="مثال: شركة النقل السريع" 
                             value={carrierSearchInput} 
                             onChange={(e) => {
                                 setCarrierSearchInput(e.target.value);
-                                if (selectedCarrierName) {
-                                    setSelectedCarrierName(null); 
+                                if (selectedCarrier) {
+                                    setSelectedCarrier(null); 
                                 }
                             }}
-                            className={cn(selectedCarrierName ? 'bg-green-100/10 border-green-500' : '')}
+                            className={cn(selectedCarrier ? 'bg-green-100/10 border-green-500' : '')}
                         />
                         <Button onClick={handleCarrierSearch} variant="secondary">
                             <Search className="h-4 w-4" />
@@ -498,7 +511,7 @@ export default function DashboardPage() {
                   
                   {showFilterMessage && (
                     <div className="mt-2 text-center text-sm text-accent bg-accent/10 p-2 rounded-md border border-accent/30">
-                        {`هناك رحلات مجدولة لـ ${selectedCarrierName} معروضة أدناه. يمكنك الآن تصفية النتائج أو تكملة إدخال بياناتك ثم إرسال طلب جديد.`}
+                        {`هناك رحلات مجدولة لـ ${selectedCarrier?.name} معروضة أدناه. يمكنك الآن تصفية النتائج أو تكملة إدخال بياناتك ثم إرسال طلب جديد.`}
                     </div>
                   )}
 
@@ -556,10 +569,10 @@ export default function DashboardPage() {
                       {searchMode === 'specific-carrier' ? (
                         <>
                           <p className="text-lg">
-                            {isLoading ? 'جاري التحميل...' : (selectedCarrierName ? 'لا توجد رحلات مجدولة تطابق بحثك لهذا الناقل.' : 'الرجاء البحث عن ناقل لعرض رحلاته المجدولة.')}
+                            {isLoading ? 'جاري التحميل...' : (selectedCarrier ? 'لا توجد رحلات مجدولة تطابق بحثك لهذا الناقل.' : 'الرجاء البحث عن ناقل لعرض رحلاته المجدولة.')}
                           </p>
                           <p className="text-sm mt-2">
-                            {selectedCarrierName ? 'جرّب تغيير فلاتر البحث أو أرسل طلبًا جديدًا لهذا الناقل.' : 'يمكنك أيضًا التبديل إلى وضع "كل الناقلين" لإرسال طلب للجميع.'}
+                            {selectedCarrier ? 'جرّب تغيير فلاتر البحث أو أرسل طلبًا جديدًا لهذا الناقل.' : 'يمكنك أيضًا التبديل إلى وضع "كل الناقلين" لإرسال طلب للجميع.'}
                           </p>
                         </>
                       ) : (
@@ -588,3 +601,4 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
+ 
