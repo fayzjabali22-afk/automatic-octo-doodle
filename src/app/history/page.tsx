@@ -36,6 +36,7 @@ import { Bell, CheckCircle, PackageOpen, Ship, Hourglass, XCircle, Info, Loader2
 import { OfferCard } from '@/components/offer-card';
 import { useToast } from '@/hooks/use-toast';
 import { mockOffers } from '@/lib/data';
+import { TripReportCard } from '@/components/trip-report-card';
 
 
 const statusMap: Record<string, string> = {
@@ -60,85 +61,6 @@ const cities: { [key: string]: string } = {
     dubai: 'دبي', kuwait: 'الكويت'
 };
 
-const BookingStatusManager = ({ trip, booking }: { trip: Trip; booking: Booking }) => {
-    const firestore = useFirestore();
-    const { toast } = useToast();
-
-    const handleCancelRequest = async () => {
-        if (!firestore || !trip.id || !trip.acceptedOfferId || !trip.currentBookingId) {
-            toast({ title: "خطأ", description: "بيانات الرحلة غير مكتملة.", variant: "destructive"});
-            return;
-        };
-
-        const batch = writeBatch(firestore);
-
-        const bookingRef = doc(firestore, 'bookings', trip.currentBookingId);
-        const tripRef = doc(firestore, 'trips', trip.id);
-        const offerRef = doc(firestore, `trips/${trip.id}/offers`, trip.acceptedOfferId);
-        
-        // 1. Delete the booking document
-        batch.delete(bookingRef);
-        
-        // 2. Update the trip document to remove booking/offer references and revert status
-        batch.update(tripRef, {
-            acceptedOfferId: null,
-            currentBookingId: null,
-            status: 'Awaiting-Offers'
-        });
-
-        // 3. Revert the offer status to 'Pending'
-        batch.update(offerRef, { status: 'Pending' });
-
-        try {
-            await batch.commit();
-            toast({ title: "تم الإلغاء", description: "تم إلغاء طلب الحجز بنجاح."});
-            // The UI will automatically update as the state changes
-        } catch (error) {
-            console.error("Failed to cancel booking:", error);
-            toast({ title: "خطأ", description: "فشل إلغاء طلب الحجز.", variant: "destructive"});
-        }
-    };
-    
-    if (booking.status === 'Pending-Carrier-Confirmation') {
-        return (
-            <div className="text-center p-8 space-y-4 bg-card/80 rounded-lg">
-                <Hourglass className="mx-auto h-12 w-12 text-primary animate-pulse" />
-                <h3 className="text-xl font-bold text-foreground">بانتظار تأكيد الناقل</h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                    تم إرسال طلبك بنجاح. سيقوم الناقل بمراجعة طلبك وتفعيل شاشة الدفع لإتمام الحجز. سيصلك إشعار فور تأكيد الناقل.
-                </p>
-                <Button variant="destructive" onClick={handleCancelRequest}>
-                    إلغاء الطلب
-                </Button>
-            </div>
-        );
-    }
-    
-    if (booking.status === 'Pending-Payment') {
-        return (
-            <div className="text-center p-8 space-y-4 bg-card/80 rounded-lg">
-                <CreditCard className="mx-auto h-12 w-12 text-green-500" />
-                <h3 className="text-xl font-bold text-foreground">تم تأكيد الحجز من قبل الناقل!</h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                    الخطوة التالية هي دفع عربون الحجز لتأكيد مقاعدك بشكل نهائي.
-                </p>
-                <Button>
-                   الانتقال إلى الدفع
-                </Button>
-            </div>
-        );
-    }
-
-    // Fallback for other statuses
-    return (
-        <div className="text-center p-8">
-            <Info className="mx-auto h-12 w-12 text-blue-500" />
-            <h3 className="text-xl font-bold">حالة الحجز: {booking.status}</h3>
-        </div>
-    );
-};
-
-
 const TripOfferManager = ({ trip }: { trip: Trip; }) => {
     const { toast } = useToast();
     const firestore = useFirestore();
@@ -150,6 +72,13 @@ const TripOfferManager = ({ trip }: { trip: Trip; }) => {
     }, [firestore, trip.id]);
 
     const { data: offers, isLoading: isLoadingOffers } = useCollection<Offer>(offersQuery);
+
+    const acceptedOfferRef = useMemoFirebase(() => {
+        if (!firestore || !trip.acceptedOfferId) return null;
+        return doc(firestore, `trips/${trip.id}/offers`, trip.acceptedOfferId);
+    }, [firestore, trip.id, trip.acceptedOfferId]);
+
+    const { data: acceptedOffer, isLoading: isLoadingOffer } = useDoc<Offer>(acceptedOfferRef);
 
     const bookingRef = useMemoFirebase(() => {
         if (!firestore || !trip.currentBookingId) return null;
@@ -228,13 +157,13 @@ const TripOfferManager = ({ trip }: { trip: Trip; }) => {
         }
     };
     
-    // If there's an active booking, show the status manager
-    if (trip.currentBookingId && booking) {
-        return <BookingStatusManager trip={trip} booking={booking} />;
+    // If there's an active booking, show the trip report card
+    if (trip.status === 'Planned' && booking && acceptedOffer) {
+        return <TripReportCard trip={trip} booking={booking} offer={acceptedOffer} />;
     }
     
     // If we are loading booking information, show a loader
-    if (isLoadingBooking) {
+    if (isLoadingBooking || isLoadingOffer) {
         return (
             <div className="flex justify-center items-center p-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -483,5 +412,3 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
-
-    
