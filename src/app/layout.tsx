@@ -26,7 +26,7 @@ export default function RootLayout({
         <title>Safar Carrier</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="description" content="منصة Safar Carrier لإدارة الرحلات والحجوزات بسهولة." />
-        <meta name="theme-color" content="#111827" />
+        <meta name="theme-color" content="#170813" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
