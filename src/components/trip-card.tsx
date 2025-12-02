@@ -6,10 +6,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Star, Users, Briefcase, Calendar, ArrowRight, Info, CheckCircle } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from './ui/skeleton';
 import { useRouter } from 'next/navigation';
+import { AuthRedirectDialog } from './auth-redirect-dialog';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 const cities: { [key: string]: string } = {
     damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص',
@@ -63,11 +66,30 @@ const CarrierInfo = ({ carrierId, carrierName }: { carrierId?: string, carrierNa
 
 export function TripCard({ trip }: { trip: Trip }) {
     const router = useRouter();
+    const { user } = useUser();
+    const { toast } = useToast();
+    const [isAuthRedirectOpen, setIsAuthRedirectOpen] = useState(false);
+
 
     const handleBooking = () => {
-        // Here you would redirect to a booking page or open a booking dialog
+         if (!user) {
+            setIsAuthRedirectOpen(true);
+            return;
+        }
+        if (user && !user.emailVerified) {
+            toast({
+                variant: "destructive",
+                title: "الحساب غير مفعل",
+                description: "الرجاء تفعيل حسابك أولاً لتتمكن من الحجز.",
+            });
+            return;
+        }
         // For now, we just log it.
         console.log("Booking trip:", trip.id);
+        toast({
+            title: 'قيد الإنشاء',
+            description: 'سيتم قريباً تفعيل الحجز المباشر من هنا.',
+        });
         // router.push(`/book/${trip.id}`);
     }
 
@@ -75,46 +97,52 @@ export function TripCard({ trip }: { trip: Trip }) {
     const destinationCity = cities[trip.destination] || trip.destination;
 
     return (
-        <Card className="flex flex-col justify-between w-full overflow-hidden shadow-md transition-all hover:shadow-lg hover:border-primary/50 border-border/60">
-            <CardHeader>
-                <CarrierInfo carrierId={trip.carrierId} carrierName={trip.carrierName} />
-                <div className="flex justify-between items-center pt-2">
-                     <div className="flex items-center gap-2 text-lg font-bold text-primary">
-                       <span>{originCity}</span>
-                       <ArrowRight className="h-5 w-5"/>
-                       <span>{destinationCity}</span>
+        <>
+            <Card className="flex flex-col justify-between w-full overflow-hidden shadow-md transition-all hover:shadow-lg hover:border-primary/50 border-border/60">
+                <CardHeader>
+                    <CarrierInfo carrierId={trip.carrierId} carrierName={trip.carrierName} />
+                    <div className="flex justify-between items-center pt-2">
+                         <div className="flex items-center gap-2 text-lg font-bold text-primary">
+                           <span>{originCity}</span>
+                           <ArrowRight className="h-5 w-5"/>
+                           <span>{destinationCity}</span>
+                        </div>
                     </div>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-                <div className="flex justify-between items-center text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>{new Date(trip.departureDate).toLocaleDateString('ar-EG', { month: 'long', day: 'numeric' })}</span>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            <span>{new Date(trip.departureDate).toLocaleDateString('ar-EG', { month: 'long', day: 'numeric' })}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            <span>{trip.availableSeats} مقاعد متاحة</span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        <span>{trip.availableSeats} مقاعد متاحة</span>
+                     <div className="p-3 bg-background/50 rounded-md border border-dashed border-border">
+                        <p className="flex items-center gap-1 text-xs">
+                            <Info className="h-3 w-3 text-accent" />
+                            <strong>معلومات إضافية:</strong>
+                        </p>
+                        <ul className="text-xs list-disc pr-5 mt-1 space-y-1 text-muted-foreground">
+                            {trip.vehicleType && <li>نوع المركبة: {trip.vehicleType}</li>}
+                            {trip.price !== undefined && <li>السعر للمقعد: {trip.price} دينار أردني</li>}
+                            {trip.depositPercentage !== undefined && <li>يتطلب عربون بنسبة {trip.depositPercentage}%</li>}
+                        </ul>
                     </div>
-                </div>
-                 <div className="p-3 bg-background/50 rounded-md border border-dashed border-border">
-                    <p className="flex items-center gap-1 text-xs">
-                        <Info className="h-3 w-3 text-accent" />
-                        <strong>معلومات إضافية:</strong>
-                    </p>
-                    <ul className="text-xs list-disc pr-5 mt-1 space-y-1 text-muted-foreground">
-                        {trip.vehicleType && <li>نوع المركبة: {trip.vehicleType}</li>}
-                        {trip.price !== undefined && <li>السعر للمقعد: {trip.price} دينار أردني</li>}
-                        {trip.depositPercentage !== undefined && <li>يتطلب عربون بنسبة {trip.depositPercentage}%</li>}
-                    </ul>
-                </div>
-            </CardContent>
-            <CardFooter className="p-2 bg-background/30">
-                <Button className="w-full" onClick={handleBooking}>
-                    <CheckCircle className="ml-2 h-4 w-4"/>
-                    حجز مقعد
-                </Button>
-            </CardFooter>
-        </Card>
+                </CardContent>
+                <CardFooter className="p-2 bg-background/30">
+                    <Button className="w-full" onClick={handleBooking}>
+                        <CheckCircle className="ml-2 h-4 w-4"/>
+                        حجز مقعد
+                    </Button>
+                </CardFooter>
+            </Card>
+            <AuthRedirectDialog
+                isOpen={isAuthRedirectOpen}
+                onOpenChange={setIsAuthRedirectOpen}
+            />
+        </>
     )
 }
