@@ -213,7 +213,7 @@ export default function HistoryPage() {
 
   const awaitingTrips = allUserTrips?.filter(t => t.status === 'Awaiting-Offers') || [];
   const plannedTrips = allUserTrips?.filter(t => t.status === 'Planned') || [];
-  const confirmedTrips: Trip[] = [];
+  const confirmedTrips: Trip[] = allUserTrips?.filter(t => t.status === 'Completed' || t.status === 'Cancelled') || [];
   
   const hasAwaitingOffers = !isLoading && awaitingTrips.length > 0;
   const hasPlannedTrips = !isLoading && plannedTrips.length > 0;
