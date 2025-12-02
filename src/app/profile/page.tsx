@@ -92,8 +92,8 @@ export default function ProfilePage() {
     setDocumentNonBlocking(userProfileRef, data, { merge: true });
 
     toast({
-      title: 'Profile Updated',
-      description: 'Your changes have been saved successfully.',
+      title: 'تم تحديث الملف الشخصي',
+      description: 'تم حفظ تغييراتك بنجاح.',
     });
   }
 
@@ -102,14 +102,14 @@ export default function ProfilePage() {
         try {
             await sendEmailVerification(user, actionCodeSettings);
             toast({
-                title: 'Email Sent',
-                description: 'A new verification email has been sent. Please check your inbox.',
+                title: 'تم إرسال البريد',
+                description: 'تم إرسال بريد تفعيل جديد. الرجاء التحقق من صندوق الوارد.',
             });
         } catch (error) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to send verification email. Please try again shortly.',
+                title: 'خطأ',
+                description: 'فشل إرسال بريد التفعيل. الرجاء المحاولة مرة أخرى قريبًا.',
             });
         }
     }
@@ -117,7 +117,7 @@ export default function ProfilePage() {
 
     const handleDeleteAccount = async () => {
     if (!user || !auth || !firestore) {
-        toast({ variant: 'destructive', title: 'Error', description: 'User or Firebase services not found.' });
+        toast({ variant: 'destructive', title: 'خطأ', description: 'لم يتم العثور على المستخدم أو خدمات Firebase.' });
         setIsDeleteConfirmOpen(false);
         return;
     }
@@ -125,12 +125,14 @@ export default function ProfilePage() {
     const userDocRef = doc(firestore, 'users', user.uid);
 
     try {
+        // Step 1: Delete the user's document from Firestore.
         await deleteDoc(userDocRef);
-        toast({ title: 'Firestore Profile Deleted', description: 'Your profile has been removed from the database.' });
+        toast({ title: 'تم حذف ملف Firestore الشخصي', description: 'تمت إزالة ملفك الشخصي من قاعدة البيانات.' });
 
+        // Step 2: Delete the user from Firebase Authentication.
         await deleteUser(user);
         
-        toast({ title: 'Account Deleted Successfully', description: 'We hope to see you again soon.' });
+        toast({ title: 'تم حذف الحساب بنجاح', description: 'نأمل أن نراك مرة أخرى قريبًا.' });
         router.push('/signup');
 
     } catch (error: any) {
@@ -139,15 +141,15 @@ export default function ProfilePage() {
         if (error.code === 'auth/requires-recent-login') {
             toast({
                 variant: 'destructive',
-                title: 'Authentication Deletion Failed',
-                description: 'This operation requires a recent login. Your data has been deleted, please log out and log back in to complete deletion.',
+                title: 'فشل حذف المصادقة',
+                description: 'هذه العملية تتطلب إعادة تسجيل دخول حديثة. تم حذف بياناتك، يرجى تسجيل الخروج ثم الدخول مرة أخرى لإكمال الحذف.',
             });
              router.push('/login'); 
         } else {
              toast({
                 variant: 'destructive',
-                title: 'Failed to Delete Account',
-                description: 'An error occurred while trying to delete your account.',
+                title: 'فشل حذف الحساب',
+                description: 'حدث خطأ أثناء محاولة حذف حسابك.',
             });
         }
     } finally {
@@ -165,16 +167,16 @@ export default function ProfilePage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-yellow-500">
                     <ShieldAlert />
-                    Account Verification
+                    تفعيل الحساب
                 </CardTitle>
                 <CardDescription>
-                    Your account is not verified. Please check your email or request a new verification link.
+                    حسابك غير مُفعّل. الرجاء التحقق من بريدك الإلكتروني أو طلب رابط تفعيل جديد.
                 </CardDescription>
             </CardHeader>
             <CardFooter>
                  <Button variant="outline" onClick={handleResendVerification}>
-                    <MailCheck className="mr-2 h-4 w-4" />
-                    Resend Verification Email
+                    <MailCheck className="ml-2 h-4 w-4" />
+                    إعادة إرسال بريد التفعيل
                 </Button>
             </CardFooter>
           </Card>
@@ -182,22 +184,22 @@ export default function ProfilePage() {
 
         <Card className="shadow-lg">
             <CardHeader>
-            <CardTitle className="font-headline">Profile Settings</CardTitle>
+            <CardTitle className="font-headline">إعدادات الملف الشخصي</CardTitle>
             <CardDescription>
-                Manage your account information and preferences.
+                قم بإدارة معلومات حسابك وتفضيلاتك.
             </CardDescription>
             </CardHeader>
             <CardContent>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-6 rtl:space-x-reverse">
                     <Avatar className="h-20 w-20">
                     {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || ''} />}
                     <AvatarFallback>
                         {userProfile?.firstName ? userProfile.firstName.charAt(0) : user?.email?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                     </Avatar>
-                    <Button variant="outline" type="button">Change Photo</Button>
+                    <Button variant="outline" type="button">تغيير الصورة</Button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
@@ -205,9 +207,9 @@ export default function ProfilePage() {
                     name="firstName"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>First Name</FormLabel>
+                        <FormLabel>الاسم الأول</FormLabel>
                         <FormControl>
-                            <Input placeholder="Your first name" {...field} />
+                            <Input placeholder="اسمك الأول" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -218,9 +220,9 @@ export default function ProfilePage() {
                     name="lastName"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Last Name</FormLabel>
+                        <FormLabel>الاسم الأخير</FormLabel>
                         <FormControl>
-                            <Input placeholder="Your last name" {...field} />
+                            <Input placeholder="اسمك الأخير" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -232,9 +234,9 @@ export default function ProfilePage() {
                     name="email"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>البريد الإلكتروني</FormLabel>
                         <FormControl>
-                        <Input type="email" placeholder="Your email" {...field} disabled />
+                        <Input type="email" placeholder="بريدك الإلكتروني" {...field} disabled />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -245,15 +247,15 @@ export default function ProfilePage() {
                     name="phoneNumber"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
+                        <FormLabel>رقم الهاتف</FormLabel>
                         <FormControl>
-                        <Input type="tel" placeholder="Your phone number" {...field} />
+                        <Input type="tel" placeholder="رقم هاتفك" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
-                <Button type="submit">Save Changes</Button>
+                <Button type="submit">حفظ التغييرات</Button>
                 </form>
             </Form>
             </CardContent>
@@ -263,19 +265,19 @@ export default function ProfilePage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-destructive">
                     <ShieldAlert />
-                    Danger Zone
+                    منطقة الخطر
                 </CardTitle>
                 <CardDescription>
-                    These actions are permanent and cannot be undone. Please proceed with caution.
+                    هذه الإجراءات دائمة ولا يمكن التراجع عنها. يرجى المتابعة بحذر.
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <p>Once you delete your account, you will lose all your personal data and booking history permanently.</p>
+                <p>بمجرد حذف حسابك، ستفقد كل بياناتك الشخصية وسجل الحجوزات بشكل نهائي.</p>
             </CardContent>
             <CardFooter>
                  <Button variant="destructive" onClick={() => setIsDeleteConfirmOpen(true)}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Account Permanently
+                    <Trash2 className="ml-2 h-4 w-4" />
+                    حذف الحساب بشكل نهائي
                 </Button>
             </CardFooter>
         </Card>
@@ -283,20 +285,20 @@ export default function ProfilePage() {
     </AppLayout>
 
     <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent dir="rtl">
             <AlertDialogHeader>
                 <AlertDialogTitle className="flex items-center gap-2">
                     <ShieldAlert className="h-6 w-6 text-red-500" />
-                    Are you sure you want to delete your account?
+                    هل أنت متأكد من حذف حسابك؟
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                    This action will permanently delete your account. This cannot be undone. All your personal data, bookings, and trip history will be erased.
+                    هذا الإجراء سيقوم بحذف حسابك بشكل نهائي. لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بياناتك الشخصية وحجوزاتك وسجل رحلاتك.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
                 <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Yes, delete my account
+                    نعم، قم بحذف حسابي
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
