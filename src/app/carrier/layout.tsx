@@ -82,8 +82,8 @@ export default function CarrierLayout({
                 return (
                     <Link key={link.href} href={link.href}>
                         <div className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-muted",
-                            isActive && "bg-muted text-primary font-bold"
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-accent-foreground hover:bg-accent",
+                            isActive && "bg-accent text-accent-foreground font-bold"
                         )}>
                             <link.icon className="h-4 w-4" />
                             {link.label}
