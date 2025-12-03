@@ -25,7 +25,7 @@ const sidebarNavLinks = [
     { href: '/carrier', label: 'لوحة القيادة', icon: LayoutDashboard, exact: true },
     { href: '/carrier/requests', label: 'سوق الطلبات', icon: FilePlus, exact: false },
     { href: '/carrier/trips', label: 'رحلاتي المجدولة', icon: Route, exact: false },
-    { href: '/carrier/bookings', label: 'الحجوزات الواردة', icon: Briefcase, exact: false },
+    { href: '/carrier/bookings', label: 'طلبات الموافقة', icon: Briefcase, exact: false },
     { href: '/carrier/chats', label: 'المحادثات', icon: MessageSquare, exact: false },
     { href: '/carrier/wallet', label: 'المحفظة المالية', icon: Wallet, exact: false }
 ];
