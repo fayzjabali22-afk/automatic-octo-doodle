@@ -22,8 +22,12 @@ service cloud.firestore {
     
     // --- الناقلون (Carriers) ---
     match /carriers/{carrierId} {
+      // Public info is readable by anyone
       allow read: if true; 
-      allow write: if isOwner(carrierId); 
+      // Only the carrier can write to their profile
+      // We secure the bankDetails field specifically
+      allow write: if isOwner(carrierId) && !(request.resource.data.keys().hasAll(['bankDetails']));
+      allow update: if isOwner(carrierId);
     }
 
     // --- الإشعارات (Notifications) ---

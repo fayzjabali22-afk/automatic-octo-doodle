@@ -58,6 +58,16 @@
         "contactEmail": { "type": "string", "format": "email", "description": "The contact email for the carrier." },
         "phoneNumber": { "type": "string", "description": "The contact phone number for the carrier." },
         "averageRating": { "type": "number", "description": "The carrier's average rating, from 0 to 5.", "minimum": 0, "maximum": 5 },
+        "bankDetails": {
+            "type": "object",
+            "description": "The carrier's bank account details for payouts.",
+            "properties": {
+                "bankName": { "type": "string", "description": "Name of the bank." },
+                "accountHolderName": { "type": "string", "description": "Full name of the account holder." },
+                "iban": { "type": "string", "description": "International Bank Account Number." }
+            },
+            "required": ["bankName", "accountHolderName", "iban"]
+        },
         "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -479,5 +489,3 @@
     ]
   }
 }
-
-    
