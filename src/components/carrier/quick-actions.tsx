@@ -12,7 +12,7 @@ export function QuickActions() {
         <div className="grid gap-4 md:grid-cols-2">
             <Card className="flex flex-col justify-between hover:bg-card/80 transition-colors w-full">
                 <CardHeader>
-                    <CardTitle>تصفح طلبات المسافرين</CardTitle>
+                    <CardTitle>سوق الطلبات المتاحة</CardTitle>
                     <CardDescription>
                         استعرض الطلبات المتاحة في السوق وقدم أفضل عروضك.
                     </CardDescription>
@@ -26,7 +26,8 @@ export function QuickActions() {
                     </Button>
                 </div>
             </Card>
-            <Card className="flex flex-col justify-between hover:bg-card/80 transition-colors w-full">
+            <Card className="flex flex-col justify-between hover:bg-card/80 transition-colors w,
+-full">
                 <CardHeader>
                     <CardTitle>إدارة رحلاتي المجدولة</CardTitle>
                     <CardDescription>
