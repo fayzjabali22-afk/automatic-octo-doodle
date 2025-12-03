@@ -23,18 +23,20 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { Briefcase, Loader2 } from 'lucide-react';
+import { Briefcase, Loader2, Save } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 
 const carrierSettingsSchema = z.object({
-    specialization: z.object({
-        from: z.string().min(1, 'Origin country is required.'),
-        to: z.string().min(1, 'Destination country is required.'),
+    primaryRoute: z.object({
+        origin: z.string().min(1, 'Origin country is required.'),
+        destination: z.string().min(1, 'Destination country is required.'),
     }),
-    vehicleCategory: z.enum(['small', 'bus']),
+    vehicleCategory: z.enum(['small', 'bus'], {
+        required_error: "You need to select a vehicle category.",
+    }),
 });
 
 type CarrierSettingsValues = z.infer<typeof carrierSettingsSchema>;
@@ -61,7 +63,7 @@ export function CarrierSettingsSection() {
     const form = useForm<CarrierSettingsValues>({
       resolver: zodResolver(carrierSettingsSchema),
       defaultValues: {
-          specialization: { from: '', to: ''},
+          primaryRoute: { origin: '', destination: ''},
       }
     });
 
@@ -74,7 +76,7 @@ export function CarrierSettingsSection() {
                 if(carrierSnap.exists()) {
                     const carrierData = carrierSnap.data();
                     form.reset({
-                        specialization: carrierData.specialization || { from: '', to: '' },
+                        primaryRoute: carrierData.primaryRoute || { origin: '', destination: '' },
                         vehicleCategory: carrierData.vehicleCategory,
                     });
                 }
@@ -107,9 +109,8 @@ export function CarrierSettingsSection() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Briefcase /> إعدادات الناقل التخصصية</CardTitle>
-                    <CardDescription>جاري تحميل الإعدادات...</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex justify-center p-8">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
                 </CardContent>
             </Card>
@@ -126,10 +127,10 @@ export function CarrierSettingsSection() {
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
-                            <Label className="font-semibold">تخصص خط النقل</Label>
+                            <Label className="font-semibold">خط السير المفضل</Label>
                             <div className="grid grid-cols-2 gap-4">
-                                 <FormField control={form.control} name="specialization.from" render={({ field }) => (<FormItem><FormLabel>من</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="اختر دولة" /></SelectTrigger></FormControl><SelectContent>{Object.entries(countries).map(([key, {name}]) => (<SelectItem key={key} value={key}>{name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                 <FormField control={form.control} name="specialization.to" render={({ field }) => (<FormItem><FormLabel>إلى</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="اختر دولة" /></SelectTrigger></FormControl><SelectContent>{Object.entries(countries).filter(([key]) => key !== form.watch('specialization.from')).map(([key, {name}]) => (<SelectItem key={key} value={key}>{name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                 <FormField control={form.control} name="primaryRoute.origin" render={({ field }) => (<FormItem><FormLabel>من</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="اختر دولة" /></SelectTrigger></FormControl><SelectContent>{Object.entries(countries).map(([key, {name}]) => (<SelectItem key={key} value={key}>{name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                 <FormField control={form.control} name="primaryRoute.destination" render={({ field }) => (<FormItem><FormLabel>إلى</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="اختر دولة" /></SelectTrigger></FormControl><SelectContent>{Object.entries(countries).filter(([key]) => key !== form.watch('primaryRoute.origin')).map(([key, {name}]) => (<SelectItem key={key} value={key}>{name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
                             </div>
                         </div>
                         <Separator />
@@ -149,6 +150,7 @@ export function CarrierSettingsSection() {
                     <CardFooter>
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                            <Save className="ml-2 h-4 w-4" />
                             حفظ إعدادات الناقل
                         </Button>
                     </CardFooter>
@@ -157,5 +159,3 @@ export function CarrierSettingsSection() {
         </Card>
     )
 }
-
-    

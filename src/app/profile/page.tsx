@@ -93,7 +93,7 @@ export default function ProfilePage() {
   }
 
   const handleRoleChange = async (newRole: 'traveler' | 'carrier') => {
-    if (!userProfileRef) return;
+    if (!userProfileRef || !user) return;
     setIsSwitchingRole(true);
     try {
         // Create a public carrier profile if switching to carrier
@@ -255,6 +255,3 @@ export default function ProfilePage() {
     </>
   );
 }
-
-    
-    

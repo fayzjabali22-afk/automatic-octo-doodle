@@ -31,7 +31,7 @@ export type CarrierProfile = {
   averageRating?: number;
   photoURL?: string;
   vehicleCategory?: 'small' | 'bus';
-  specialization?: CarrierSpecialization;
+  primaryRoute?: CarrierSpecialization;
   createdAt?: any;
   updatedAt?: any;
 };
