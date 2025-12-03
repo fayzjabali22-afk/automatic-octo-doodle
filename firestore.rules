@@ -2,8 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Development mode: allow all reads and writes to all collections
-    match /{path=**} {
+    // Development mode: allow all reads and writes to all collections.
+    // Using {document=**} as the most direct way to match all documents.
+    match /{document=**} {
       allow read, write: if true;
     }
   }
