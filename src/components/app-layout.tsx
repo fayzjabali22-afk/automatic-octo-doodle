@@ -123,20 +123,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   const handleSignOut = async () => {
-    if (!auth) return;
-    try {
-      await signOut(auth);
-      toast({
-        title: 'تم تسجيل الخروج بنجاح',
-      });
-      router.push('/login');
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'خطأ في تسجيل الخروج',
-        description: 'حدث خطأ ما، يرجى المحاولة مرة أخرى.',
-      });
-    }
+    // DEV MODE: Bypassing auth
+    toast({
+        title: 'تم تعطيل المصادقة',
+        description: 'تم تعطيل تسجيل الخروج في وضع التطوير.',
+    });
+    // if (!auth) return;
+    // try {
+    //   await signOut(auth);
+    //   toast({
+    //     title: 'تم تسجيل الخروج بنجاح',
+    //   });
+    //   router.push('/login');
+    // } catch (error) {
+    //   toast({
+    //     variant: 'destructive',
+    //     title: 'خطأ في تسجيل الخروج',
+    //     description: 'حدث خطأ ما، يرجى المحاولة مرة أخرى.',
+    //   });
+    // }
   };
   
     const handleSwitchRole = async () => {
@@ -165,24 +170,30 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
 
   const handleDeleteAccount = async () => {
-    if (!user || !auth) {
-      toast({ variant: 'destructive', title: 'خطأ', description: 'لم يتم العثور على المستخدم.' });
-      return;
-    }
-    try {
-      await deleteUser(user);
-      toast({ title: 'تم حذف الحساب بنجاح', description: 'نأمل أن نراك مرة أخرى قريبًا.' });
-      router.push('/signup');
-    } catch (error: any) {
-      console.error("Delete account error:", error);
-      toast({
-        variant: 'destructive',
-        title: 'فشل حذف الحساب',
-        description: 'هذه العملية تتطلب إعادة تسجيل دخول حديثة. الرجاء تسجيل الخروج ثم الدخول مرة أخرى والمحاولة مجددًا.',
-      });
-    } finally {
-      setIsDeleteConfirmOpen(false);
-    }
+    // DEV MODE: Bypassing auth
+     toast({
+        title: 'تم تعطيل المصادقة',
+        description: 'تم تعطيل حذف الحساب في وضع التطوير.',
+    });
+    setIsDeleteConfirmOpen(false);
+    // if (!user || !auth) {
+    //   toast({ variant: 'destructive', title: 'خطأ', description: 'لم يتم العثور على المستخدم.' });
+    //   return;
+    // }
+    // try {
+    //   await deleteUser(user);
+    //   toast({ title: 'تم حذف الحساب بنجاح', description: 'نأمل أن نراك مرة أخرى قريبًا.' });
+    //   router.push('/signup');
+    // } catch (error: any) {
+    //   console.error("Delete account error:", error);
+    //   toast({
+    //     variant: 'destructive',
+    //     title: 'فشل حذف الحساب',
+    //     description: 'هذه العملية تتطلب إعادة تسجيل دخول حديثة. الرجاء تسجيل الخروج ثم الدخول مرة أخرى والمحاولة مجددًا.',
+    //   });
+    // } finally {
+    //   setIsDeleteConfirmOpen(false);
+    // }
   };
 
   const handleResendVerification = async () => {
@@ -259,7 +270,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <span className="text-xl font-bold">Safar Carrier</span>
                   </div>
                   {mobileMenuItems.map((item) => {
-                    const isDisabled = item.auth && !user;
+                    const isDisabled = false; // DEV MODE: All enabled
                     if (isDisabled) {
                       return (
                         <span key={item.label} className="flex items-center justify-start font-bold text-white/50 cursor-not-allowed gap-2">
@@ -390,7 +401,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
         <nav className="sticky top-16 z-40 hidden h-12 items-center justify-center gap-8 border-b border-b-border/10 bg-secondary px-6 text-secondary-foreground shadow-sm md:flex">
           {menuItems.map((item) => {
-            const isDisabled = item.auth && !user;
+            const isDisabled = false; // DEV MODE: All enabled
             const linkClass = cn(
               "text-sm font-bold transition-colors hover:text-white/80 flex items-center gap-2",
               pathname.startsWith(item.href) && !isDisabled && "text-white underline decoration-2 underline-offset-4",

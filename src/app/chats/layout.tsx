@@ -13,13 +13,14 @@ export default function ChatsLayout({
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, isUserLoading, router]);
+  // DEV MODE: Authentication check disabled
+  // useEffect(() => {
+  //   if (!isUserLoading && !user) {
+  //     router.push('/login');
+  //   }
+  // }, [user, isUserLoading, router]);
 
-  if (isUserLoading || !user) {
+  if (isUserLoading) {
     return (
         <div className="flex h-full items-center justify-center">
             <p>جاري التحميل...</p>

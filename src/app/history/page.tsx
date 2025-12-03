@@ -108,9 +108,10 @@ export default function HistoryPage() {
   const hasPendingConfirmationTrips = pendingConfirmationTrips && pendingConfirmationTrips.length > 0;
   const hasConfirmedTrips = confirmedTrips && confirmedTrips.length > 0;
 
-  useEffect(() => {
-    if (!isUserLoading && !user) router.push('/login');
-  }, [user, isUserLoading, router]);
+  // DEV MODE: Authentication check disabled
+  // useEffect(() => {
+  //   if (!isUserLoading && !user) router.push('/login');
+  // }, [user, isUserLoading, router]);
 
   const totalLoading = isUserLoading || isLoadingTrips;
   const noTripsAtAll = !totalLoading && !hasAwaitingTrips && !hasPendingConfirmationTrips && !hasConfirmedTrips;
