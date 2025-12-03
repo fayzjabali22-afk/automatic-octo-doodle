@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert, Lock, AlertTriangle, MessageSquare, Check } from 'lucide-react';
+import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert, Lock, AlertTriangle, MessageSquare, Check, ArrowRightLeft, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,14 +27,13 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   useUser,
-  useDoc,
   useFirestore,
   useMemoFirebase,
   useCollection,
   setDocumentNonBlocking,
   useAuth,
 } from '@/firebase';
-import { doc, collection, query, where, limit } from 'firebase/firestore';
+import { doc, collection, query, where, limit, updateDoc } from 'firebase/firestore';
 import type { Notification } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { signOut, deleteUser, sendEmailVerification } from 'firebase/auth';
@@ -42,6 +41,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useMemo } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 const menuItems = [
   {
@@ -82,21 +82,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const { profile, isLoading: isProfileLoading } = useUserProfile();
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
+
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfile } = useDoc(userProfileRef);
-
-  // Notifications Logic
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return query(
       collection(firestore, 'notifications'),
       where("userId", "==", user.uid),
-      limit(20) // Added limit for safety
+      limit(20)
     );
   }, [firestore, user]);
 
@@ -138,6 +138,31 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       });
     }
   };
+  
+    const handleSwitchRole = async () => {
+        if (!userProfileRef || !profile) return;
+        setIsSwitchingRole(true);
+        const newRole = profile.role === 'carrier' ? 'traveler' : 'carrier';
+        try {
+            await updateDoc(userProfileRef, { role: newRole });
+            toast({
+                title: `تم التبديل إلى واجهة ${newRole === 'carrier' ? 'الناقل' : 'المسافر'}`,
+            });
+            if (newRole === 'carrier') {
+                router.push('/carrier');
+            } else {
+                router.push('/dashboard');
+            }
+        } catch (e) {
+             toast({
+                variant: "destructive",
+                title: "فشل تبديل الدور",
+            });
+        } finally {
+            setIsSwitchingRole(false);
+        }
+    }
+
 
   const handleDeleteAccount = async () => {
     if (!user || !auth) {
@@ -178,11 +203,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isGuestUser = user?.email === 'guest@example.com';
+
   const UserMenuContent = () => (
     <>
       <DropdownMenuLabel className="text-end">
-        {userProfile?.firstName
-          ? `مرحباً، ${userProfile.firstName}`
+        {profile?.firstName
+          ? `مرحباً، ${profile.firstName}`
           : 'حسابي'}
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
@@ -209,7 +236,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen w-full flex-col bg-background" dir="rtl">
         <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-sidebar-primary px-4 text-sidebar-primary-foreground md:px-6 shadow-md">
 
-          {/* Right side: Mobile Menu Trigger (RTL: This comes first naturally) */}
           <div className="flex items-center md:hidden">
             <Sheet>
               <SheetTrigger asChild>
@@ -253,7 +279,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Sheet>
           </div>
 
-          {/* Center Section: Logo */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <Link href="/">
                 <Image
@@ -267,9 +292,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          {/* Left side: User Menu & Notifications */}
           <div className="flex items-center gap-2 ms-auto">
             
+            {isGuestUser && (
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                       <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="rounded-full hover:bg-white/20 relative"
+                            onClick={handleSwitchRole}
+                            disabled={isSwitchingRole || isProfileLoading}
+                        >
+                            {isSwitchingRole ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRightLeft className="h-5 w-5" />}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>تبديل سريع بين واجهة المسافر والناقل</p>
+                    </TooltipContent>
+                 </Tooltip>
+            )}
+
             {user && (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -321,12 +364,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       {user?.photoURL && (
                         <AvatarImage
                           src={user.photoURL}
-                          alt={userProfile?.firstName || ''}
+                          alt={profile?.firstName || ''}
                         />
                       )}
                       <AvatarFallback className="bg-primary text-primary-foreground">
-                        {userProfile?.firstName
-                          ? userProfile.firstName.charAt(0)
+                        {profile?.firstName
+                          ? profile.firstName.charAt(0)
                           : user?.email?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -378,7 +421,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {user && !user.emailVerified && (
+        {user && !user.emailVerified && !isGuestUser && (
           <div className="sticky top-16 md:top-28 z-40 bg-yellow-600 text-white text-sm text-center p-2 flex items-center justify-center gap-2 animate-in slide-in-from-top duration-300">
             <AlertTriangle className="h-4 w-4" />
             <span>حسابك غير مفعل. الرجاء التحقق من بريدك الإلكتروني.</span>
@@ -415,3 +458,5 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </TooltipProvider>
   );
 }
+
+    

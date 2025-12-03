@@ -29,7 +29,7 @@ import { doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { deleteUser, sendEmailVerification } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, MailCheck, TestTube2, ArrowRightLeft } from 'lucide-react';
+import { ShieldAlert, Trash2, MailCheck, TestTube2, ArrowRightLeft, Loader2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { actionCodeSettings } from '@/firebase/config';
 import { useUserProfile } from '@/hooks/use-user-profile';
@@ -52,14 +52,13 @@ export default function ProfilePage() {
   const router = useRouter();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const { profile, isLoading } = useUserProfile();
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
 
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-
-  const { data: userProfile } = useDoc(userProfileRef);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -72,12 +71,12 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (userProfile) {
+    if (profile) {
       form.reset({
-        firstName: userProfile.firstName || '',
-        lastName: userProfile.lastName || '',
-        email: userProfile.email || user?.email || '',
-        phoneNumber: userProfile.phoneNumber || user?.phoneNumber || ''
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        email: profile.email || user?.email || '',
+        phoneNumber: profile.phoneNumber || user?.phoneNumber || ''
       });
     } else if (user) {
         form.reset({
@@ -86,7 +85,7 @@ export default function ProfilePage() {
         phoneNumber: user.phoneNumber || ''
         });
     }
-  }, [userProfile, user, form]);
+  }, [profile, user, form]);
   
   function onSubmit(data: ProfileFormValues) {
     if (!userProfileRef) return;
@@ -101,20 +100,27 @@ export default function ProfilePage() {
 
   const handleRoleChange = async (newRole: 'traveler' | 'carrier') => {
     if (!userProfileRef) return;
+    setIsSwitchingRole(true);
     try {
         await updateDoc(userProfileRef, { role: newRole });
         toast({
-            title: `تم تغيير الدور إلى ${newRole}`,
-            description: "سيتم تحديث صلاحياتك في التنقل التالي."
+            title: `تم تغيير الدور إلى ${newRole === 'carrier' ? 'ناقل' : 'مسافر'}`,
+            description: "سيتم تحديث صلاحياتك."
         });
-        // You might want to refresh the page or redirect to let changes take effect
-        window.location.reload();
+        // Redirect to the appropriate dashboard after role change
+        if (newRole === 'carrier') {
+            router.push('/carrier');
+        } else {
+            router.push('/dashboard');
+        }
     } catch (e) {
          toast({
             variant: "destructive",
             title: "فشل تحديث الدور",
             description: "حدث خطأ ما.",
         });
+    } finally {
+        setIsSwitchingRole(false);
     }
   }
 
@@ -146,11 +152,8 @@ export default function ProfilePage() {
     const userDocRef = doc(firestore, 'users', user.uid);
 
     try {
-        // Step 1: Delete the user's document from Firestore.
         await deleteDoc(userDocRef);
         toast({ title: 'تم حذف ملف Firestore الشخصي', description: 'تمت إزالة ملفك الشخصي من قاعدة البيانات.' });
-
-        // Step 2: Delete the user from Firebase Authentication.
         await deleteUser(user);
         
         toast({ title: 'تم حذف الحساب بنجاح', description: 'نأمل أن نراك مرة أخرى قريبًا.' });
@@ -179,6 +182,8 @@ export default function ProfilePage() {
   };
 
   const isGuestUser = user?.email === 'guest@example.com';
+
+  const roleIsLoading = isLoading || isSwitchingRole;
 
 
   return (
@@ -217,23 +222,23 @@ export default function ProfilePage() {
                     أنت تستخدم حساب الضيف. يمكنك تبديل دورك لأغراض الاختبار. الدور الحالي: <span className="font-bold text-foreground">{profile?.role || '...'}</span>
                 </CardDescription>
              </CardHeader>
-             <CardFooter className="flex gap-4">
-                <Button 
+             <CardFooter className="flex flex-col sm:flex-row gap-4">
+                 <Button 
                     variant={profile?.role === 'traveler' ? 'default' : 'outline'} 
                     onClick={() => handleRoleChange('traveler')}
-                    disabled={isLoading}
+                    disabled={roleIsLoading}
                     className="flex-1"
                 >
-                    <ArrowRightLeft className="ml-2 h-4 w-4" />
+                    {roleIsLoading && profile?.role !== 'traveler' ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : <ArrowRightLeft className="ml-2 h-4 w-4" />}
                     التحويل إلى مسافر (Traveler)
                 </Button>
                 <Button 
                     variant={profile?.role === 'carrier' ? 'default' : 'outline'} 
                     onClick={() => handleRoleChange('carrier')}
-                    disabled={isLoading}
+                    disabled={roleIsLoading}
                     className="flex-1"
                 >
-                    <ArrowRightLeft className="ml-2 h-4 w-4" />
+                    {roleIsLoading && profile?.role !== 'carrier' ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : <ArrowRightLeft className="ml-2 h-4 w-4" />}
                     التحويل إلى ناقل (Carrier)
                 </Button>
              </CardFooter>
@@ -255,7 +260,7 @@ export default function ProfilePage() {
                     <Avatar className="h-20 w-20">
                     {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || ''} />}
                     <AvatarFallback>
-                        {userProfile?.firstName ? userProfile.firstName.charAt(0) : user?.email?.charAt(0).toUpperCase()}
+                        {profile?.firstName ? profile.firstName.charAt(0) : user?.email?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                     </Avatar>
                     <Button variant="outline" type="button">تغيير الصورة</Button>
@@ -366,4 +371,5 @@ export default function ProfilePage() {
   );
 }
 
+    
     
