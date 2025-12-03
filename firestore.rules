@@ -34,17 +34,9 @@ service cloud.firestore {
 
     // --- الرحلات (Trips) ---
     match /trips/{tripId} {
-      
-      // التغيير الجوهري هنا: استبدلنا read بـ get
-      // هذا يعني أن الشروط الصارمة تطبق فقط عند طلب مستند واحد (ID)
-      allow get: if isSignedIn() && (
-        isOwner(resource.data.userId) || 
-        resource.data.status == 'Awaiting-Offers' ||
-        resource.data.carrierId == request.auth.uid
-      );
-      
-      // الآن هذا السطر سيعمل بسلام لأن قاعدة get لم تعد تتدخل في عملية القائمة
-      allow list: if isSignedIn();
+      // Allow read/list only if the user is the owner of the trip.
+      // This is more secure and ensures queries from the client must be specific.
+      allow read, list: if isSignedIn() && isOwner(resource.data.userId);
 
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
       
