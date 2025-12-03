@@ -18,15 +18,18 @@ service cloud.firestore {
     // --- المستخدمون (Users) ---
     match /users/{userId} {
       allow read, write: if isOwner(userId);
-      allow update: if isOwner(userId); // Allow users to update their own profile (for role switching etc.)
+      // Allow users to update their own profile (for role switching & bank details)
+      allow update: if isOwner(userId); 
     }
     
     // --- الناقلون (Carriers) ---
     match /carriers/{carrierId} {
       // Public info is readable by anyone
       allow read: if true; 
-      // Only the carrier can write to their profile, including bank details
-      allow write: if isOwner(carrierId);
+      // A carrier's profile (which is public) can only be created by an admin in a real scenario
+      // For now, we allow any signed-in user to create a carrier profile for testing
+      allow create: if isSignedIn();
+      // Only the carrier (represented as a user) can update their own public carrier profile
       allow update: if isOwner(carrierId);
     }
 
