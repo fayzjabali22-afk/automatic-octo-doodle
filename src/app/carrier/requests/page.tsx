@@ -12,6 +12,44 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { OfferDialog } from '@/components/carrier/offer-dialog';
 
+const mockRequests: Trip[] = [
+    {
+      id: 'mock_trip_1',
+      userId: 'mock_user_1',
+      origin: 'amman',
+      destination: 'riyadh',
+      departureDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+      passengers: 2,
+      status: 'Awaiting-Offers',
+    },
+    {
+      id: 'mock_trip_2',
+      userId: 'mock_user_2',
+      origin: 'damascus',
+      destination: 'amman',
+      departureDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      passengers: 1,
+      status: 'Awaiting-Offers',
+    },
+    {
+      id: 'mock_trip_3',
+      userId: 'mock_user_3',
+      origin: 'cairo',
+      destination: 'jeddah',
+      departureDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      passengers: 4,
+      status: 'Awaiting-Offers',
+    },
+    {
+      id: 'mock_trip_4',
+      userId: 'mock_user_4',
+      origin: 'amman',
+      destination: 'damascus',
+      departureDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+      passengers: 3,
+      status: 'Awaiting-Offers',
+    },
+];
 
 function LoadingState() {
   return (
@@ -92,16 +130,18 @@ export default function CarrierRequestsPage() {
   const { data: allRequests, isLoading: isLoadingRequests } = useCollection<Trip>(tripsQuery);
   
   const filteredRequests = useMemo(() => {
-    if (!allRequests) return [];
+    const combinedRequests = [...mockRequests, ...(allRequests || [])];
+    const uniqueRequests = Array.from(new Map(combinedRequests.map(item => [item.id, item])).values());
+
     if (filterBySpecialization && carrierProfile?.primaryRoute?.origin && carrierProfile.primaryRoute.destination) {
       const from = carrierProfile.primaryRoute.origin.toLowerCase();
       const to = carrierProfile.primaryRoute.destination.toLowerCase();
-      return allRequests.filter(req => 
+      return uniqueRequests.filter(req => 
         req.origin.toLowerCase() === from &&
         req.destination.toLowerCase() === to
       );
     }
-    return allRequests;
+    return uniqueRequests;
   }, [allRequests, filterBySpecialization, carrierProfile]);
 
   const isLoading = isLoadingProfile || isLoadingRequests;
