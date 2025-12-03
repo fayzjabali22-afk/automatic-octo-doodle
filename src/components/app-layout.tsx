@@ -238,7 +238,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <header className={cn(
           "sticky top-0 z-50 flex h-16 items-center justify-between px-4 shadow-md md:px-6",
           isCarrierPath 
-            ? "bg-white text-black border-b-4 border-blue-500" 
+            ? "bg-[#F9F4FB] text-black border-b-4 border-blue-500" 
             : "bg-sidebar-primary text-sidebar-primary-foreground border-b border-border"
         )}>
 
