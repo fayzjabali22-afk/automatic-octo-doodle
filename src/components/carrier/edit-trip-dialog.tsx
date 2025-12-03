@@ -65,6 +65,18 @@ export function EditTripDialog({ isOpen, onOpenChange, trip }: EditTripDialogPro
       toast({ variant: 'destructive', title: 'خطأ', description: 'لا يمكن تحديث الرحلة حالياً.' });
       return;
     }
+
+    // SOVEREIGN GUARD: Prevent updates on mock data
+    if (trip.id.startsWith('mock_')) {
+        toast({
+            variant: 'default',
+            title: 'عرض توضيحي فقط',
+            description: 'لا يمكن تعديل البيانات الوهمية. هذه الميزة تعمل فقط على الرحلات الحقيقية.'
+        });
+        onOpenChange(false);
+        return;
+    }
+
     setIsSubmitting(true);
     try {
       const tripRef = doc(firestore, 'trips', trip.id);
