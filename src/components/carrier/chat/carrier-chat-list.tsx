@@ -2,7 +2,7 @@
 
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import type { Chat } from '@/lib/data';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { CarrierChatListItem } from './carrier-chat-list-item';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MessageSquareOff } from 'lucide-react';
@@ -15,14 +15,19 @@ export function CarrierChatList() {
 
   const chatsQuery = useMemo(() => {
     if (!firestore || !user) return null;
+    // Removed orderBy to prevent index error. Sorting will be done client-side.
     return query(
         collection(firestore, 'chats'), 
-        where('participants', 'array-contains', user.uid),
-        orderBy('updatedAt', 'desc')
+        where('participants', 'array-contains', user.uid)
     );
   }, [firestore, user]);
 
   const { data: chats, isLoading } = useCollection<Chat>(chatsQuery);
+
+  const sortedChats = useMemo(() => {
+    if (!chats) return [];
+    return [...chats].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }, [chats]);
   
   if (isLoading) {
     return (
@@ -47,8 +52,8 @@ export function CarrierChatList() {
             <h2 className="text-xl font-bold">محادثاتي</h2>
         </header>
       <div className="flex-1 overflow-y-auto">
-        {chats && chats.length > 0 ? (
-          chats.map(chat => <CarrierChatListItem key={chat.id} chat={chat} />)
+        {sortedChats && sortedChats.length > 0 ? (
+          sortedChats.map(chat => <CarrierChatListItem key={chat.id} chat={chat} />)
         ) : (
           <div className="flex flex-col items-center justify-center text-center p-8 text-muted-foreground h-full">
             <MessageSquareOff className="h-12 w-12 mb-4 text-muted-foreground/50"/>
