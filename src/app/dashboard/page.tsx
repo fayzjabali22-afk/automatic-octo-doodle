@@ -363,20 +363,6 @@ export default function DashboardPage() {
   return (
     <AppLayout>
       <div className="container mx-auto p-0 md:p-4 rounded-lg">
-        
-        {user?.email === 'dev@safar.com' && (
-            <Card className="mb-4 bg-secondary border-accent">
-                <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <ArrowRightLeft className="h-5 w-5 text-accent" />
-                        <p className="font-bold">منطقة المطور</p>
-                    </div>
-                    <Button onClick={() => router.push('/carrier')}>
-                        التبديل إلى واجهة الناقل
-                    </Button>
-                </CardContent>
-            </Card>
-        )}
 
         <div className="flex flex-col lg:flex-row gap-8 p-2 lg:p-4">
 

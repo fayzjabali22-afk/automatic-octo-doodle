@@ -106,8 +106,8 @@ export default function LoginPage() {
     const signInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
   
     if (signInSuccess) {
-      toast({ title: 'Logged in as Dev', description: 'Developer mode activated.' });
-      router.push('/dashboard');
+      toast({ title: 'Logged in as Dev', description: 'Redirecting to dev switch...' });
+      router.push('/dev-switch');
       return;
     }
   
@@ -124,8 +124,8 @@ export default function LoginPage() {
     if (signUpSuccess) {
       const finalSignInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
       if (finalSignInSuccess) {
-        toast({ title: 'Logged in as Dev', description: 'Developer mode activated.' });
-        router.push('/dashboard');
+        toast({ title: 'Logged in as Dev', description: 'Redirecting to dev switch...' });
+        router.push('/dev-switch');
       } else {
         toast({ title: "Dev Login Failed", description: "Could not log in after creating the dev account.", variant: "destructive"});
       }
