@@ -24,8 +24,8 @@
     --muted: 210 40% 96%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 220 100% 50%; /* Neon Blue */
-    --accent-foreground: 210 40% 98%;
+    --accent: 51 61% 65%; /* #D4C87D - A distinctive, professional gold/khaki */
+    --accent-foreground: 24 9.8% 10%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -75,15 +75,15 @@
     --muted: 323 23% 13%;          /* #2A1A24 - لون معتدل */
     --muted-foreground: 0 0% 82%;  /* #D1D1D1 */
 
-    --accent: 220 100% 50%;          /* #CBA135 - اللون المميز */
-    --accent-foreground: 210 40% 98%;
+    --accent: 46 60% 50%;          /* #CBA135 - اللون المميز */
+    --accent-foreground: 45 100% 95%; /* A very light color for text on accent */
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 318 48% 13%;         /* #32112D - الحدود */
     --input: 318 48% 13%;          /* #32112D - حقول الإدخال */
-    --ring: 220 100% 50%;            /* #CBA135 - حلقة التركيز */
+    --ring: 46 60% 50%;            /* #CBA135 - حلقة التركيز */
 
     /* Sidebar */
     --sidebar-background: 319 41% 6%;
