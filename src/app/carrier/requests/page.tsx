@@ -24,9 +24,9 @@ export default function CarrierRequestsPage() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-64 w-full rounded-lg" />
+      <div className="space-y-3">
+        {[...Array(5)].map((_, i) => (
+          <Skeleton key={i} className="h-24 w-full rounded-lg" />
         ))}
       </div>
     );
@@ -45,7 +45,7 @@ export default function CarrierRequestsPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-2">
       {requests.map((request) => (
         <RequestCard key={request.id} tripRequest={request} />
       ))}
