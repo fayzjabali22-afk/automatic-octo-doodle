@@ -26,8 +26,7 @@ export function QuickActions() {
                     </Button>
                 </div>
             </Card>
-            <Card className="flex flex-col justify-between hover:bg-card/80 transition-colors w,
--full">
+            <Card className="flex flex-col justify-between hover:bg-card/80 transition-colors w-full">
                 <CardHeader>
                     <CardTitle>إدارة رحلاتي المجدولة</CardTitle>
                     <CardDescription>
