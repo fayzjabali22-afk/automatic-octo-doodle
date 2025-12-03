@@ -27,9 +27,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useFirestore, initiateEmailSignUp, useAuth, initiateGoogleSignIn, initiateEmailSignIn } from '@/firebase';
+import { useFirestore, initiateEmailSignUp, useAuth, initiateGoogleSignIn } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { MailCheck, TestTube2 } from 'lucide-react';
+import { MailCheck } from 'lucide-react';
 
 const signupFormSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters.'),
@@ -95,51 +95,6 @@ export default function SignupPage() {
     }
   };
 
-  const handleDevSignIn = async () => {
-    if (!auth || !firestore) {
-      toast({ title: "Error", description: "Firebase not initialized.", variant: "destructive" });
-      return;
-    }
-  
-    const devEmail = 'dev@safar.com';
-    const devPassword = 'password123';
-  
-    toast({ title: 'Logging in as Dev...', description: 'Please wait.' });
-  
-    // First, try to log in.
-    const signInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
-  
-    if (signInSuccess) {
-      toast({ title: 'Logged in as Dev', description: 'Developer mode activated.' });
-      router.push('/dashboard');
-      return;
-    }
-  
-    // If login fails (likely because the account doesn't exist), create it.
-    toast({ title: 'Creating dev account...', description: 'One moment.' });
-    const devProfile = {
-      firstName: 'Sovereign',
-      lastName: 'Developer',
-      email: devEmail,
-      phoneNumber: '000-000-0000',
-    };
-  
-    // Create the user but don't sign out afterwards
-    const signUpSuccess = await initiateEmailSignUp(auth, firestore, devEmail, devPassword, devProfile, false);
-  
-    if (signUpSuccess) {
-      // Now, sign in with the newly created account.
-      const finalSignInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
-      if (finalSignInSuccess) {
-        toast({ title: 'Logged in as Dev', description: 'Developer mode activated.' });
-        router.push('/dashboard');
-      } else {
-        toast({ title: "Dev Login Failed", description: "Could not log in after creating the dev account.", variant: "destructive"});
-      }
-    }
-    // Error toasts for signup failure are handled within the initiateEmailSignUp function
-  };
-  
   if (isSignUpSuccessful) {
     return (
         <div className="relative flex min-h-screen w-full flex-col items-center justify-center p-4">
@@ -198,20 +153,6 @@ export default function SignupPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-               <Button type="button" className="w-full" onClick={handleDevSignIn}>
-                <TestTube2 className="mr-2 h-5 w-5" />
-                دخول فوري للمطور
-              </Button>
-              <div className="relative my-2">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                    أو سجل حساباً جديداً
-                    </span>
-                </div>
-              </div>
               <FormField
                 control={form.control}
                 name="fullName"

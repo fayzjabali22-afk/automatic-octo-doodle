@@ -27,8 +27,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useAuth, initiateEmailSignIn, useFirestore, initiateGoogleSignIn } from '@/firebase';
+import { useAuth, initiateEmailSignIn, useFirestore, initiateGoogleSignIn, initiateEmailSignUp } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { TestTube2 } from 'lucide-react';
 
 const loginFormSchema = z.object({
   email: z.string().email('Invalid email address.'),
@@ -90,6 +91,46 @@ export default function LoginPage() {
       router.push('/dashboard');
     }
   };
+  
+  const handleDevSignIn = async () => {
+    if (!auth || !firestore) {
+      toast({ title: "Error", description: "Firebase not initialized.", variant: "destructive" });
+      return;
+    }
+  
+    const devEmail = 'dev@safar.com';
+    const devPassword = 'password123';
+  
+    toast({ title: 'Logging in as Dev...', description: 'Please wait.' });
+  
+    const signInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
+  
+    if (signInSuccess) {
+      toast({ title: 'Logged in as Dev', description: 'Developer mode activated.' });
+      router.push('/dashboard');
+      return;
+    }
+  
+    toast({ title: 'Creating dev account...', description: 'One moment.' });
+    const devProfile = {
+      firstName: 'Sovereign',
+      lastName: 'Developer',
+      email: devEmail,
+      phoneNumber: '000-000-0000',
+    };
+  
+    const signUpSuccess = await initiateEmailSignUp(auth, firestore, devEmail, devPassword, devProfile, false);
+  
+    if (signUpSuccess) {
+      const finalSignInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
+      if (finalSignInSuccess) {
+        toast({ title: 'Logged in as Dev', description: 'Developer mode activated.' });
+        router.push('/dashboard');
+      } else {
+        toast({ title: "Dev Login Failed", description: "Could not log in after creating the dev account.", variant: "destructive"});
+      }
+    }
+  };
 
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center p-4">
@@ -112,6 +153,20 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+           <Button type="button" className="w-full mb-4" onClick={handleDevSignIn}>
+              <TestTube2 className="mr-2 h-5 w-5" />
+              دخول فوري للمطور
+            </Button>
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                  Or login with
+                  </span>
+              </div>
+            </div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
               <FormField
