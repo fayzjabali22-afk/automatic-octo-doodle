@@ -76,18 +76,14 @@ export default function DashboardPage() {
   const [selectedTripForBooking, setSelectedTripForBooking] = useState<Trip | null>(null);
   const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
 
-  // START: TEMPORARY FIX - Disable problematic query
-  const allTrips: Trip[] | null = [];
-  const isLoading = false;
-  // const scheduledTripsQuery = useMemo(() => {
-  //   if (!firestore) return null;
-  //   return query(
-  //     collection(firestore, 'trips'),
-  //     where('status', '==', 'Planned')
-  //   );
-  // }, [firestore]);
-  // const { data: allTrips, isLoading } = useCollection<Trip>(scheduledTripsQuery);
-  // END: TEMPORARY FIX
+  const scheduledTripsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'trips'),
+      where('status', '==', 'Planned')
+    );
+  }, [firestore]);
+  const { data: allTrips, isLoading } = useCollection<Trip>(scheduledTripsQuery);
 
   const [searchOriginCountry, setSearchOriginCountry] = useState('');
   const [searchOriginCity, setSearchOriginCity] = useState('');
@@ -553,14 +549,40 @@ export default function DashboardPage() {
             <div className="mt-12">
               <h2 className="text-2xl font-bold mb-4">الرحلات المجدولة القادمة</h2>
               
-              <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
-                <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-                <p className="text-lg font-bold">الميزة قيد الصيانة حالياً</p>
-                <p className="text-sm mt-2">
-                  نحن نعمل على تحسين هذه الميزة. يرجى المحاولة مرة أخرى لاحقًا.
-                </p>
-              </div>
-
+               {isLoading ? (
+                    <p>جاري تحميل الرحلات...</p>
+                ) : showNoResultsMessage ? (
+                    <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
+                        <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+                        <p className="text-lg font-bold">لا توجد رحلات تطابق بحثك</p>
+                        <p className="text-sm mt-2">
+                           {searchMode === 'all-carriers' ? 'جرب تغيير معايير البحث أو أرسل طلباً عاماً.' : `لا توجد رحلات مجدولة لهذا الناقل. يمكنك إرسال طلب مباشر له.`}
+                        </p>
+                    </div>
+                ) : (
+                    <Accordion type="multiple" value={openAccordion} onValueChange={setOpenAccordion} className="space-y-4">
+                        {sortedTripDates.map(tripDate => (
+                            <AccordionItem key={tripDate} value={tripDate} className="border-none">
+                                <Card>
+                                <AccordionTrigger className="p-4 text-md hover:no-underline font-bold">
+                                    <div className="flex items-center gap-2">
+                                        <CalendarIcon className="h-5 w-5 text-accent"/>
+                                        <span>{format(new Date(tripDate), "EEEE, d MMMM yyyy")}</span>
+                                        <Badge variant="outline">{groupedAndFilteredTrips[tripDate].length} رحلات</Badge>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 pt-0">
+                                    {groupedAndFilteredTrips[tripDate].map(trip => (
+                                        <ScheduledTripCard key={trip.id} trip={trip} onBookNow={handleBookNowClick} />
+                                    ))}
+                                    </div>
+                                </AccordionContent>
+                                </Card>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+                )}
             </div>
           </div>
         </div>

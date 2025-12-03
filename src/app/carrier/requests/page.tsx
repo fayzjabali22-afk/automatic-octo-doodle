@@ -81,19 +81,15 @@ export default function CarrierRequestsPage() {
   }, [firestore, user]);
 
 
-  // START: TEMPORARY FIX - Disable problematic query
-  const allRequests: Trip[] | null = [];
-  const isLoadingRequests = false;
-  // const tripsQuery = useMemo(() => {
-  //   if (!firestore) return null;
-  //   let q = query(
-  //     collection(firestore, 'trips'),
-  //     where('status', '==', 'Awaiting-Offers')
-  //   );
-  //   return q;
-  // }, [firestore]);
-  // const { data: allRequests, isLoading: isLoadingRequests } = useCollection<Trip>(tripsQuery);
-  // END: TEMPORARY FIX
+  const tripsQuery = useMemo(() => {
+    if (!firestore) return null;
+    let q = query(
+      collection(firestore, 'trips'),
+      where('status', '==', 'Awaiting-Offers')
+    );
+    return q;
+  }, [firestore]);
+  const { data: allRequests, isLoading: isLoadingRequests } = useCollection<Trip>(tripsQuery);
   
   const filteredRequests = useMemo(() => {
     if (!allRequests) return [];
@@ -128,13 +124,29 @@ export default function CarrierRequestsPage() {
   return (
     <>
     <div className="space-y-4">
-       <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
-          <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-          <p className="text-lg font-bold">الميزة قيد الصيانة حالياً</p>
-          <p className="text-sm mt-2">
-            نحن نعمل على تحسين هذه الميزة. يرجى المحاولة مرة أخرى لاحقًا.
-          </p>
-        </div>
+        {canFilter && (
+            <div className="flex items-center justify-end space-x-2 rtl:space-x-reverse bg-card p-3 rounded-lg border">
+                <Label htmlFor="filter-switch" className="flex items-center gap-2 font-semibold">
+                    <ListFilter className="h-4 w-4" />
+                    <span>فلترة حسب خط السير المفضل</span>
+                </Label>
+                <Switch
+                    id="filter-switch"
+                    checked={filterBySpecialization}
+                    onCheckedChange={setFilterBySpecialization}
+                />
+            </div>
+        )}
+
+        {filteredRequests && filteredRequests.length > 0 ? (
+            <div className="space-y-3">
+                {filteredRequests.map(req => (
+                    <RequestCard key={req.id} tripRequest={req} onOffer={handleOfferClick} />
+                ))}
+            </div>
+        ) : (
+            <NoRequestsState isFiltered={filterBySpecialization && canFilter} />
+        )}
     </div>
     {selectedTrip && (
         <OfferDialog
