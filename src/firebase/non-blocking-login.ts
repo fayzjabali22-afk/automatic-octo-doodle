@@ -29,7 +29,8 @@ export async function initiateAnonymousSignIn(authInstance: Auth): Promise<boole
   }
 }
 
-type UserProfileCreation = Omit<UserProfile, 'id'>;
+type UserProfileCreation = Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'>;
+
 
 /** Initiate email/password sign-up and create user profile document. Returns boolean for success. */
 export async function initiateEmailSignUp(
@@ -77,6 +78,9 @@ export async function initiateEmailSignUp(
             title: "Profile Save Failed",
             description: firestoreError.message || "Could not save your profile data.",
         });
+        // Note: The user account was created, but profile failed. 
+        // Depending on requirements, you might want to delete the user here.
+        // For now, we'll let it be.
         return false;
     }
 
@@ -113,7 +117,8 @@ export async function initiateEmailSignIn(authInstance: Auth, email: string, pas
     return true;
   } catch (error: any) {
     if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-         // Don't show a toast for these, as it's a normal flow for guest login
+         // This is a common case for the guest login flow, so we don't show a toast.
+         // The calling function will handle the next step (e.g., creating the account).
     } else {
         toast({
             variant: "destructive",

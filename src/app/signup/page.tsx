@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -26,7 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useFirestore, initiateEmailSignUp, useAuth, initiateGoogleSignIn, initiateAnonymousSignIn, initiateEmailSignIn } from '@/firebase';
+import { useFirestore, initiateEmailSignUp, useAuth, initiateGoogleSignIn, initiateEmailSignIn } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { MailCheck, TestTube2 } from 'lucide-react';
 
@@ -123,17 +124,20 @@ export default function SignupPage() {
       phoneNumber: '123-456-7890',
     };
   
+    // Create the user but don't sign out afterwards
     const signUpSuccess = await initiateEmailSignUp(auth, firestore, guestEmail, guestPassword, guestProfile, false);
   
     if (signUpSuccess) {
-      // Now, sign in with the newly created account.
+      // Now, sign in with the newly created account. This is redundant if signUp doesn't sign out, but safe.
       const finalSignInSuccess = await initiateEmailSignIn(auth, guestEmail, guestPassword);
       if (finalSignInSuccess) {
         toast({ title: 'Logged in as Guest', description: 'Developer mode activated.' });
         router.push('/dashboard');
+      } else {
+        toast({ title: "Guest Login Failed", description: "Could not log in after creating the guest account.", variant: "destructive"});
       }
     }
-    // Error toasts are handled within the initiate functions, so no need for else here.
+    // Error toasts for signup failure are handled within the initiateEmailSignUp function
   };
   
   if (isSignUpSuccessful) {
