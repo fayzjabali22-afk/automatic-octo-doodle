@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import type { Booking, Trip, UserProfile } from '@/lib/data';
-import { useFirestore, useDoc } from '@/firebase';
+import { useFirestore, useDoc, addDocumentNonBlocking } from '@/firebase';
 import { doc, writeBatch, increment, serverTimestamp, collection } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,24 +64,24 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
         
         const bookingRef = doc(firestore, 'bookings', booking.id);
         const tripRef = doc(firestore, 'trips', booking.tripId);
-        const notificationRef = doc(collection(firestore, 'notifications'));
-
+        
         const batch = writeBatch(firestore);
 
         if (action === 'confirm') {
             batch.update(bookingRef, { status: 'Confirmed' });
             batch.update(tripRef, { availableSeats: increment(-booking.seats) });
-            batch.set(notificationRef, {
+
+            const notificationData = {
                 userId: booking.userId,
                 title: 'تم تأكيد حجزك!',
-                message: `تم تأكيد حجزك لرحلة من ${getCityName(booking.tripId)} إلى وجهتك. نتمنى لك رحلة سعيدة!`,
+                message: `خبر سعيد! تم تأكيد حجزك لرحلة ${getCityName(booking.tripId)}. نتمنى لك رحلة موفقة!`,
                 type: 'booking_confirmed',
                 isRead: false,
-                createdAt: serverTimestamp(),
+                createdAt: new Date().toISOString(),
                 link: '/history',
-            });
-
-            // Log the analytics event
+            };
+            addDocumentNonBlocking(collection(firestore, 'notifications'), notificationData);
+            
             logEvent('BOOKING_CONFIRMED', {
                 carrierId: booking.carrierId,
                 tripId: booking.tripId,
@@ -92,15 +92,17 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
 
         } else { // Reject
             batch.update(bookingRef, { status: 'Cancelled' });
-            batch.set(notificationRef, {
+            
+            const notificationData = {
                 userId: booking.userId,
-                title: 'تم رفض طلب الحجز',
-                message: `نعتذر، لم يتمكن الناقل من تأكيد طلب الحجز الخاص بك في هذا الوقت.`,
-                type: 'trip_update', // Re-using a general type
+                title: 'تحديث بخصوص طلب الحجز',
+                message: `نعتذر، لم يتمكن الناقل من تأكيد طلب الحجز الخاص بك لرحلة ${getCityName(booking.tripId)} في الوقت الحالي.`,
+                type: 'trip_update',
                 isRead: false,
-                createdAt: serverTimestamp(),
+                createdAt: new Date().toISOString(),
                 link: '/history',
-            });
+            };
+            addDocumentNonBlocking(collection(firestore, 'notifications'), notificationData);
         }
 
         try {
