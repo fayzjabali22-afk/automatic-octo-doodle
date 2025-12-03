@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, writeBatch, limit, orderBy, arrayUnion } from 'firebase/firestore'; // Added orderBy, arrayUnion
+import { collection, query, where, doc, writeBatch, limit, orderBy, arrayUnion } from 'firebase/firestore'; 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -76,9 +76,7 @@ export default function HistoryPage() {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, 'trips'),
-      where('userId', '==', user.uid),
-      orderBy('departureDate', 'desc'),
-      limit(50) 
+      where('userId', '==', user.uid)
     );
   }, [firestore, user]);
   
@@ -89,7 +87,10 @@ export default function HistoryPage() {
       return { awaitingTrips: [], pendingConfirmationTrips: [], confirmedTrips: [] };
     }
     
-    const sortedTrips = [...allUserTrips];
+    // Sort after fetching, as Firestore doesn't allow multiple inequality filters with orderBy
+    const sortedTrips = [...allUserTrips].sort((a, b) => 
+        new Date(b.departureDate).getTime() - new Date(a.departureDate).getTime()
+    );
 
     const awaiting = sortedTrips.filter(t => t.status === 'Awaiting-Offers');
     const pending = sortedTrips.filter(t => t.status === 'Pending-Carrier-Confirmation');

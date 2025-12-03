@@ -34,18 +34,15 @@ service cloud.firestore {
 
     // --- الرحلات (Trips) ---
     match /trips/{tripId} {
-      
-      // 1. عند طلب رحلة واحدة محددة (بالضغط عليها)، نطبق شروط الأمان الصارمة
       allow get: if isSignedIn() && (
         isOwner(resource.data.userId) || 
         resource.data.status == 'Awaiting-Offers' ||
         resource.data.carrierId == request.auth.uid
       );
       
-      // 2. عند طلب القائمة العامة، نسمح بذلك لجميع المسجلين (وهذا ما سيحل الايرور)
-      allow list: if isSignedIn();
+      // Allow a user to list only their own trips.
+      allow list: if isSignedIn() && request.query.where[0][2] == request.auth.uid;
 
-      // 3. باقي العمليات كما هي
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
       
       allow update: if isSignedIn() && (
