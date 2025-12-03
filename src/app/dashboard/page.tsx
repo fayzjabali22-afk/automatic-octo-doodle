@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star } from 'lucide-react';
+import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star, ArrowRightLeft } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import type { Trip, CarrierProfile } from '@/lib/data';
 import { ScheduledTripCard } from '@/components/scheduled-trip-card';
@@ -78,6 +78,9 @@ export default function DashboardPage() {
 
   const scheduledTripsQuery = useMemo(() => {
     if (!firestore) return null;
+    // DEV MODE: Bypassing auth check for now.
+    // This query is intentionally left open for demonstration.
+    // In a real app, you'd likely filter by date, e.g., where('departureDate', '>=', new Date())
     return query(
       collection(firestore, 'trips'),
       where('status', '==', 'Planned')
@@ -360,6 +363,21 @@ export default function DashboardPage() {
   return (
     <AppLayout>
       <div className="container mx-auto p-0 md:p-4 rounded-lg">
+        
+        {user?.email === 'dev@safar.com' && (
+            <Card className="mb-4 bg-secondary border-accent">
+                <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <ArrowRightLeft className="h-5 w-5 text-accent" />
+                        <p className="font-bold">منطقة المطور</p>
+                    </div>
+                    <Button onClick={() => router.push('/carrier')}>
+                        التبديل إلى واجهة الناقل
+                    </Button>
+                </CardContent>
+            </Card>
+        )}
+
         <div className="flex flex-col lg:flex-row gap-8 p-2 lg:p-4">
 
           <div className="flex-1 min-w-0">
@@ -550,7 +568,9 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-bold mb-4">الرحلات المجدولة القادمة</h2>
               
                {isLoading ? (
-                    <p>جاري تحميل الرحلات...</p>
+                    <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
+                       <p>جاري تحميل الرحلات...</p>
+                    </div>
                 ) : showNoResultsMessage ? (
                     <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
                         <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
