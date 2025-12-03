@@ -176,7 +176,7 @@ export default function ProfilePage() {
     // }
   };
 
-  const isGuestUser = user?.email === 'guest@example.com';
+  const isDevUser = user?.email === 'dev@safar.com';
   const roleIsLoading = isLoading || isSwitchingRole;
 
 
@@ -185,7 +185,7 @@ export default function ProfilePage() {
     <AppLayout>
       <div className="max-w-2xl mx-auto space-y-8 p-4">
         
-        {user && !user.emailVerified && !isGuestUser && (
+        {user && !user.emailVerified && !isDevUser && (
           <Card className="border-yellow-500 shadow-lg">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-yellow-500"><ShieldAlert /> تفعيل الحساب</CardTitle>
@@ -197,11 +197,11 @@ export default function ProfilePage() {
           </Card>
         )}
 
-        {isGuestUser && (
+        {isDevUser && (
           <Card className="border-accent shadow-lg">
              <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-accent"><TestTube2 /> منطقة المطور (Dev Zone)</CardTitle>
-                <CardDescription>أنت تستخدم حساب الضيف. يمكنك تبديل دورك لأغراض الاختبار. الدور الحالي: <span className="font-bold text-foreground">{profile?.role || '...'}</span></CardDescription>
+                <CardDescription>أنت تستخدم حساب المطور. يمكنك تبديل دورك لأغراض الاختبار. الدور الحالي: <span className="font-bold text-foreground">{profile?.role || '...'}</span></CardDescription>
              </CardHeader>
              <CardFooter className="flex flex-col sm:flex-row gap-4">
                  <Button variant={profile?.role === 'traveler' ? 'default' : 'outline'} onClick={() => handleRoleChange('traveler')} disabled={roleIsLoading} className="flex-1">

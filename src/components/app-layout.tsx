@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -100,7 +101,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }, [firestore, user]);
 
-  const { data: allNotifications } = useCollection<Notification>(notificationsQuery);
+  const { data: allNotifications } = useCollection(notificationsQuery);
 
   const unreadNotifications = useMemo(() => {
     if (!allNotifications) return [];
@@ -128,20 +129,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         title: 'تم تعطيل المصادقة',
         description: 'تم تعطيل تسجيل الخروج في وضع التطوير.',
     });
-    // if (!auth) return;
-    // try {
-    //   await signOut(auth);
-    //   toast({
-    //     title: 'تم تسجيل الخروج بنجاح',
-    //   });
-    //   router.push('/login');
-    // } catch (error) {
-    //   toast({
-    //     variant: 'destructive',
-    //     title: 'خطأ في تسجيل الخروج',
-    //     description: 'حدث خطأ ما، يرجى المحاولة مرة أخرى.',
-    //   });
-    // }
   };
   
     const handleSwitchRole = async () => {
@@ -176,44 +163,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         description: 'تم تعطيل حذف الحساب في وضع التطوير.',
     });
     setIsDeleteConfirmOpen(false);
-
-    // if (!user || !auth || !firestore) {
-    //   toast({ variant: 'destructive', title: 'خطأ', description: 'لم يتم العثور على المستخدم.' });
-    //   setIsDeleteConfirmOpen(false);
-    //   return;
-    // }
-    
-    // try {
-    //   // Note: Deleting Firestore data can be done first
-    //   const userDocRef = doc(firestore, 'users', user.uid);
-    //   await deleteDoc(userDocRef);
-
-    //   await deleteUser(user);
-    //   toast({ title: 'تم حذف الحساب بنجاح', description: 'نأمل أن نراك مرة أخرى قريبًا.' });
-    //   router.push('/signup');
-
-    // } catch (error: any) {
-    //   console.error("Delete account error:", error);
-    //   if (error.code === 'auth/requires-recent-login') {
-    //     toast({
-    //       variant: 'destructive',
-    //       title: 'مطلوب إعادة تسجيل الدخول',
-    //       description: 'هذه عملية حساسة. يرجى تسجيل الدخول مرة أخرى للمتابعة.',
-    //       duration: 6000,
-    //     });
-    //     // Optionally sign the user out to force re-login
-    //     await signOut(auth);
-    //     router.push('/login');
-    //   } else {
-    //     toast({
-    //       variant: 'destructive',
-    //       title: 'فشل حذف الحساب',
-    //       description: 'حدث خطأ أثناء محاولة حذف حسابك.',
-    //     });
-    //   }
-    // } finally {
-    //   setIsDeleteConfirmOpen(false);
-    // }
   };
 
   const handleResendVerification = async () => {
@@ -234,7 +183,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isGuestUser = user?.email === 'guest@example.com';
+  const isDevUser = user?.email === 'dev@safar.com';
 
   const UserMenuContent = () => (
     <>
@@ -330,7 +279,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-2 ms-auto">
             
-            {isGuestUser && (
+            {isDevUser && (
                  <Tooltip>
                     <TooltipTrigger asChild>
                        <Button 
@@ -457,7 +406,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {user && !user.emailVerified && !isGuestUser && (
+        {user && !user.emailVerified && !isDevUser && (
           <div className="sticky top-16 md:top-28 z-40 bg-yellow-600 text-white text-sm text-center p-2 flex items-center justify-center gap-2 animate-in slide-in-from-top duration-300">
             <AlertTriangle className="h-4 w-4" />
             <span>حسابك غير مفعل. الرجاء التحقق من بريدك الإلكتروني.</span>

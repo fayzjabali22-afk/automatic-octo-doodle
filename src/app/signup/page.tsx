@@ -95,46 +95,46 @@ export default function SignupPage() {
     }
   };
 
-  const handleGuestSignIn = async () => {
+  const handleDevSignIn = async () => {
     if (!auth || !firestore) {
       toast({ title: "Error", description: "Firebase not initialized.", variant: "destructive" });
       return;
     }
   
-    const guestEmail = 'guest@example.com';
-    const guestPassword = 'password123';
+    const devEmail = 'dev@safar.com';
+    const devPassword = 'password123';
   
-    toast({ title: 'Logging in as Guest...', description: 'Please wait.' });
+    toast({ title: 'Logging in as Dev...', description: 'Please wait.' });
   
     // First, try to log in.
-    const signInSuccess = await initiateEmailSignIn(auth, guestEmail, guestPassword);
+    const signInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
   
     if (signInSuccess) {
-      toast({ title: 'Logged in as Guest', description: 'Developer mode activated.' });
+      toast({ title: 'Logged in as Dev', description: 'Developer mode activated.' });
       router.push('/dashboard');
       return;
     }
   
     // If login fails (likely because the account doesn't exist), create it.
-    toast({ title: 'Creating guest account...', description: 'One moment.' });
-    const guestProfile = {
-      firstName: 'Guest',
-      lastName: 'User',
-      email: guestEmail,
-      phoneNumber: '123-456-7890',
+    toast({ title: 'Creating dev account...', description: 'One moment.' });
+    const devProfile = {
+      firstName: 'Sovereign',
+      lastName: 'Developer',
+      email: devEmail,
+      phoneNumber: '000-000-0000',
     };
   
     // Create the user but don't sign out afterwards
-    const signUpSuccess = await initiateEmailSignUp(auth, firestore, guestEmail, guestPassword, guestProfile, false);
+    const signUpSuccess = await initiateEmailSignUp(auth, firestore, devEmail, devPassword, devProfile, false);
   
     if (signUpSuccess) {
-      // Now, sign in with the newly created account. This is redundant if signUp doesn't sign out, but safe.
-      const finalSignInSuccess = await initiateEmailSignIn(auth, guestEmail, guestPassword);
+      // Now, sign in with the newly created account.
+      const finalSignInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
       if (finalSignInSuccess) {
-        toast({ title: 'Logged in as Guest', description: 'Developer mode activated.' });
+        toast({ title: 'Logged in as Dev', description: 'Developer mode activated.' });
         router.push('/dashboard');
       } else {
-        toast({ title: "Guest Login Failed", description: "Could not log in after creating the guest account.", variant: "destructive"});
+        toast({ title: "Dev Login Failed", description: "Could not log in after creating the dev account.", variant: "destructive"});
       }
     }
     // Error toasts for signup failure are handled within the initiateEmailSignUp function
@@ -198,6 +198,20 @@ export default function SignupPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+               <Button type="button" className="w-full" onClick={handleDevSignIn}>
+                <TestTube2 className="mr-2 h-5 w-5" />
+                دخول فوري للمطور
+              </Button>
+              <div className="relative my-2">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                    أو سجل حساباً جديداً
+                    </span>
+                </div>
+              </div>
               <FormField
                 control={form.control}
                 name="fullName"
@@ -254,10 +268,7 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
-              <Button type="button" className="w-full" onClick={handleGuestSignIn}>
-                <TestTube2 className="mr-2 h-5 w-5" />
-                Continue as Guest (Dev Mode)
-              </Button>
+             
               <Button variant="secondary" type="submit" className="w-full">
                 Create an account
               </Button>

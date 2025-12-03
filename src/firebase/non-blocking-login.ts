@@ -71,7 +71,7 @@ export async function initiateEmailSignUp(
 
     try {
         const userRef = doc(firestore, 'users', user.uid);
-        // All new users, including guest, default to traveler
+        // All new users, including dev, default to traveler
         const finalProfileData = { ...profileData, role: 'traveler', createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
         await setDoc(userRef, finalProfileData);
     } catch (firestoreError: any) {
@@ -87,8 +87,8 @@ export async function initiateEmailSignUp(
     }
 
     try {
-        // Don't send verification for the guest account
-        if (email !== 'guest@example.com') {
+        // Don't send verification for the dev account
+        if (email !== 'dev@safar.com') {
             await sendEmailVerification(user, actionCodeSettings);
             if (signOutAfter) {
                 toast({
@@ -122,7 +122,7 @@ export async function initiateEmailSignIn(authInstance: Auth, email: string, pas
     return true;
   } catch (error: any) {
     if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-         // This is a common case for the guest login flow, so we don't show a toast.
+         // This is a common case for the dev login flow, so we don't show a toast.
          // The calling function will handle the next step (e.g., creating the account).
     } else {
         toast({
@@ -175,5 +175,3 @@ export async function initiateGoogleSignIn(auth: Auth, firestore: Firestore): Pr
     return false;
   }
 }
-
-    
