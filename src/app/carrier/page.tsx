@@ -8,16 +8,15 @@ export default function CarrierDashboardPage() {
   return (
     <div className="p-4 md:p-8">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold">بوابة الناقل - المنطقة الآمنة</h1>
+        <h1 className="text-3xl font-bold">Secure Carrier Zone - Access Granted</h1>
         {isLoading ? (
             <Skeleton className="h-6 w-48 mt-2" />
         ) : (
              <p className="text-muted-foreground text-lg">
-                مرحباً بك يا {profile?.firstName}
+                Welcome {profile?.firstName}
             </p>
         )}
       </header>
-       <p>Carrier Portal - Secure Zone. Welcome {profile?.firstName}</p>
     </div>
   );
 }

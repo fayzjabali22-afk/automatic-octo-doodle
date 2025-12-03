@@ -1,12 +1,9 @@
 'use client';
 
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ShieldAlert, Ship } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { AppLayout } from '@/components/app-layout';
+import { Ship } from 'lucide-react';
 
 function LoadingSpinner() {
     return (
