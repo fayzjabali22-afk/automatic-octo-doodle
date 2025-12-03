@@ -239,15 +239,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <span className="text-xl font-bold">Safar Carrier</span>
                   </div>
                   {mobileMenuItems.map((item) => {
-                    const isDisabled = false; // DEV MODE: All enabled
-                    if (isDisabled) {
-                      return (
-                        <span key={item.label} className="flex items-center justify-start font-bold text-white/50 cursor-not-allowed gap-2">
-                           <Lock className="h-4 w-4" />
-                           {item.label}
-                        </span>
-                      )
-                    }
                     return (
                       <Link
                         key={item.label}
