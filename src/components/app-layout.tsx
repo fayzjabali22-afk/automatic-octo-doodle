@@ -232,9 +232,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen w-full flex-col bg-background" dir="rtl">
         <header className={cn(
           "sticky top-0 z-50 flex h-16 items-center justify-between px-4 shadow-md md:px-6",
-          isCarrierPath 
-            ? "bg-accent text-accent-foreground border-b border-accent-foreground/20" 
-            : "bg-accent text-accent-foreground border-b border-border/10"
+          "bg-accent text-accent-foreground border-b border-border/10"
         )}>
 
           <div className="flex items-center md:hidden">
