@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Logo } from '@/components/logo';
+import { Logo } from '@/components/ui/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useAuth, initiateEmailSignIn, useFirestore, initiateGoogleSignIn, initiateEmailSignUp } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -149,11 +149,11 @@ export default function LoginPage() {
           <Logo className="mb-4 justify-center" />
           <CardTitle className="text-2xl">Welcome Back</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Use the developer login for instant access or sign in normally.
           </CardDescription>
         </CardHeader>
         <CardContent>
-           <Button type="button" className="w-full mb-4" onClick={handleDevSignIn}>
+           <Button type="button" size="lg" className="w-full mb-4" onClick={handleDevSignIn}>
               <TestTube2 className="mr-2 h-5 w-5" />
               دخول فوري للمطور
             </Button>
