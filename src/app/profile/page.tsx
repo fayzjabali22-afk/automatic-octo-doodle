@@ -139,34 +139,41 @@ export default function ProfilePage() {
   };
 
     const handleDeleteAccount = async () => {
-    if (!user || !auth || !firestore) {
-        toast({ variant: 'destructive', title: 'خطأ', description: 'لم يتم العثور على المستخدم أو خدمات Firebase.' });
-        setIsDeleteConfirmOpen(false);
-        return;
-    }
+    // DEV MODE: Bypassing auth check
+    toast({
+        title: 'تم تعطيل المصادقة',
+        description: 'تم تعطيل حذف الحساب في وضع التطوير.',
+    });
+    setIsDeleteConfirmOpen(false);
 
-    const userDocRef = doc(firestore, 'users', user.uid);
+    // if (!user || !auth || !firestore) {
+    //     toast({ variant: 'destructive', title: 'خطأ', description: 'لم يتم العثور على المستخدم أو خدمات Firebase.' });
+    //     setIsDeleteConfirmOpen(false);
+    //     return;
+    // }
 
-    try {
-        await deleteDoc(userDocRef);
-        toast({ title: 'تم حذف ملف Firestore الشخصي', description: 'تمت إزالة ملفك الشخصي من قاعدة البيانات.' });
-        await deleteUser(user);
+    // const userDocRef = doc(firestore, 'users', user.uid);
+
+    // try {
+    //     await deleteDoc(userDocRef);
         
-        toast({ title: 'تم حذف الحساب بنجاح', description: 'نأمل أن نراك مرة أخرى قريبًا.' });
-        router.push('/signup');
-
-    } catch (error: any) {
-        console.error("Delete account error:", error);
+    //     await deleteUser(user);
         
-        if (error.code === 'auth/requires-recent-login') {
-            toast({ variant: 'destructive', title: 'فشل حذف المصادقة', description: 'هذه العملية تتطلب إعادة تسجيل دخول حديثة. تم حذف بياناتك، يرجى تسجيل الخروج ثم الدخول مرة أخرى لإكمال الحذف.' });
-             router.push('/login'); 
-        } else {
-             toast({ variant: 'destructive', title: 'فشل حذف الحساب', description: 'حدث خطأ أثناء محاولة حذف حسابك.' });
-        }
-    } finally {
-        setIsDeleteConfirmOpen(false);
-    }
+    //     toast({ title: 'تم حذف الحساب بنجاح', description: 'نأمل أن نراك مرة أخرى قريبًا.' });
+    //     router.push('/signup');
+
+    // } catch (error: any) {
+    //     console.error("Delete account error:", error);
+        
+    //     if (error.code === 'auth/requires-recent-login') {
+    //         toast({ variant: 'destructive', title: 'فشل حذف المصادقة', description: 'هذه العملية تتطلب إعادة تسجيل دخول حديثة. تم حذف بياناتك، يرجى تسجيل الخروج ثم الدخول مرة أخرى لإكمال الحذف.' });
+    //          router.push('/login'); 
+    //     } else {
+    //          toast({ variant: 'destructive', title: 'فشل حذف الحساب', description: 'حدث خطأ أثناء محاولة حذف حسابك.' });
+    //     }
+    // } finally {
+    //     setIsDeleteConfirmOpen(false);
+    // }
   };
 
   const isGuestUser = user?.email === 'guest@example.com';

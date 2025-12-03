@@ -32,7 +32,7 @@ import {
   setDocumentNonBlocking,
   useAuth,
 } from '@/firebase';
-import { doc, collection, query, where, limit, updateDoc } from 'firebase/firestore';
+import { doc, collection, query, where, limit, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { Notification } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { signOut, deleteUser, sendEmailVerification } from 'firebase/auth';
@@ -170,27 +170,47 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
 
   const handleDeleteAccount = async () => {
-    // DEV MODE: Bypassing auth
-     toast({
+    // DEV MODE: Bypassing auth check
+    toast({
         title: 'تم تعطيل المصادقة',
         description: 'تم تعطيل حذف الحساب في وضع التطوير.',
     });
     setIsDeleteConfirmOpen(false);
-    // if (!user || !auth) {
+
+    // if (!user || !auth || !firestore) {
     //   toast({ variant: 'destructive', title: 'خطأ', description: 'لم يتم العثور على المستخدم.' });
+    //   setIsDeleteConfirmOpen(false);
     //   return;
     // }
+    
     // try {
+    //   // Note: Deleting Firestore data can be done first
+    //   const userDocRef = doc(firestore, 'users', user.uid);
+    //   await deleteDoc(userDocRef);
+
     //   await deleteUser(user);
     //   toast({ title: 'تم حذف الحساب بنجاح', description: 'نأمل أن نراك مرة أخرى قريبًا.' });
     //   router.push('/signup');
+
     // } catch (error: any) {
     //   console.error("Delete account error:", error);
-    //   toast({
-    //     variant: 'destructive',
-    //     title: 'فشل حذف الحساب',
-    //     description: 'هذه العملية تتطلب إعادة تسجيل دخول حديثة. الرجاء تسجيل الخروج ثم الدخول مرة أخرى والمحاولة مجددًا.',
-    //   });
+    //   if (error.code === 'auth/requires-recent-login') {
+    //     toast({
+    //       variant: 'destructive',
+    //       title: 'مطلوب إعادة تسجيل الدخول',
+    //       description: 'هذه عملية حساسة. يرجى تسجيل الدخول مرة أخرى للمتابعة.',
+    //       duration: 6000,
+    //     });
+    //     // Optionally sign the user out to force re-login
+    //     await signOut(auth);
+    //     router.push('/login');
+    //   } else {
+    //     toast({
+    //       variant: 'destructive',
+    //       title: 'فشل حذف الحساب',
+    //       description: 'حدث خطأ أثناء محاولة حذف حسابك.',
+    //     });
+    //   }
     // } finally {
     //   setIsDeleteConfirmOpen(false);
     // }
