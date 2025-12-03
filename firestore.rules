@@ -18,6 +18,7 @@ service cloud.firestore {
     // --- المستخدمون (Users) ---
     match /users/{userId} {
       allow read, write: if isOwner(userId);
+      allow update: if isOwner(userId); // Allow users to update their own profile (for role switching etc.)
     }
     
     // --- الناقلون (Carriers) ---
