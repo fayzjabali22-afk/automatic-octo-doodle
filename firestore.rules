@@ -40,7 +40,8 @@ service cloud.firestore {
         resource.data.carrierId == request.auth.uid
       );
       
-      allow list: if isSignedIn(); 
+      // Allow listing if the query is filtering by the user's ID.
+      allow list: if isSignedIn() && request.query.get('where')[0][2] == request.auth.uid;
 
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
       
@@ -93,9 +94,6 @@ service cloud.firestore {
       allow create: if isParticipant(request.resource.data);
       allow read, update: if isSignedIn() && (request.auth.uid in resource.data.participants);
       
-      // FIX: Correctly allow listing chats user is a participant in.
-      // Firestore automatically applies 'read' rules to 'list' queries.
-      // So allowing list if signed in is safe as long as the read rule is secure.
       allow list: if isSignedIn();
 
       match /messages/{messageId} {

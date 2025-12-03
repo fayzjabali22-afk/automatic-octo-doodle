@@ -77,7 +77,7 @@ export default function HistoryPage() {
     return query(
       collection(firestore, 'trips'),
       where('userId', '==', user.uid),
-      orderBy('departureDate', 'desc'), // FIX: Sort by date to ensure recent trips appear first
+      orderBy('departureDate', 'desc'),
       limit(50) 
     );
   }, [firestore, user]);
@@ -89,8 +89,7 @@ export default function HistoryPage() {
       return { awaitingTrips: [], pendingConfirmationTrips: [], confirmedTrips: [] };
     }
     
-    // Filtering (Sorting is already handled by Firestore query for efficiency, but keeping client sort is fine as backup)
-    const sortedTrips = [...allUserTrips]; // Already sorted by query
+    const sortedTrips = [...allUserTrips];
 
     const awaiting = sortedTrips.filter(t => t.status === 'Awaiting-Offers');
     const pending = sortedTrips.filter(t => t.status === 'Pending-Carrier-Confirmation');
@@ -151,13 +150,15 @@ export default function HistoryPage() {
         createdAt: new Date().toISOString(),
       });
 
+      // @ts-ignore
+      const carrierName = offer.carrierName || '';
+
       batch.update(doc(firestore, 'trips', trip.id), {
         status: 'Pending-Carrier-Confirmation',
         acceptedOfferId: offer.id,
-        bookingIds: arrayUnion(bookingRef.id), // FIX: Use arrayUnion to safely add to array
+        bookingIds: arrayUnion(bookingRef.id),
         carrierId: offer.carrierId,
-        // @ts-ignore
-        carrierName: offer.carrierName || '', // Ensure mapping if available in offer object, otherwise fetch logic needed
+        carrierName: carrierName,
       });
 
       const notificationRef = doc(collection(firestore, 'notifications'));
