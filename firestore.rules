@@ -34,14 +34,11 @@ service cloud.firestore {
 
     // --- الرحلات (Trips) ---
     match /trips/{tripId} {
-      allow get: if isSignedIn() && (
-        isOwner(resource.data.userId) || 
-        resource.data.status == 'Awaiting-Offers' ||
-        resource.data.carrierId == request.auth.uid
-      );
-      
-      // Allow a user to list only their own trips.
-      allow list: if isSignedIn() && request.query.where[0][2] == request.auth.uid;
+      // Allow a user to read a trip if they are the owner,
+      // or if the trip is a public request for offers.
+      // This single rule covers both 'get' and 'list' queries.
+      allow read: if isSignedIn() && 
+                    (isOwner(resource.data.userId) || resource.data.status == 'Awaiting-Offers');
 
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
       
