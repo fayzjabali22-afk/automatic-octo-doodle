@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Trip } from '@/lib/data';
@@ -106,6 +106,12 @@ const mockTrips: Trip[] = [
 function TripListItem({ trip, onEdit }: { trip: Trip, onEdit: (trip: Trip) => void }) {
     const statusInfo = statusMap[trip.status] || { text: trip.status, icon: CircleDollarSign, className: 'bg-gray-100 text-gray-800' };
     const { toast } = useToast();
+    const [formattedDate, setFormattedDate] = useState('');
+
+    useEffect(() => {
+        setFormattedDate(safeDateFormat(trip.departureDate));
+    }, [trip.departureDate]);
+
 
     const handleCancelTrip = () => {
         toast({
@@ -127,7 +133,7 @@ function TripListItem({ trip, onEdit }: { trip: Trip, onEdit: (trip: Trip) => vo
                 </div>
                  <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-primary" />
-                    <span>{safeDateFormat(trip.departureDate)}</span>
+                    <span>{formattedDate || <Skeleton className="h-4 w-24" />}</span>
                 </div>
                  <div className="flex items-center gap-2 text-sm">
                     <Users className="h-4 w-4 text-primary" />
