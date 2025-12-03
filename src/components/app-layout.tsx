@@ -233,7 +233,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <header className={cn(
           "sticky top-0 z-50 flex h-16 items-center justify-between px-4 shadow-md md:px-6",
           isCarrierPath 
-            ? "bg-[#F9F4FB] text-black border-b-4 border-blue-500" 
+            ? "bg-accent text-accent-foreground border-b border-accent-foreground/20" 
             : "bg-accent text-accent-foreground border-b border-border/10"
         )}>
 
@@ -451,5 +451,3 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </TooltipProvider>
   );
 }
-
-    
