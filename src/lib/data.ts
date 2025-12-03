@@ -6,7 +6,7 @@ export type UserProfile = {
   lastName: string;
   email: string;
   phoneNumber?: string;
-  role?: 'traveler' | 'carrier';
+  role?: 'traveler' | 'carrier' | 'admin';
   createdAt?: any;
   updatedAt?: any;
 };
@@ -110,6 +110,7 @@ export const userProfile: UserProfile = {
   firstName: 'Fayz',
   lastName: 'Al-Harbi',
   email: 'fayz.alharbi@example.com',
+  role: 'traveler',
 };
 
 // --- MOCK DATA FOR DEVELOPMENT ---
