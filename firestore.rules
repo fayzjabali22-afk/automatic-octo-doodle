@@ -78,9 +78,11 @@ service cloud.firestore {
     match /bookings/{bookingId} {
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
       
-      allow read, list: if isSignedIn() && ( // Added list
+      // Allow user to see their bookings, or carrier to see bookings for them
+      allow read, list: if isSignedIn() && (
         isOwner(resource.data.userId) || 
-        isOwner(resource.data.carrierId)
+        isOwner(resource.data.carrierId) ||
+        (request.query.keys().hasOnly(['carrierId', 'orderBy', 'limit']) && request.query.carrierId == request.auth.uid)
       );
       
       allow update: if isSignedIn() && (
