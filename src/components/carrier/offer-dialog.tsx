@@ -27,7 +27,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import type { Trip } from '@/lib/data';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, Sparkles } from 'lucide-react';
+import { suggestOfferPrice } from '@/ai/flows/suggest-offer-price-flow';
 
 const offerFormSchema = z.object({
   price: z.coerce.number().positive('يجب أن يكون السعر رقماً موجباً'),
@@ -49,6 +50,7 @@ export function OfferDialog({ isOpen, onOpenChange, trip }: OfferDialogProps) {
   const firestore = useFirestore();
   const { user: carrierUser } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuggestingPrice, setIsSuggestingPrice] = useState(false);
 
   const form = useForm<OfferFormValues>({
     resolver: zodResolver(offerFormSchema),
@@ -59,6 +61,34 @@ export function OfferDialog({ isOpen, onOpenChange, trip }: OfferDialogProps) {
       notes: '',
     },
   });
+
+  const handleSuggestPrice = async () => {
+    setIsSuggestingPrice(true);
+    try {
+        const result = await suggestOfferPrice({
+            origin: trip.origin,
+            destination: trip.destination,
+            passengers: trip.passengers || 1,
+            departureDate: trip.departureDate,
+        });
+
+        form.setValue('price', result.suggestedPrice, { shouldValidate: true });
+        toast({
+            title: '💡 اقتراح السعر الذكي',
+            description: result.justification,
+        });
+
+    } catch (error) {
+        console.error("AI Price Suggestion Error:", error);
+        toast({
+            variant: 'destructive',
+            title: 'خطأ في الاقتراح',
+            description: 'لم نتمكن من اقتراح سعر في الوقت الحالي.'
+        });
+    } finally {
+        setIsSuggestingPrice(false);
+    }
+  }
 
   const onSubmit = async (data: OfferFormValues) => {
     if (!firestore || !carrierUser) {
@@ -153,6 +183,20 @@ export function OfferDialog({ isOpen, onOpenChange, trip }: OfferDialogProps) {
                     )}
                 />
             </div>
+             <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleSuggestPrice}
+                disabled={isSuggestingPrice}
+            >
+                {isSuggestingPrice ? (
+                     <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                ) : (
+                    <Sparkles className="ml-2 h-4 w-4 text-accent" />
+                )}
+               اقترح لي سعراً (AI)
+            </Button>
              <FormField
               control={form.control}
               name="vehicleType"
