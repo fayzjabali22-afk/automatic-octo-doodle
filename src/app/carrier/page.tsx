@@ -1,7 +1,6 @@
 'use client';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DashboardStats } from '@/components/carrier/dashboard-stats';
 import { QuickActions } from '@/components/carrier/quick-actions';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -44,9 +43,7 @@ export default function CarrierDashboardPage() {
 
       {/* Main Content */}
       <div className="space-y-8">
-        {/* Stats Section */}
-        <DashboardStats />
-
+        
         {/* Quick Actions Section */}
         <QuickActions />
 
