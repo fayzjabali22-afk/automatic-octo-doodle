@@ -1,11 +1,13 @@
 'use client';
 
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShieldAlert, Ship } from 'lucide-react';
+import { ShieldAlert, Ship, LayoutDashboard, FilePlus, Route } from 'lucide-react';
 import { AppLayout } from '@/components/app-layout';
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 
 function LoadingSpinner() {
@@ -43,6 +45,12 @@ function AccessDenied() {
   );
 }
 
+const sidebarNavLinks = [
+    { href: '/carrier', label: 'لوحة القيادة', icon: LayoutDashboard, exact: true },
+    { href: '/carrier/requests', label: 'سوق الطلبات', icon: FilePlus, exact: false },
+    { href: '/carrier/trips', label: 'رحلاتي المجدولة', icon: Route, exact: false }
+];
+
 
 export default function CarrierLayout({
   children,
@@ -50,6 +58,7 @@ export default function CarrierLayout({
   children: React.ReactNode;
 }) {
   const { user, profile, isLoading } = useUserProfile();
+  const pathname = usePathname();
   
   if (isLoading) {
     return <LoadingSpinner />;
@@ -59,19 +68,31 @@ export default function CarrierLayout({
     return <AccessDenied />;
   }
 
-  // If user is a carrier, render the carrier-specific layout
   return (
     <AppLayout>
       <div className="grid h-full grid-cols-1 md:grid-cols-[240px_1fr]">
-        {/* Placeholder for Carrier Sidebar */}
-        <aside className="hidden md:block h-full bg-secondary/50 border-e p-4">
-           <h2 className="font-bold text-lg">قائمة الناقل</h2>
-           {/* Sidebar links will go here */}
+        <aside className="hidden md:block h-full bg-card border-e p-4">
+           <h2 className="font-bold text-lg mb-4 px-2">قائمة الناقل</h2>
+           <nav className="flex flex-col gap-2">
+            {sidebarNavLinks.map(link => {
+                const isActive = link.exact ? pathname === link.href : pathname.startsWith(link.href);
+                return (
+                    <Link key={link.href} href={link.href}>
+                        <div className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-muted",
+                            isActive && "bg-muted text-primary font-bold"
+                        )}>
+                            <link.icon className="h-4 w-4" />
+                            {link.label}
+                        </div>
+                    </Link>
+                )
+            })}
+           </nav>
         </aside>
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
-             <div className="border-4 border-dashed border-primary/20 m-4 rounded-lg bg-card/50 p-4 min-h-[200px]">
+        <main className="flex-1 overflow-y-auto bg-muted/30">
+             <div className="p-2 md:p-4 min-h-[200px]">
                 {children}
             </div>
         </main>

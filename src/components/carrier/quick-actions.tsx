@@ -2,7 +2,7 @@
 
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search } from 'lucide-react';
+import { Route, Search } from 'lucide-react';
 import Link from 'next/link';
 
 export function QuickActions() {
@@ -28,16 +28,16 @@ export function QuickActions() {
             </Card>
             <Card className="flex flex-col justify-between hover:bg-card/80 transition-colors w-full">
                 <CardHeader>
-                    <CardTitle>إضافة رحلة مجدولة جديدة</CardTitle>
+                    <CardTitle>إدارة رحلاتي المجدولة</CardTitle>
                     <CardDescription>
-                        قم بإنشاء رحلة جديدة بمسار وأسعار محددة مسبقًا.
+                        أضف رحلات جديدة بمسار وأسعار محددة، وتابع رحلاتك الحالية.
                     </CardDescription>
                 </CardHeader>
                  <div className="p-4 pt-0">
                     <Button asChild className="w-full" variant="secondary">
-                        <Link href="#">
-                            <PlusCircle className="ml-2 h-4 w-4" />
-                            إضافة رحلة
+                        <Link href="/carrier/trips">
+                            <Route className="ml-2 h-4 w-4" />
+                            إدارة الرحلات
                         </Link>
                     </Button>
                 </div>
