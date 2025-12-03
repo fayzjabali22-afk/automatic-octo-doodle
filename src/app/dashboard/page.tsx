@@ -387,7 +387,7 @@ export default function DashboardPage() {
               <p className="text-muted-foreground mt-2">ابحث عن رحلتك القادمة أو استعرض الرحلات المجدولة بسهولة.</p>
             </header>
 
-            <Card className="w-full shadow-lg rounded-lg mb-8 border-border/60 bg-card/80 backdrop-blur-sm">
+            <Card className="w-full shadow-lg rounded-lg mb-8 border-accent bg-card/80 backdrop-blur-sm">
               <CardContent className="p-4 md:p-6">
                 <div className="grid grid-cols-1 gap-4">
 
