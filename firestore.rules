@@ -2,10 +2,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Development mode: allow all reads and writes to all collections.
-    // Using {document=**} as the most direct way to match all documents.
+    // A function that returns true whether a user is signed in or not,
+    // bypassing all auth checks during development.
+    function isSignedIn() {
+      return true;
+    }
+
+    // All collections are readable/writable if the custom isSignedIn function returns true.
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if isSignedIn();
     }
   }
 }
