@@ -19,51 +19,44 @@ function LoadingSpinner() {
     );
 }
 
+function AccessDenied() {
+  const router = useRouter();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.replace('/dashboard');
+    }, 3000); // 3-second delay
+    return () => clearTimeout(timer);
+  }, [router]);
+
+  return (
+    <AppLayout>
+      <div className="flex h-[calc(100vh-200px)] items-center justify-center text-center p-8">
+          <div className="flex flex-col items-center gap-4">
+              <ShieldAlert className="h-16 w-16 text-destructive" />
+              <h1 className="text-2xl font-bold text-destructive">الوصول مرفوض</h1>
+              <p className="text-muted-foreground max-w-md">
+                  هذه المنطقة مخصصة للناقلين فقط. يتم الآن إعادة توجيهك...
+              </p>
+          </div>
+      </div>
+    </AppLayout>
+  );
+}
+
+
 export default function CarrierLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const { user, profile, isLoading } = useUserProfile();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && (!user || profile?.role !== 'carrier')) {
-        // Instead of a hard redirect, this logic will now be handled by the rendered output.
-        // We can keep a client-side redirect as a fallback if needed, but let's rely on conditional rendering first.
-        // To prevent flashes of content, we still might want to redirect, but let's try a softer approach.
-        // For now, let's remove the aggressive redirect.
-    }
-  }, [isLoading, user, profile, router]);
-
+  
   if (isLoading) {
     return <LoadingSpinner />;
   }
 
-  // If the user is not a carrier, show an access denied message.
-  // This is more stable than a `redirect()` call inside a 'use client' component's render body.
   if (!user || profile?.role !== 'carrier') {
-    // We'll show a message and then redirect after a short delay, which is a smoother user experience.
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        router.replace('/dashboard');
-      }, 2000); // 2-second delay before redirecting
-      return () => clearTimeout(timer);
-    }, [router]);
-    
-    return (
-       <AppLayout>
-        <div className="flex h-[calc(100vh-200px)] items-center justify-center text-center p-8">
-            <div className="flex flex-col items-center gap-4">
-                <ShieldAlert className="h-16 w-16 text-destructive" />
-                <h1 className="text-2xl font-bold text-destructive">الوصول مرفوض</h1>
-                <p className="text-muted-foreground max-w-md">
-                    هذه المنطقة مخصصة للناقلين فقط. يتم الآن إعادة توجيهك...
-                </p>
-            </div>
-        </div>
-      </AppLayout>
-    );
+    return <AccessDenied />;
   }
 
   // If user is a carrier, render the carrier-specific layout
