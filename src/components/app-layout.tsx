@@ -236,8 +236,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <TooltipProvider>
       <div className="flex min-h-screen w-full flex-col bg-background" dir="rtl">
         <header className={cn(
-          "sticky top-0 z-50 flex h-16 items-center justify-between border-b px-4 shadow-md md:px-6",
-          isCarrierPath ? "bg-white text-black" : "bg-sidebar-primary text-sidebar-primary-foreground"
+          "sticky top-0 z-50 flex h-16 items-center justify-between px-4 shadow-md md:px-6",
+          isCarrierPath 
+            ? "bg-white text-black border-b-4 border-blue-500" 
+            : "bg-sidebar-primary text-sidebar-primary-foreground border-b border-border"
         )}>
 
           <div className="flex items-center md:hidden">
