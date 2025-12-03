@@ -50,8 +50,8 @@ service cloud.firestore {
     // --- الرحلات (Trips) ---
     match /trips/{tripId} {
       
-      // Allow any signed-in user to read trips and offers
-      allow read: if isSignedIn();
+      // Allow any signed-in user to read and list trips and offers
+      allow get, list: if isSignedIn();
 
       // Write operations are secured
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
