@@ -30,16 +30,18 @@ const statusMap: Record<string, { text: string; className: string }> = {
 };
 
 function UserInfo({ userId }: { userId: string }) {
+    // This component can still fetch live user data if needed, or be mocked.
+    // For this scenario, we keep it as is, assuming user profiles are not part of the core simulation.
     const firestore = useFirestore();
     const userRef = useMemo(() => userId ? doc(firestore, 'users', userId) : null, [firestore, userId]);
     const { data: userProfile, isLoading } = useDoc<UserProfile>(userRef);
 
     if (isLoading) return <Skeleton className="h-6 w-32" />;
+    if (!userProfile) return <span className="font-bold">{userId}</span>; // Fallback to ID
     return <span className="font-bold">{userProfile?.firstName} {userProfile?.lastName}</span>;
 }
 
-function TripInfo({ trip, isLoading }: { trip?: Trip, isLoading: boolean }) {
-    if (isLoading) return <Skeleton className="h-5 w-48 mt-1" />;
+function TripInfo({ trip }: { trip?: Trip | null }) {
     if (!trip) return <div className="text-red-500 text-sm">تفاصيل الرحلة غير متاحة</div>;
 
     return (
@@ -49,18 +51,13 @@ function TripInfo({ trip, isLoading }: { trip?: Trip, isLoading: boolean }) {
     );
 }
 
-export function BookingActionCard({ booking }: { booking: Booking }) {
-    const firestore = useFirestore();
+// In Simulation Mode, the trip data is passed directly as a prop.
+export function BookingActionCard({ booking, trip }: { booking: Booking, trip: Trip | null }) {
     const { toast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
     
-    // Fetches the live trip data from Firestore.
-    const tripRef = useMemo(() => {
-      if (!firestore) return null;
-      return doc(firestore, 'trips', booking.tripId);
-    }, [firestore, booking.tripId]);
-    
-    const { data: trip, isLoading: isLoadingTrip } = useDoc<Trip>(tripRef);
+    // In simulation mode, we don't fetch the trip, we use the one passed in.
+    const isLoadingTrip = false; 
     
     const { depositAmount, remainingAmount } = useMemo(() => {
         if (!trip) return { depositAmount: 0, remainingAmount: 0 };
@@ -70,52 +67,18 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
     }, [booking.totalPrice, trip]);
 
     const handleBookingAction = async (action: 'confirm' | 'reject') => {
-        if (!firestore || !trip) {
-            toast({ variant: 'destructive', title: 'خطأ', description: 'لا يمكن إتمام الإجراء، تفاصيل الرحلة غير متوفرة.' });
-            return;
-        }
-        
+        // In simulation, we just show a toast and don't interact with Firestore.
         setIsProcessing(true);
-        const bookingRef = doc(firestore, 'bookings', booking.id);
-        const liveTripRef = doc(firestore, 'trips', booking.tripId);
-        const batch = writeBatch(firestore);
-
-        if (action === 'confirm') {
-            batch.update(bookingRef, { status: 'Confirmed' });
-            batch.update(liveTripRef, { availableSeats: increment(-booking.seats) });
-            
-            const notificationData = {
-                userId: booking.userId, title: 'تم تأكيد حجزك!',
-                message: `خبر سعيد! تم تأكيد حجزك لرحلة ${getCityName(trip.origin)}. نتمنى لك رحلة موفقة!`,
-                type: 'booking_confirmed', isRead: false, createdAt: new Date().toISOString(), link: '/history',
-            };
-            addDocumentNonBlocking(collection(firestore, 'notifications'), notificationData);
-            logEvent('BOOKING_CONFIRMED', { carrierId: booking.carrierId, tripId: booking.tripId, bookingId: booking.id, totalPrice: booking.totalPrice, seats: booking.seats });
-        } else { // Reject
-            batch.update(bookingRef, { status: 'Cancelled' });
-            const notificationData = {
-                userId: booking.userId, title: 'تحديث بخصوص طلب الحجز',
-                message: `نعتذر، لم يتمكن الناقل من تأكيد طلب الحجز الخاص بك لرحلة ${getCityName(trip.origin)} في الوقت الحالي.`,
-                type: 'trip_update', isRead: false, createdAt: new Date().toISOString(), link: '/history',
-            };
-            addDocumentNonBlocking(collection(firestore, 'notifications'), notificationData);
-        }
-
-        try {
-            await batch.commit();
-            toast({ title: action === 'confirm' ? 'تم تأكيد الحجز بنجاح' : 'تم رفض الحجز' });
-        } catch (error) {
-            console.error('Error processing booking:', error);
-            toast({ variant: 'destructive', title: 'حدث خطأ', description: 'لم نتمكن من إتمام الإجراء. يرجى المحاولة مرة أخرى.' });
-        } finally {
+        setTimeout(() => {
+            toast({ title: `محاكاة: ${action === 'confirm' ? 'تم تأكيد الحجز' : 'تم رفض الحجز'}` });
             setIsProcessing(false);
-        }
+        }, 1000);
     };
 
     const statusInfo = statusMap[booking.status] || { text: booking.status, className: 'bg-gray-100 text-gray-800' };
     const isPending = booking.status === 'Pending-Carrier-Confirmation';
     
-    // SMART CAPACITY CHECK LOGIC
+    // SMART CAPACITY CHECK LOGIC - This now works with the mocked trip data passed in.
     const hasSufficientSeats = trip ? booking.seats <= (trip.availableSeats || 0) : false;
 
     return (
@@ -123,7 +86,7 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
             <CardHeader className="flex flex-row justify-between items-start pb-2">
                 <div>
                     <CardTitle className="text-base"><UserInfo userId={booking.userId} /></CardTitle>
-                    <TripInfo trip={trip} isLoading={isLoadingTrip} />
+                    <TripInfo trip={trip} />
                 </div>
                  <Badge className={statusInfo.className}>{statusInfo.text}</Badge>
             </CardHeader>
