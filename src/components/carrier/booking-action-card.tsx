@@ -49,23 +49,19 @@ function TripInfo({ trip, isLoading }: { trip?: Trip, isLoading: boolean }) {
     );
 }
 
-// The component now accepts an optional 'trip' prop for simulation mode.
-export function BookingActionCard({ booking, trip: simulatedTrip }: { booking: Booking, trip?: Trip }) {
+export function BookingActionCard({ booking }: { booking: Booking }) {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
     
-    // Logic to fetch the live trip data if no simulation data is provided.
+    // Fetches the live trip data from Firestore.
     const tripRef = useMemo(() => {
-      if (simulatedTrip || !firestore) return null;
+      if (!firestore) return null;
       return doc(firestore, 'trips', booking.tripId);
-    }, [firestore, booking.tripId, simulatedTrip]);
+    }, [firestore, booking.tripId]);
     
-    const { data: liveTrip, isLoading: isLoadingTrip } = useDoc<Trip>(tripRef);
+    const { data: trip, isLoading: isLoadingTrip } = useDoc<Trip>(tripRef);
     
-    // Use the simulated trip if provided, otherwise use the live data.
-    const trip = simulatedTrip || liveTrip;
-
     const { depositAmount, remainingAmount } = useMemo(() => {
         if (!trip) return { depositAmount: 0, remainingAmount: 0 };
         const deposit = booking.totalPrice * ((trip.depositPercentage || 20) / 100);
@@ -74,18 +70,8 @@ export function BookingActionCard({ booking, trip: simulatedTrip }: { booking: B
     }, [booking.totalPrice, trip]);
 
     const handleBookingAction = async (action: 'confirm' | 'reject') => {
-        // Guard for live mode: ensure firestore and the live trip object are available.
-        if (!firestore || (!simulatedTrip && !liveTrip)) {
+        if (!firestore || !trip) {
             toast({ variant: 'destructive', title: 'خطأ', description: 'لا يمكن إتمام الإجراء، تفاصيل الرحلة غير متوفرة.' });
-            return;
-        }
-
-        // SIMULATION GUARD: Prevent writes for mock data.
-        if (booking.id.startsWith('mock_')) {
-            toast({
-                title: `تم ${action === 'confirm' ? 'تأكيد' : 'رفض'} الحجز (محاكاة)`,
-                description: "هذا إجراء وهمي لغايات الاختبار.",
-            });
             return;
         }
         
@@ -100,7 +86,7 @@ export function BookingActionCard({ booking, trip: simulatedTrip }: { booking: B
             
             const notificationData = {
                 userId: booking.userId, title: 'تم تأكيد حجزك!',
-                message: `خبر سعيد! تم تأكيد حجزك لرحلة ${getCityName(trip!.origin)}. نتمنى لك رحلة موفقة!`,
+                message: `خبر سعيد! تم تأكيد حجزك لرحلة ${getCityName(trip.origin)}. نتمنى لك رحلة موفقة!`,
                 type: 'booking_confirmed', isRead: false, createdAt: new Date().toISOString(), link: '/history',
             };
             addDocumentNonBlocking(collection(firestore, 'notifications'), notificationData);
@@ -109,7 +95,7 @@ export function BookingActionCard({ booking, trip: simulatedTrip }: { booking: B
             batch.update(bookingRef, { status: 'Cancelled' });
             const notificationData = {
                 userId: booking.userId, title: 'تحديث بخصوص طلب الحجز',
-                message: `نعتذر، لم يتمكن الناقل من تأكيد طلب الحجز الخاص بك لرحلة ${getCityName(trip!.origin)} في الوقت الحالي.`,
+                message: `نعتذر، لم يتمكن الناقل من تأكيد طلب الحجز الخاص بك لرحلة ${getCityName(trip.origin)} في الوقت الحالي.`,
                 type: 'trip_update', isRead: false, createdAt: new Date().toISOString(), link: '/history',
             };
             addDocumentNonBlocking(collection(firestore, 'notifications'), notificationData);
@@ -137,7 +123,7 @@ export function BookingActionCard({ booking, trip: simulatedTrip }: { booking: B
             <CardHeader className="flex flex-row justify-between items-start pb-2">
                 <div>
                     <CardTitle className="text-base"><UserInfo userId={booking.userId} /></CardTitle>
-                    <TripInfo trip={trip} isLoading={isLoadingTrip && !simulatedTrip} />
+                    <TripInfo trip={trip} isLoading={isLoadingTrip} />
                 </div>
                  <Badge className={statusInfo.className}>{statusInfo.text}</Badge>
             </CardHeader>
@@ -185,7 +171,7 @@ export function BookingActionCard({ booking, trip: simulatedTrip }: { booking: B
                         <Button 
                             className="w-full bg-green-600 hover:bg-green-700 text-white" 
                             onClick={() => handleBookingAction('confirm')}
-                            disabled={isProcessing || (isLoadingTrip && !simulatedTrip) || !hasSufficientSeats}
+                            disabled={isProcessing || isLoadingTrip || !hasSufficientSeats}
                         >
                             {isProcessing ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Check className="ml-2 h-4 w-4" />}
                             تأكيد الحجز
@@ -194,7 +180,7 @@ export function BookingActionCard({ booking, trip: simulatedTrip }: { booking: B
                             variant="destructive" 
                             className="w-full"
                             onClick={() => handleBookingAction('reject')}
-                            disabled={isProcessing || (isLoadingTrip && !simulatedTrip)}
+                            disabled={isProcessing || isLoadingTrip}
                         >
                              {isProcessing ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <X className="ml-2 h-4 w-4" />}
                             رفض

@@ -2,74 +2,38 @@
 import { useMemo } from 'react';
 import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import { Booking, Trip } from '@/lib/data';
+import { Booking } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Inbox, History, Hourglass } from 'lucide-react';
 import { BookingActionCard } from '@/components/carrier/booking-action-card';
 
-// --- MOCK DATA FOR VISUAL VERIFICATION ---
-
-const mockTrip: Trip = {
-    id: 'mock_trip_for_booking',
-    userId: 'mock_user_1',
-    carrierId: 'carrier_user_id',
-    origin: 'amman',
-    destination: 'riyadh',
-    departureDate: new Date().toISOString(),
-    status: 'Planned',
-    price: 50,
-    availableSeats: 2, // CRITICAL: Only 2 seats are available for testing.
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-}
-
-const mockPendingBookings: Booking[] = [
-    {
-        id: 'mock_booking_valid', // This booking should be valid
-        tripId: 'mock_trip_for_booking',
-        userId: 'mock_user_1',
-        carrierId: 'carrier_user_id',
-        seats: 2, // Asks for 2 seats (available is 2)
-        passengersDetails: [ { name: 'أحمد الصالح', type: 'adult' }, { name: 'سارة الصالح', type: 'adult' } ],
-        status: 'Pending-Carrier-Confirmation',
-        totalPrice: 100,
-        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-        id: 'mock_booking_invalid', // This booking should be invalid
-        tripId: 'mock_trip_for_booking',
-        userId: 'mock_user_2',
-        carrierId: 'carrier_user_id',
-        seats: 3, // Asks for 3 seats (available is only 2)
-        passengersDetails: [ { name: 'فاطمة العلي', type: 'adult' }, { name: 'خالد العلي', type: 'adult' }, { name: 'طفل', type: 'child' } ],
-        status: 'Pending-Carrier-Confirmation',
-        totalPrice: 150,
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-    }
-];
-
-const mockHistoricalBookings: Booking[] = [
-    {
-        id: 'mock_hist_booking_1',
-        tripId: 'mock_hist_trip_1',
-        userId: 'mock_user_3',
-        carrierId: 'carrier_user_id',
-        seats: 1,
-        passengersDetails: [{ name: 'خالد المصري', type: 'adult' }],
-        status: 'Confirmed',
-        totalPrice: 50,
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    }
-];
-
-
 export default function CarrierBookingsPage() {
-    const isLoading = false;
-    const pendingBookings = mockPendingBookings;
-    const historicalBookings = mockHistoricalBookings;
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
+
+    // Query for all bookings related to the current carrier, ordered by creation date
+    const allBookingsQuery = useMemo(() => {
+        if (!firestore || !user) return null;
+        return query(
+            collection(firestore, 'bookings'),
+            where('carrierId', '==', user.uid),
+            orderBy('createdAt', 'desc')
+        );
+    }, [firestore, user]);
+
+    const { data: allBookings, isLoading: areBookingsLoading } = useCollection<Booking>(allBookingsQuery);
+
+    // Separate bookings into pending and historical using useMemo for efficiency
+    const { pendingBookings, historicalBookings } = useMemo(() => {
+        if (!allBookings) {
+            return { pendingBookings: [], historicalBookings: [] };
+        }
+        const pending = allBookings.filter(b => b.status === 'Pending-Carrier-Confirmation');
+        const historical = allBookings.filter(b => b.status !== 'Pending-Carrier-Confirmation');
+        return { pendingBookings: pending, historicalBookings: historical };
+    }, [allBookings]);
+
+    const isLoading = isUserLoading || areBookingsLoading;
 
     if (isLoading) {
         return (
@@ -100,8 +64,6 @@ export default function CarrierBookingsPage() {
                             <BookingActionCard 
                                 key={booking.id} 
                                 booking={booking} 
-                                // Pass the mock trip for testing purposes
-                                trip={booking.tripId === mockTrip.id ? mockTrip : undefined}
                             />
                         ))}
                     </div>
