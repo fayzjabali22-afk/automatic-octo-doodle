@@ -118,6 +118,33 @@ const mockConfirmedTrips: { trip: Trip, booking: Booking }[] = [
             currency: 'JOD',
             createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
         }
+    },
+    // --- NEW SCENARIO: Trip Cancelled by Carrier ---
+    {
+        trip: {
+            id: 'trip_cancelled_by_carrier_1',
+            userId: 'user1',
+            carrierId: 'carrier_X',
+            carrierName: 'النسر الذهبي',
+            origin: 'jeddah',
+            destination: 'cairo',
+            departureDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+            status: 'Cancelled', // Trip status is cancelled
+        },
+        booking: {
+            id: 'booking_cancelled_1',
+            tripId: 'trip_cancelled_by_carrier_1',
+            userId: 'user1',
+            carrierId: 'carrier_X',
+            seats: 1,
+            passengersDetails: [{ name: 'Noura', type: 'adult' }],
+            status: 'Cancelled', // Booking status is also cancelled
+            cancelledBy: 'carrier', // Indicates who cancelled
+            cancellationReason: 'ظروف تشغيلية طارئة لدى الناقل',
+            totalPrice: 150,
+            currency: 'SAR',
+            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        }
     }
 ];
 
@@ -387,6 +414,7 @@ export default function HistoryPage() {
                     {confirmedTrips.map(({trip, booking}) => {
                       const isCompleted = booking.status === 'Completed';
                       const canCancel = booking.status === 'Confirmed' && isFuture(new Date(trip.departureDate));
+                      const isCancelledByCarrier = booking.status === 'Cancelled' && booking.cancelledBy === 'carrier';
                       const closureTime = trip.departureDate && trip.durationHours ? addHours(new Date(trip.departureDate), trip.durationHours + 4) : null;
                       const isClosureDue = closureTime ? new Date() > closureTime : false;
 
@@ -399,6 +427,7 @@ export default function HistoryPage() {
                             onClosureAction={isClosureDue ? () => handleOpenClosureDialog(trip) : undefined}
                             onCancelBooking={canCancel ? () => handleOpenCancelDialog(trip, booking) : undefined}
                             onMessageCarrier={() => handleOpenChatDialog(booking, trip)}
+                            isCancelledByCarrier={isCancelledByCarrier}
                             context="history"
                           />
                       )
@@ -465,3 +494,5 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
+
+    
