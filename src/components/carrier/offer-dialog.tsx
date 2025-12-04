@@ -27,7 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Trip } from '@/lib/data';
 import { Loader2, Send, Sparkles, ListChecks } from 'lucide-react';
 import React from 'react';
-import { Slider } from '../ui/slider';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 
 const offerFormSchema = z.object({
   price: z.coerce.number().positive('يجب أن يكون السعر رقماً موجباً'),
@@ -70,10 +70,9 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
   const depositPercentageValue = form.watch('depositPercentage');
 
   const depositAmount = useMemo(() => {
-    if (priceValue && depositPercentageValue) {
-      return (priceValue * (depositPercentageValue / 100)).toFixed(2);
-    }
-    return '0.00';
+    const price = priceValue || 0;
+    const percentage = depositPercentageValue || 0;
+    return (price * (percentage / 100)).toFixed(2);
   }, [priceValue, depositPercentageValue]);
 
 
@@ -154,18 +153,19 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
                 render={({ field }) => (
                     <FormItem>
                         <div className="flex justify-between items-center mb-2">
-                            <FormLabel>نسبة العربون المطلوب</FormLabel>
-                            <span className="text-sm font-bold text-primary">{field.value}% = {depositAmount} {form.watch('currency')}</span>
+                            <FormLabel>نسبة العربون</FormLabel>
+                            <span className="text-sm font-bold text-primary">قيمة العربون: {depositAmount} {form.watch('currency')}</span>
                         </div>
-                        <FormControl>
-                            <Slider
-                                min={0}
-                                max={25}
-                                step={1}
-                                value={[field.value]}
-                                onValueChange={(value) => field.onChange(value[0])}
-                            />
-                        </FormControl>
+                        <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={String(field.value)}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="اختر نسبة العربون" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {[0, 5, 10, 15, 20, 25].map(p => <SelectItem key={p} value={String(p)}>{p}%</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                         <FormMessage />
                     </FormItem>
                 )}

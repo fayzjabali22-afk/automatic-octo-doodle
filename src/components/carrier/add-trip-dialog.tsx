@@ -48,7 +48,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Textarea } from '../ui/textarea';
-import { Slider } from '../ui/slider';
 
 
 const countries: { [key: string]: { name: string; cities: string[] } } = {
@@ -113,10 +112,9 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
   const depositPercentageValue = form.watch('depositPercentage');
 
   const depositAmount = useMemo(() => {
-    if (priceValue && depositPercentageValue) {
-      return (priceValue * (depositPercentageValue / 100)).toFixed(2);
-    }
-    return '0.00';
+    const price = priceValue || 0;
+    const percentage = depositPercentageValue || 0;
+    return (price * (percentage / 100)).toFixed(2);
   }, [priceValue, depositPercentageValue]);
 
 
@@ -308,20 +306,21 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                       name="depositPercentage"
                       render={({ field }) => (
                           <FormItem>
-                              <div className="flex justify-between items-center mb-2">
-                                  <FormLabel>نسبة العربون المطلوب</FormLabel>
-                                  <span className="text-sm font-bold text-primary">{field.value}% = {depositAmount} {form.watch('currency')}</span>
-                              </div>
-                              <FormControl>
-                                  <Slider
-                                      min={0}
-                                      max={25}
-                                      step={1}
-                                      value={[field.value]}
-                                      onValueChange={(value) => field.onChange(value[0])}
-                                  />
-                              </FormControl>
-                              <FormMessage />
+                            <div className="flex justify-between items-center mb-2">
+                                <FormLabel>نسبة العربون</FormLabel>
+                                <span className="text-sm font-bold text-primary">قيمة العربون: {depositAmount} {form.watch('currency')}</span>
+                            </div>
+                            <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={String(field.value)}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="اختر نسبة العربون" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {[0, 5, 10, 15, 20, 25].map(p => <SelectItem key={p} value={String(p)}>{p}%</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
                           </FormItem>
                       )}
                   />

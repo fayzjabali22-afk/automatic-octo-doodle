@@ -86,9 +86,13 @@ export function BookingDialog({
     };
 
     const handleCopy = () => {
-        if (carrierProfile?.paymentInformation) {
-            navigator.clipboard.writeText(carrierProfile.paymentInformation);
-            toast({ title: 'تم نسخ التعليمات بنجاح!' });
+        const paymentInfo = carrierProfile?.paymentInformation;
+        if (paymentInfo) {
+            navigator.clipboard.writeText(paymentInfo);
+            toast({ title: 'تم نسخ تعليمات الدفع بنجاح!' });
+        } else {
+             navigator.clipboard.writeText("الدفع نقداً عند الالتقاء (لم يحدد الناقل طريقة أخرى).");
+             toast({ title: 'تم نسخ التعليمات بنجاح!' });
         }
     };
 
@@ -156,16 +160,12 @@ export function BookingDialog({
                                 طريقة الدفع (تعليمات الناقل)
                             </h3>
                             <div className="p-4 border rounded-lg bg-background relative">
-                                {carrierProfile?.paymentInformation ? (
-                                    <>
-                                        <Button size="icon" variant="ghost" className="absolute top-2 left-2 h-7 w-7" onClick={handleCopy}>
-                                            <Clipboard className="h-4 w-4" />
-                                        </Button>
-                                        <p className="text-sm whitespace-pre-wrap">{carrierProfile.paymentInformation}</p>
-                                    </>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">لم يقم الناقل بتحديد تعليمات الدفع بعد.</p>
-                                )}
+                                <Button size="icon" variant="ghost" className="absolute top-2 left-2 h-7 w-7" onClick={handleCopy}>
+                                    <Clipboard className="h-4 w-4" />
+                                </Button>
+                                <p className="text-sm whitespace-pre-wrap">
+                                    {carrierProfile?.paymentInformation || "الدفع نقداً عند الالتقاء (لم يحدد الناقل طريقة أخرى)."}
+                                </p>
                             </div>
                         </div>
 
