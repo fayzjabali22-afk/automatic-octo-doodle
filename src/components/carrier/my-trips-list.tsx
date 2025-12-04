@@ -123,7 +123,7 @@ function TripListItem({ trip, onEdit }: { trip: Trip, onEdit: (trip: Trip) => vo
     }
 
     return (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full p-3 border rounded-lg bg-card shadow-sm transition-shadow hover:shadow-md">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full p-3 border-b md:border md:rounded-lg bg-card shadow-sm transition-shadow hover:shadow-md">
             <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-y-2 gap-x-4">
                 <div className="col-span-2 sm:col-span-1 flex flex-col">
                     <span className="text-sm font-bold text-foreground flex items-center gap-1">
@@ -187,6 +187,7 @@ export function MyTripsList() {
         return query(
             collection(firestore, 'trips'),
             where('carrierId', '==', user.uid),
+            where('status', 'in', ['Planned', 'In-Transit']),
             orderBy('departureDate', 'desc')
         );
     }, [firestore, user]);
@@ -194,7 +195,7 @@ export function MyTripsList() {
     // We will use mock data to avoid the indexing error for now.
     // const { data: trips, isLoading } = useCollection<Trip>(tripsQuery);
     const isLoading = false; // Set to false since we use mock data
-    const trips = mockTrips; // Use mock data
+    const trips = mockTrips.filter(t => ['Planned', 'In-Transit'].includes(t.status));
 
     const handleEditClick = (trip: Trip) => {
         setSelectedTrip(trip);
@@ -203,7 +204,7 @@ export function MyTripsList() {
 
     if (isLoading) {
         return (
-          <div className="space-y-3">
+          <div className="space-y-3 p-2 md:p-0">
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}
           </div>
         );
@@ -211,23 +212,20 @@ export function MyTripsList() {
 
     if (!trips || trips.length === 0) {
         return (
-          <div className="flex flex-col items-center justify-center text-center py-16 border-2 border-dashed rounded-lg bg-card/50">
+          <div className="flex flex-col items-center justify-center text-center py-16 border-2 border-dashed rounded-lg bg-card/50 mx-2 md:mx-0">
             <CalendarX className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-xl font-bold">لم تقم بإضافة أي رحلات مجدولة بعد</h3>
+            <h3 className="text-xl font-bold">لا توجد رحلات نشطة حالياً</h3>
             <p className="text-muted-foreground mt-2 max-w-sm">
-              استخدم زر "إضافة رحلة جديدة" لنشر أول رحلاتك المتاحة للحجز.
+              استخدم زر "تأسيس رحلة جديدة" لنشر أولى رحلاتك المتاحة للحجز.
             </p>
           </div>
         );
     }
 
-    // Client-side sorting for the mock data
-    const sortedTrips = [...trips].sort((a, b) => new Date(b.departureDate).getTime() - new Date(a.departureDate).getTime());
-
     return (
         <>
-            <div className="space-y-2">
-                {sortedTrips.map((trip) => <TripListItem key={trip.id} trip={trip} onEdit={handleEditClick} />)}
+            <div className="space-y-2 md:space-y-3">
+                {trips.map((trip) => <TripListItem key={trip.id} trip={trip} onEdit={handleEditClick} />)}
             </div>
             <EditTripDialog
                 isOpen={isEditDialogOpen}
