@@ -2,10 +2,10 @@
 'use client';
 import { RequestCard } from '@/components/carrier/request-card';
 import { useFirestore, useCollection, useUser } from '@/firebase';
-import { collection, query, where, doc, getDoc } from 'firebase/firestore';
-import { PackageOpen, Settings, AlertTriangle, ListFilter, ShipWheel, Sparkles, User, Armchair } from 'lucide-react';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import { PackageOpen, Settings, AlertTriangle, ListFilter, Armchair, Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trip, CarrierProfile } from '@/lib/data';
+import { Trip } from '@/lib/data';
 import { useEffect, useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -15,152 +15,6 @@ import { OfferDialog } from '@/components/carrier/offer-dialog';
 import { suggestOfferPrice, type SuggestOfferPriceInput } from '@/ai/flows/suggest-offer-price-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/use-user-profile';
-
-const mockRequests: Trip[] = [
-    {
-      id: 'mock_trip_1',
-      userId: 'mock_user_1',
-      origin: 'amman',
-      destination: 'riyadh',
-      departureDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-      passengers: 2,
-      status: 'Awaiting-Offers',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'mock_trip_2',
-      userId: 'mock_user_2',
-      origin: 'damascus',
-      destination: 'amman',
-      departureDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-      passengers: 1,
-      status: 'Awaiting-Offers',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'mock_trip_3',
-      userId: 'mock_user_3',
-      origin: 'cairo',
-      destination: 'jeddah',
-      departureDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      passengers: 4,
-      status: 'Awaiting-Offers',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'mock_trip_4',
-      userId: 'mock_user_4',
-      origin: 'amman',
-      destination: 'damascus',
-      departureDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-      passengers: 3,
-      status: 'Awaiting-Offers',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-     {
-      id: 'mock_trip_5',
-      userId: 'mock_user_5',
-      origin: 'riyadh',
-      destination: 'damascus',
-      departureDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-      passengers: 8, // This should be filtered out for small cars
-      status: 'Awaiting-Offers',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'mock_trip_6',
-      userId: 'mock_user_6',
-      origin: 'jeddah',
-      destination: 'cairo',
-      departureDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-      passengers: 2,
-      status: 'Awaiting-Offers',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'mock_trip_7',
-      userId: 'mock_user_7',
-      origin: 'amman',
-      destination: 'riyadh',
-      departureDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(),
-      passengers: 1,
-      status: 'Awaiting-Offers',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'mock_trip_8',
-      userId: 'mock_user_8',
-      origin: 'homs',
-      destination: 'zarqa',
-      departureDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-      passengers: 5,
-      status: 'Awaiting-Offers',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'mock_trip_9',
-      userId: 'mock_user_9',
-      origin: 'dammam',
-      destination: 'riyadh',
-      departureDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
-      passengers: 1,
-      status: 'Awaiting-Offers',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'mock_trip_10',
-      userId: 'mock_user_10',
-      origin: 'alexandria',
-      destination: 'cairo',
-      departureDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-      passengers: 3,
-      status: 'Awaiting-Offers',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'mock_trip_11',
-      userId: 'mock_user_11',
-      origin: 'irbid',
-      destination: 'amman',
-      departureDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-      passengers: 2,
-      status: 'Awaiting-Offers',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'mock_trip_12',
-      userId: 'mock_user_12',
-      origin: 'aleppo',
-      destination: 'damascus',
-      departureDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-      passengers: 4,
-      status: 'Awaiting-Offers',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-];
-
-const mockCarrierProfile: CarrierProfile = {
-    id: 'carrier_user_id',
-    name: 'Safar Transport',
-    contactEmail: 'carrier@safar.com',
-    primaryRoute: {
-        origin: 'amman',
-        destination: 'riyadh'
-    },
-    vehicleCapacity: 4, // Carrier's vehicle can take up to 4 passengers
-}
 
 function LoadingState() {
   return (
@@ -204,9 +58,11 @@ function NoRequestsState({ isFiltered }: { isFiltered: boolean }) {
     );
 }
 
-
 export default function CarrierRequestsPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
   const { profile: userProfile, isLoading: isLoadingProfile } = useUserProfile();
+
   const [filterBySpecialization, setFilterBySpecialization] = useState(true);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
@@ -214,27 +70,34 @@ export default function CarrierRequestsPage() {
   const [suggestion, setSuggestion] = useState<{price: number, justification: string} | null>(null);
   const { toast } = useToast();
 
-  const filteredRequests = useMemo(() => {
-    let requests = mockRequests;
-    
-    // Smart Filter: Filter by vehicle capacity
-    if (userProfile?.vehicleCapacity) {
-        requests = requests.filter(req => (req.passengers || 1) <= userProfile.vehicleCapacity!);
-    }
+  const canFilter = !!(userProfile?.primaryRoute?.origin && userProfile?.primaryRoute?.destination);
+  
+  const requestsQuery = useMemo(() => {
+    if (!firestore) return null;
 
-    if (filterBySpecialization && userProfile?.primaryRoute?.origin && userProfile.primaryRoute.destination) {
-      const from = userProfile.primaryRoute.origin.toLowerCase();
-      const to = userProfile.primaryRoute.destination.toLowerCase();
-      requests = requests.filter(req => 
-        req.origin.toLowerCase() === from &&
-        req.destination.toLowerCase() === to
-      );
+    let q = query(
+        collection(firestore, 'trips'), 
+        where('status', '==', 'Awaiting-Offers')
+    );
+
+    // Smart Filter: Filter by carrier's specialization route if enabled and defined
+    if (filterBySpecialization && canFilter) {
+        q = query(q, where('origin', '==', userProfile.primaryRoute!.origin));
+        q = query(q, where('destination', '==', userProfile.primaryRoute!.destination));
     }
     
-    return requests.sort((a, b) => new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime());
-  }, [filterBySpecialization, userProfile]);
+    // Filter out requests that exceed the carrier's vehicle capacity
+    if (userProfile?.vehicleCapacity && userProfile.vehicleCapacity > 0) {
+        q = query(q, where('passengers', '<=', userProfile.vehicleCapacity));
+    }
+    
+    return query(q, orderBy('passengers', 'desc'), orderBy('departureDate', 'asc'));
 
-  const isLoading = isLoadingProfile;
+  }, [firestore, filterBySpecialization, canFilter, userProfile]);
+
+  const { data: requests, isLoading: isLoadingRequests } = useCollection<Trip>(requestsQuery);
+
+  const isLoading = isLoadingProfile || isLoadingRequests;
   
   const handleOfferClick = (trip: Trip) => {
     setSuggestion(null); // Clear previous suggestion
@@ -272,18 +135,15 @@ export default function CarrierRequestsPage() {
     }
   }
 
-
   if (isLoading) {
     return <LoadingState />;
   }
   
-  const canFilter = !!(userProfile?.primaryRoute?.origin && userProfile?.primaryRoute?.destination);
   const hasCapacity = !!(userProfile?.vehicleCapacity && userProfile.vehicleCapacity > 0);
 
-  // This check is now removed for simulation purposes to always show requests
-  // if (!canFilter || !hasCapacity) {
-  //   return <NoSpecializationState />
-  // }
+  if (!canFilter || !hasCapacity) {
+    return <NoSpecializationState />
+  }
 
   return (
     <>
@@ -308,9 +168,9 @@ export default function CarrierRequestsPage() {
             </div>
         </div>
 
-        {filteredRequests && filteredRequests.length > 0 ? (
+        {requests && requests.length > 0 ? (
             <div className="space-y-3">
-                {filteredRequests.map(req => (
+                {requests.map(req => (
                     <RequestCard key={req.id} tripRequest={req} onOffer={handleOfferClick} />
                 ))}
             </div>
