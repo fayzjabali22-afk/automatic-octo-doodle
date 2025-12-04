@@ -83,7 +83,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, isLoading: isProfileLoading } = useUserProfile();
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   
-  // State to track if the component has mounted on the client
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -239,7 +238,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         )}>
 
           {/* Hamburger Menu (Mobile) - FIXED HYDRATION ERROR */}
-          <div className="flex items-center md:hidden">
+          <div className="md:hidden">
             {isMounted && !isCarrierPath && (
               <Sheet>
                 <SheetTrigger asChild>
