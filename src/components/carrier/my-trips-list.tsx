@@ -4,7 +4,7 @@ import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Trip } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CalendarX, ArrowRight, Calendar, Users, CircleDollarSign, CheckCircle, Clock, XCircle, MoreVertical, Pencil, Ban, Ship, List } from 'lucide-react';
+import { CalendarX, ArrowRight, Calendar, Users, CircleDollarSign, CheckCircle, Clock, XCircle, MoreVertical, Pencil, Ban, Ship, List, AlertTriangle, UsersRound } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import {
@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from '../ui/button';
 import { EditTripDialog } from './edit-trip-dialog';
-import { CancelTripDialog } from './cancel-trip-dialog';
+// The CancelTripDialog is no longer needed as per the new "no cancellation" policy.
+// import { CancelTripDialog } from './cancel-trip-dialog';
 import { PassengersListDialog } from './passengers-list-dialog';
 
 
@@ -98,7 +99,7 @@ const statusMap: Record<string, { text: string; icon: React.ElementType; classNa
   'Cancelled': { text: 'ملغاة', icon: XCircle, className: 'bg-red-100 text-red-800' },
 };
 
-function TripListItem({ trip, onEdit, onCancel, onManagePassengers }: { trip: Trip, onEdit: (trip: Trip) => void, onCancel: (trip: Trip) => void, onManagePassengers: (trip: Trip) => void }) {
+function TripListItem({ trip, onEdit, onManagePassengers, onInitiateTransfer }: { trip: Trip, onEdit: (trip: Trip) => void, onManagePassengers: (trip: Trip) => void, onInitiateTransfer: (trip: Trip) => void }) {
     const statusInfo = statusMap[trip.status] || { text: trip.status, icon: CircleDollarSign, className: 'bg-gray-100 text-gray-800' };
     const [formattedDate, setFormattedDate] = useState('');
 
@@ -106,9 +107,8 @@ function TripListItem({ trip, onEdit, onCancel, onManagePassengers }: { trip: Tr
         setFormattedDate(safeDateFormat(trip.departureDate));
     }, [trip.departureDate]);
 
-
-    const isCancellable = trip.status === 'Planned' || trip.status === 'In-Transit';
-
+    // A trip can be modified or its passengers transferred if it is 'Planned'.
+    const isActionable = trip.status === 'Planned';
 
     return (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full p-3 border-b md:border md:rounded-lg bg-card shadow-sm transition-shadow hover:shadow-md">
@@ -144,22 +144,22 @@ function TripListItem({ trip, onEdit, onCancel, onManagePassengers }: { trip: Tr
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEdit(trip)}>
+                        <DropdownMenuItem onClick={() => onEdit(trip)} disabled={!isActionable}>
                             <Pencil className="ml-2 h-4 w-4" />
-                            <span>تعديل الرحلة</span>
+                            <span>تعديل تفاصيل الرحلة</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onManagePassengers(trip)}>
+                        <DropdownMenuItem onClick={() => onManagePassengers(trip)} disabled={!isActionable}>
                             <List className="ml-2 h-4 w-4" />
-                            <span>إدارة الركاب</span>
+                            <span>إدارة قائمة الركاب</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                            className="text-red-500 focus:text-red-500" 
-                            onClick={() => onCancel(trip)}
-                            disabled={!isCancellable}
+                            className="text-orange-500 focus:text-orange-600" 
+                            onClick={() => onInitiateTransfer(trip)}
+                            disabled={!isActionable || !trip.bookingIds || trip.bookingIds.length === 0}
                         >
-                            <Ban className="ml-2 h-4 w-4" />
-                            <span>إلغاء الرحلة</span>
+                            <UsersRound className="ml-2 h-4 w-4" />
+                            <span>طلب نقل الركاب لناقل آخر</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -170,10 +170,12 @@ function TripListItem({ trip, onEdit, onCancel, onManagePassengers }: { trip: Tr
 
 export function MyTripsList() {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+    // const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false); // Removed
+    const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false); // Placeholder for new dialog
     const [isPassengersDialogOpen, setIsPassengersDialogOpen] = useState(false);
     const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
 
+    const { toast } = useToast();
     const isLoading = false;
     const trips = mockActiveTrips;
 
@@ -187,9 +189,15 @@ export function MyTripsList() {
         setIsEditDialogOpen(true);
     };
 
-    const handleCancelClick = (trip: Trip) => {
-        setSelectedTrip(trip);
-        setIsCancelDialogOpen(true);
+    const handleInitiateTransferClick = (trip: Trip) => {
+        //setSelectedTrip(trip);
+        //setIsTransferDialogOpen(true);
+        // This functionality is pending the creation of the transfer dialog.
+         toast({
+            variant: 'default',
+            title: 'قيد الإنشاء',
+            description: 'سيتم بناء واجهة نقل الركاب لناقل آخر قريباً.',
+        });
     }
 
     const handleManagePassengersClick = (trip: Trip) => {
@@ -225,7 +233,7 @@ export function MyTripsList() {
                         key={trip.id} 
                         trip={trip} 
                         onEdit={handleEditClick}
-                        onCancel={handleCancelClick}
+                        onInitiateTransfer={handleInitiateTransferClick}
                         onManagePassengers={handleManagePassengersClick}
                     />
                 ))}
@@ -235,11 +243,7 @@ export function MyTripsList() {
                 onOpenChange={setIsEditDialogOpen}
                 trip={selectedTrip}
             />
-            <CancelTripDialog
-                isOpen={isCancelDialogOpen}
-                onOpenChange={setIsCancelDialogOpen}
-                trip={selectedTrip}
-            />
+            {/* The CancelTripDialog has been removed according to the new policy */}
             <PassengersListDialog
                 isOpen={isPassengersDialogOpen}
                 onOpenChange={setIsPassengersDialogOpen}

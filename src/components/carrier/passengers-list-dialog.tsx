@@ -33,7 +33,7 @@ const cancellationReasons = [
     { id: 'emergency', label: 'ظروف طارئة خاصة بالناقل' },
 ];
 
-function PassengerItem({ booking, onCancel }: { booking: Booking, onCancel: (booking: Booking) => void }) {
+function PassengerItem({ booking }: { booking: Booking }) {
     const isLoading = false;
     const user = mockUsers[booking.userId];
 
@@ -41,6 +41,8 @@ function PassengerItem({ booking, onCancel }: { booking: Booking, onCancel: (boo
         return <Skeleton className="h-12 w-full rounded-md" />;
     }
 
+    // The button to remove a passenger has been removed to comply with the "no cancellation" policy.
+    // The carrier must transfer passengers, not remove them individually from this interface.
     return (
         <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
             <div className="flex items-center gap-3">
@@ -49,9 +51,11 @@ function PassengerItem({ booking, onCancel }: { booking: Booking, onCancel: (boo
                 </Avatar>
                 <span className="font-semibold text-sm">{user?.firstName} {user?.lastName}</span>
             </div>
+            {/*
             <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => onCancel(booking)}>
                 <Trash2 className="h-4 w-4" />
             </Button>
+            */}
         </div>
     );
 }
@@ -74,31 +78,6 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
         return mockBookings.filter(b => b.tripId === trip.id && b.status === 'Confirmed');
     }, [trip]);
 
-    const handleCancelClick = (booking: Booking) => {
-        setBookingToCancel(booking);
-        setCancellationReason(''); // Reset reason
-    };
-
-    const handleConfirmCancellation = async () => {
-        if (!bookingToCancel || !cancellationReason) {
-            toast({ variant: 'destructive', title: 'الرجاء اختيار سبب الإلغاء' });
-            return;
-        }
-        setIsCancelling(true);
-        
-        // SIMULATE BACKEND LOGIC
-        setTimeout(() => {
-            console.log(`Simulating cancellation for booking: ${bookingToCancel.id}`);
-            console.log(`Reason: ${cancellationReason}`);
-            console.log(`Seat increment: ${bookingToCancel.seats}`);
-            toast({
-                title: 'محاكاة: تم إلغاء الحجز',
-                description: `تم إبلاغ الراكب بالسبب وإعادة ${bookingToCancel.seats} مقعد(مقاعد) للرحلة.`,
-            });
-            setIsCancelling(false);
-            setBookingToCancel(null);
-        }, 1500);
-    };
 
     return (
         <>
@@ -107,7 +86,7 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
                     <DialogHeader>
                         <DialogTitle>إدارة قائمة الركاب</DialogTitle>
                         <DialogDescription>
-                            عرض وإدارة الركاب المؤكدين في هذه الرحلة.
+                            عرض الركاب المؤكدين في هذه الرحلة. لإزالة راكب، يجب بدء عملية نقل الركاب لناقل آخر.
                         </DialogDescription>
                     </DialogHeader>
                     <ScrollArea className="max-h-[60vh] -mx-4 px-4">
@@ -118,7 +97,7 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
                                 </div>
                             ) : bookings.length > 0 ? (
                                 bookings.map(booking => (
-                                    <PassengerItem key={booking.id} booking={booking} onCancel={handleCancelClick} />
+                                    <PassengerItem key={booking.id} booking={booking} />
                                 ))
                             ) : (
                                 <div className="text-center py-8 text-muted-foreground">
@@ -135,50 +114,6 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-
-            <AlertDialog open={!!bookingToCancel} onOpenChange={(open) => !open && setBookingToCancel(null)}>
-                <AlertDialogContent dir="rtl">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
-                            <AlertTriangle className="h-6 w-6 text-destructive" />
-                            تأكيد إلغاء حجز الراكب
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            لتوثيق العملية، الرجاء تحديد سبب الإلغاء. سيتم إبلاغ الراكب بالسبب وسيتم إعادة مقاعده لتكون متاحة.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="py-2">
-                        <RadioGroup value={cancellationReason} onValueChange={setCancellationReason} className="space-y-2">
-                            {cancellationReasons.map(reason => (
-                                <div key={reason.id} className="flex items-center space-x-2 rtl:space-x-reverse">
-                                    <RadioGroupItem value={reason.id} id={reason.id} />
-                                    <Label htmlFor={reason.id} className="font-normal">{reason.label}</Label>
-                                </div>
-                            ))}
-                        </RadioGroup>
-                    </div>
-                    
-                    <div className="p-3 my-2 bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-lg text-xs space-y-1">
-                        <p className="font-bold flex items-center gap-1"><ShieldCheck className="h-4 w-4"/> تنبيه قانوني:</p>
-                        <p>
-                            هذا الإجراء يتم بقرار شخصي منك وبمسؤوليتك الكاملة. إدارة المنصة تخلي مسؤوليتها القانونية والمالية تماماً عن هذا الإلغاء تجاه الطرفين. بإتمامك لهذا الإجراء، فإنك تقر بتحمل كافة التبعات القانونية وحقوق المسافر المترتبة على ذلك.
-                        </p>
-                    </div>
-
-                    <AlertDialogFooter className="gap-2 sm:gap-0 pt-2">
-                        <AlertDialogCancel disabled={isCancelling}>تراجع</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleConfirmCancellation}
-                            disabled={isCancelling || !cancellationReason}
-                            className="bg-destructive hover:bg-destructive/90"
-                        >
-                            {isCancelling ? (
-                                <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جاري الإلغاء...</>
-                            ) : "أقر بالمسؤولية وإلغاء التذكرة"}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </>
     );
 }
