@@ -28,11 +28,10 @@ import type { Trip } from '@/lib/data';
 import { Loader2, Send, Sparkles, ListChecks } from 'lucide-react';
 import React from 'react';
 import { Slider } from '../ui/slider';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 
 const offerFormSchema = z.object({
   price: z.coerce.number().positive('يجب أن يكون السعر رقماً موجباً'),
-  currency: z.enum(['JOD', 'SAR', 'USD'], { required_error: 'العملة مطلوبة'}),
+  currency: z.string().min(1, "العملة مطلوبة").max(10, "رمز العملة طويل جداً"),
   vehicleType: z.string().min(3, 'نوع المركبة مطلوب'),
   depositPercentage: z.coerce.number().min(0).max(25, "نسبة العربون لا يمكن أن تتجاوز 25%"),
   notes: z.string().optional(),
@@ -62,7 +61,7 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
       depositPercentage: 10,
       notes: '',
       conditions: '',
-      currency: 'JOD',
+      currency: 'د.أ',
     },
   });
   
@@ -129,19 +128,10 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
                     name="currency"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>العملة</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormLabel>العملة (نص)</FormLabel>
                         <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="اختر العملة" />
-                            </SelectTrigger>
+                           <Input placeholder="د.أ، SAR، USD..." {...field} maxLength={10} />
                         </FormControl>
-                        <SelectContent>
-                            <SelectItem value="JOD">دينار أردني</SelectItem>
-                            <SelectItem value="SAR">ريال سعودي</SelectItem>
-                            <SelectItem value="USD">دولار أمريكي</SelectItem>
-                        </SelectContent>
-                        </Select>
                         <FormMessage />
                     </FormItem>
                     )}

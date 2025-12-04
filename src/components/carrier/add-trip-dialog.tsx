@@ -70,7 +70,7 @@ const addTripSchema = z.object({
   destination: z.string().min(1, 'مدينة الوصول مطلوبة'),
   departureDate: z.date({ required_error: 'تاريخ المغادرة مطلوب' }),
   price: z.coerce.number().positive('السعر يجب أن يكون رقماً موجباً'),
-  currency: z.enum(['JOD', 'SAR', 'USD'], { required_error: 'العملة مطلوبة'}),
+  currency: z.string().min(1, "العملة مطلوبة").max(10, "رمز العملة طويل جداً"),
   availableSeats: z.coerce.number().int().min(1, 'يجب توفر مقعد واحد على الأقل'),
   depositPercentage: z.coerce.number().min(0, "الحد الأدنى 0%").max(25, "نسبة العربون لا يمكن أن تتجاوز 25% حسب قوانين المنصة"),
   durationHours: z.coerce.number().positive('مدة الرحلة المتوقعة مطلوبة ويجب أن تكون رقماً موجباً'),
@@ -104,7 +104,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
       depositPercentage: 10,
       durationHours: undefined,
       conditions: '',
-      currency: 'JOD',
+      currency: 'د.أ',
     }
   });
 
@@ -271,19 +271,8 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                       )}/>
                        <FormField control={form.control} name="currency" render={({ field }) => (
                           <FormItem>
-                            <FormLabel>العملة</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="bg-card">
-                                  <SelectValue placeholder="اختر العملة" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="JOD">دينار أردني</SelectItem>
-                                <SelectItem value="SAR">ريال سعودي</SelectItem>
-                                <SelectItem value="USD">دولار أمريكي</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <FormLabel>العملة (نص)</FormLabel>
+                             <FormControl><Input className="bg-card" placeholder="د.أ، SAR، USD..." {...field} maxLength={10} /></FormControl>
                             <FormMessage />
                           </FormItem>
                         )}/>
