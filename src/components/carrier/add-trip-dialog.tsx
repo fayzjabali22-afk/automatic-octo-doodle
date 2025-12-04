@@ -29,13 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { collection, serverTimestamp } from 'firebase/firestore';
-import { Loader2, CalendarIcon, Send, Clock } from 'lucide-react';
+import { Loader2, CalendarIcon, Send, Clock, MapPin, PlaneTakeoff, PlaneLand } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from "date-fns";
 import { Label } from '@/components/ui/label';
@@ -99,15 +100,14 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
         userId: user.uid,
         carrierId: user.uid,
         carrierName: profile.firstName,
-        vehicleType: profile.vehicleType || 'غير محدد', // Fetch from profile
-        vehicleCategory: profile.vehicleCategory || 'small', // Fetch from profile
+        vehicleType: profile.vehicleType || 'غير محدد',
+        vehicleCategory: profile.vehicleCategory || 'small',
         status: 'Planned',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
       await addDocumentNonBlocking(tripsCollection, tripData);
 
-      // Log the analytics event
       logEvent('TRIP_PUBLISHED', {
         carrierId: user.uid,
         origin: data.origin,
@@ -133,67 +133,70 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>إضافة رحلة مجدولة جديدة</DialogTitle>
+          <DialogTitle>تأسيس رحلة مجدولة جديدة</DialogTitle>
           <DialogDescription>
             أدخل تفاصيل رحلتك لجعلها متاحة للحجز من قبل المسافرين.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className='space-y-2'>
-                    <Label>من</Label>
-                     <Select onValueChange={setOriginCountry}>
-                        <SelectTrigger><SelectValue placeholder="اختر دولة الانطلاق" /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(countries).map(([key, {name}]) => (
-                            <SelectItem key={key} value={key}>{name}</SelectItem>
+            
+            <Card className="bg-muted/30">
+              <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className='space-y-2'>
+                      <Label className='flex items-center gap-2'><PlaneTakeoff className='h-4 w-4' /> من</Label>
+                       <Select onValueChange={setOriginCountry}>
+                          <SelectTrigger className="bg-background"><SelectValue placeholder="اختر دولة الانطلاق" /></SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(countries).map(([key, {name}]) => (
+                              <SelectItem key={key} value={key}>{name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      <FormField control={form.control} name="origin" render={({ field }) => (
+                          <FormItem>
+                              <FormControl>
+                                  <Select onValueChange={field.onChange} value={field.value} disabled={!originCountry}>
+                                      <SelectTrigger className="bg-background"><SelectValue placeholder="اختر مدينة الانطلاق" /></SelectTrigger>
+                                      <SelectContent>
+                                      {originCountry && countries[originCountry as keyof typeof countries]?.cities.map(cityKey => (
+                                          <SelectItem key={cityKey} value={cityKey}>{cities[cityKey]}</SelectItem>
+                                      ))}
+                                      </SelectContent>
+                                  </Select>
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                       )}/>
+                  </div>
+                   <div className='space-y-2'>
+                      <Label className='flex items-center gap-2'><PlaneLand className='h-4 w-4' /> إلى</Label>
+                      <Select onValueChange={setDestinationCountry}>
+                          <SelectTrigger className="bg-background"><SelectValue placeholder="اختر دولة الوصول" /></SelectTrigger>
+                          <SelectContent>
+                          {Object.entries(countries).filter(([key]) => key !== originCountry).map(([key, {name}]) => (
+                              <SelectItem key={key} value={key}>{name}</SelectItem>
                           ))}
-                        </SelectContent>
+                          </SelectContent>
                       </Select>
-                    <FormField control={form.control} name="origin" render={({ field }) => (
-                        <FormItem>
-                            <FormControl>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!originCountry}>
-                                    <SelectTrigger><SelectValue placeholder="اختر مدينة الانطلاق" /></SelectTrigger>
-                                    <SelectContent>
-                                    {originCountry && countries[originCountry as keyof typeof countries]?.cities.map(cityKey => (
-                                        <SelectItem key={cityKey} value={cityKey}>{cities[cityKey]}</SelectItem>
-                                    ))}
-                                    </SelectContent>
-                                </Select>
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                     )}/>
-                </div>
-                 <div className='space-y-2'>
-                    <Label>إلى</Label>
-                    <Select onValueChange={setDestinationCountry}>
-                        <SelectTrigger><SelectValue placeholder="اختر دولة الوصول" /></SelectTrigger>
-                        <SelectContent>
-                        {Object.entries(countries).filter(([key]) => key !== originCountry).map(([key, {name}]) => (
-                            <SelectItem key={key} value={key}>{name}</SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                     <FormField control={form.control} name="destination" render={({ field }) => (
-                        <FormItem>
-                            <FormControl>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!destinationCountry}>
-                                    <SelectTrigger><SelectValue placeholder="اختر مدينة الوصول" /></SelectTrigger>
-                                    <SelectContent>
-                                    {destinationCountry && countries[destinationCountry as keyof typeof countries]?.cities.map(cityKey => (
-                                        <SelectItem key={cityKey} value={cityKey}>{cities[cityKey]}</SelectItem>
-                                    ))}
-                                    </SelectContent>
-                                </Select>
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}/>
-                </div>
-            </div>
+                       <FormField control={form.control} name="destination" render={({ field }) => (
+                          <FormItem>
+                              <FormControl>
+                                  <Select onValueChange={field.onChange} value={field.value} disabled={!destinationCountry}>
+                                      <SelectTrigger className="bg-background"><SelectValue placeholder="اختر مدينة الوصول" /></SelectTrigger>
+                                      <SelectContent>
+                                      {destinationCountry && countries[destinationCountry as keyof typeof countries]?.cities.map(cityKey => (
+                                          <SelectItem key={cityKey} value={cityKey}>{cities[cityKey]}</SelectItem>
+                                      ))}
+                                      </SelectContent>
+                                  </Select>
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                      )}/>
+                  </div>
+              </CardContent>
+            </Card>
             
              <FormField control={form.control} name="departureDate" render={({ field }) => (
                 <FormItem className="flex flex-col">
@@ -201,7 +204,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                     <Popover>
                         <PopoverTrigger asChild>
                         <FormControl>
-                            <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                            <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal bg-card", !field.value && "text-muted-foreground")}>
                                 {field.value ? format(field.value, "PPP") : <span>اختر تاريخاً</span>}
                                 <CalendarIcon className="mr-auto h-4 w-4 opacity-50" />
                             </Button>
@@ -215,22 +218,25 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                 </FormItem>
              )}/>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField control={form.control} name="price" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>سعر المقعد (بالدينار)</FormLabel>
-                        <FormControl><Input type="number" placeholder="e.g., 50" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField control={form.control} name="availableSeats" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>عدد المقاعد المتاحة</FormLabel>
-                        <FormControl><Input type="number" placeholder="e.g., 4" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-            </div>
+            <Card className="bg-muted/30">
+              <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="price" render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>سعر المقعد (بالدينار)</FormLabel>
+                          <FormControl><Input className="bg-background" type="number" placeholder="e.g., 50" {...field} /></FormControl>
+                          <FormMessage />
+                      </FormItem>
+                  )}/>
+                  <FormField control={form.control} name="availableSeats" render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>عدد المقاعد المتاحة</FormLabel>
+                          <FormControl><Input className="bg-background" type="number" placeholder="e.g., 4" {...field} /></FormControl>
+                          <FormMessage />
+                      </FormItem>
+                  )}/>
+              </CardContent>
+            </Card>
+
              <FormField
               control={form.control}
               name="estimatedDurationHours"
@@ -241,7 +247,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                     مدة الرحلة المتوقعة (بالساعات)
                   </FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="e.g., 8" {...field} />
+                    <Input className="bg-card" type="number" placeholder="e.g., 8" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -259,5 +265,3 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
     </Dialog>
   );
 }
-
-    
