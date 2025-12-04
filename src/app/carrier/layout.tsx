@@ -57,9 +57,9 @@ export default function CarrierLayout({
   return (
     <>
     <AppLayout>
-      <div className="grid h-full grid-cols-1 md:grid-cols-[240px_1fr]">
+      <div className="grid h-screen grid-cols-1 md:grid-cols-[240px_1fr]">
         {/* --- Sidebar for Desktop --- */}
-        <aside className="hidden md:block h-full bg-card border-e p-4">
+        <aside className="hidden md:block h-full bg-card border-e p-4 overflow-y-auto">
            <Button className="w-full mb-4" onClick={() => setIsAddTripDialogOpen(true)}>
              <PlusCircle className="ml-2 h-4 w-4" />
              تأسيس رحلة جديدة
@@ -84,9 +84,7 @@ export default function CarrierLayout({
 
         {/* --- Main Content Area --- */}
         <main className="flex-1 overflow-y-auto bg-muted/30 pb-20 md:pb-0">
-             <div className="p-0 md:p-0 min-h-[calc(100vh-128px)]">
-                {children}
-            </div>
+            {children}
         </main>
       </div>
       
