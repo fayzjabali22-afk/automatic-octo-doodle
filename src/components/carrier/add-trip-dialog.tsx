@@ -155,10 +155,10 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             
-            <Card className="bg-primary/10 border-primary/30">
+            <Card className="bg-secondary/50 border-accent/20">
               <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className='space-y-2'>
-                      <Label className='flex items-center gap-2 font-bold'><PlaneTakeoff className='h-4 w-4' /> من</Label>
+                      <Label className='flex items-center gap-2 font-bold text-accent'><PlaneTakeoff className='h-4 w-4' /> من</Label>
                        <Select onValueChange={setOriginCountry}>
                           <SelectTrigger className="bg-background"><SelectValue placeholder="اختر دولة الانطلاق" /></SelectTrigger>
                           <SelectContent>
@@ -184,7 +184,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                        )}/>
                   </div>
                    <div className='space-y-2'>
-                      <Label className='flex items-center gap-2 font-bold'><PlaneLanding className='h-4 w-4' /> إلى</Label>
+                      <Label className='flex items-center gap-2 font-bold text-accent'><PlaneLanding className='h-4 w-4' /> إلى</Label>
                       <Select onValueChange={setDestinationCountry}>
                           <SelectTrigger className="bg-background"><SelectValue placeholder="اختر دولة الوصول" /></SelectTrigger>
                           <SelectContent>
