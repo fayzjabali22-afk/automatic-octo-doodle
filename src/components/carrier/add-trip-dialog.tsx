@@ -205,7 +205,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
               </CardContent>
             </Card>
 
-            <Accordion type="single" collapsible defaultValue="details" className="w-full">
+            <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="details" className="border rounded-lg bg-muted/30">
                 <AccordionTrigger className="p-4 font-bold text-base hover:no-underline">
                     <div className='flex items-center gap-2'>
