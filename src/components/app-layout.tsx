@@ -57,7 +57,7 @@ const menuItems = [
   {
     href: '/chats',
     label: 'الدردشات',
-    auth: false,
+    auth: true,
     icon: MessageSquare,
   }
 ];
