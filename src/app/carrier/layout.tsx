@@ -2,12 +2,14 @@
 
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShieldAlert, Ship, LayoutDashboard, FilePlus, Route, Briefcase, Wallet, MessageSquare, BarChart3 } from 'lucide-react';
+import { ShieldAlert, Ship, LayoutDashboard, FilePlus, Route, Briefcase, Wallet, MessageSquare, BarChart3, PlusCircle } from 'lucide-react';
 import { AppLayout } from '@/components/app-layout';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { AddTripDialog } from '@/components/carrier/add-trip-dialog';
 
 
 function LoadingSpinner() {
@@ -39,6 +41,7 @@ export default function CarrierLayout({
 }) {
   const { user, profile, isLoading } = useUserProfile();
   const pathname = usePathname();
+  const [isAddTripDialogOpen, setIsAddTripDialogOpen] = useState(false);
   
   // DEV MODE: Bypassing role check
   // if (isLoading) {
@@ -50,10 +53,14 @@ export default function CarrierLayout({
   // }
 
   return (
+    <>
     <AppLayout>
       <div className="grid h-full grid-cols-1 md:grid-cols-[240px_1fr]">
         <aside className="hidden md:block h-full bg-card border-e p-4">
-           <h2 className="font-bold text-lg mb-4 px-2">قائمة الناقل</h2>
+           <Button className="w-full mb-4" onClick={() => setIsAddTripDialogOpen(true)}>
+             <PlusCircle className="ml-2 h-4 w-4" />
+             تأسيس رحلة جديدة
+           </Button>
            <nav className="flex flex-col gap-2">
             {sidebarNavLinks.map(link => {
                 const isActive = link.exact ? pathname === link.href : pathname.startsWith(link.href);
@@ -79,6 +86,12 @@ export default function CarrierLayout({
         </main>
       </div>
     </AppLayout>
+
+    <AddTripDialog 
+      isOpen={isAddTripDialogOpen}
+      onOpenChange={setIsAddTripDialogOpen}
+    />
+    </>
   );
 }
 
