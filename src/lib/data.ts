@@ -13,14 +13,14 @@ export type UserProfile = {
   vehicleType?: string;
   vehicleModel?: string;
   vehicleYear?: string;
+  vehicleCapacity?: number;
+  primaryRoute?: {
+    origin: string;
+    destination: string;
+  };
   paymentInformation?: string; // Flexible text field for payment instructions
   createdAt?: any;
   updatedAt?: any;
-  bankDetails?: {
-    bankName: string;
-    accountHolderName: string;
-    iban: string;
-  };
 };
 
 export type CarrierSpecialization = {
@@ -146,3 +146,5 @@ export type Message = {
   content: string;
   timestamp: string;
 };
+
+    

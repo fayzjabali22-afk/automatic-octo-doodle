@@ -34,6 +34,15 @@ import { actionCodeSettings } from '@/firebase/config';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+
+const countries: { [key: string]: { name: string; cities?: string[] } } = {
+  syria: { name: 'سوريا' },
+  jordan: { name: 'الأردن' },
+  ksa: { name: 'السعودية' },
+  egypt: { name: 'مصر' },
+};
 
 
 const profileFormSchema = z.object({
@@ -45,6 +54,11 @@ const profileFormSchema = z.object({
   vehicleType: z.string().optional(),
   vehicleModel: z.string().optional(),
   vehicleYear: z.string().optional(),
+  vehicleCapacity: z.coerce.number().int().optional(),
+  primaryRoute: z.object({
+      origin: z.string().optional(),
+      destination: z.string().optional(),
+  }).optional(),
   paymentInformation: z.string().max(300, 'يجب ألا تتجاوز التعليمات 300 حرف').optional(),
 });
 
@@ -77,6 +91,8 @@ export default function ProfilePage() {
         vehicleType: '',
         vehicleModel: '',
         vehicleYear: '',
+        vehicleCapacity: 0,
+        primaryRoute: { origin: '', destination: '' },
         paymentInformation: ''
     },
   });
@@ -93,6 +109,8 @@ export default function ProfilePage() {
         vehicleType: profile.vehicleType || '',
         vehicleModel: profile.vehicleModel || '',
         vehicleYear: profile.vehicleYear || '',
+        vehicleCapacity: profile.vehicleCapacity || 0,
+        primaryRoute: profile.primaryRoute || { origin: '', destination: '' },
         paymentInformation: profile.paymentInformation || '',
       });
     } else if (user) {
@@ -107,18 +125,31 @@ export default function ProfilePage() {
   function onUserSubmit(data: ProfileFormValues) {
     if (!userProfileRef) return;
     
-    const dataToSave = { ...data };
+    // Create a mutable copy
+    const dataToSave: Partial<ProfileFormValues> = { ...data };
+
+    // Ensure vehicleCapacity is a number or deleted
+    if (dataToSave.vehicleCapacity && typeof dataToSave.vehicleCapacity === 'string') {
+        dataToSave.vehicleCapacity = parseInt(dataToSave.vehicleCapacity, 10);
+    }
+    if (isNaN(dataToSave.vehicleCapacity!)) {
+        delete dataToSave.vehicleCapacity;
+    }
+
     if (profile?.role !== 'carrier') {
         // Don't save carrier fields if user is not a carrier
         delete dataToSave.vehicleType;
         delete dataToSave.vehicleModel;
         delete dataToSave.vehicleYear;
+        delete dataToSave.vehicleCapacity;
+        delete dataToSave.primaryRoute;
         delete dataToSave.paymentInformation;
     }
 
     updateDoc(userProfileRef, dataToSave);
     toast({ title: 'تم تحديث الملف الشخصي', description: 'تم حفظ تغييراتك بنجاح.' });
   }
+
 
   const handleRoleChange = async (newRole: 'traveler' | 'carrier') => {
     if (!userProfileRef || !user) return;
@@ -254,10 +285,19 @@ export default function ProfilePage() {
                             <CardDescription>إدارة بيانات مركبتك ومعلومات استقبال الدفعات.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <FormField control={form.control} name="vehicleType" render={({ field }) => (<FormItem><FormLabel>نوع المركبة</FormLabel><FormControl><Input placeholder="e.g., GMC Yukon" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="vehicleModel" render={({ field }) => (<FormItem><FormLabel>موديل المركبة</FormLabel><FormControl><Input placeholder="e.g., Suburban" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="vehicleYear" render={({ field }) => (<FormItem><FormLabel>سنة الصنع</FormLabel><FormControl><Input placeholder="e.g., 2024" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="vehicleCapacity" render={({ field }) => (<FormItem><FormLabel>سعة الركاب</FormLabel><FormControl><Input type="number" placeholder="e.g., 4" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            </div>
+                            <Separator/>
+                            <div className="space-y-2">
+                                <FormLabel className="font-semibold">خط السير المفضل (للفلترة الذكية)</FormLabel>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField control={form.control} name="primaryRoute.origin" render={({ field }) => (<FormItem><FormLabel>من</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="اختر دولة" /></SelectTrigger></FormControl><SelectContent>{Object.entries(countries).map(([key, {name}]) => (<SelectItem key={key} value={key}>{name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="primaryRoute.destination" render={({ field }) => (<FormItem><FormLabel>إلى</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="اختر دولة" /></SelectTrigger></FormControl><SelectContent>{Object.entries(countries).filter(([key]) => key !== form.watch('primaryRoute.origin')).map(([key, {name}]) => (<SelectItem key={key} value={key}>{name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                </div>
                             </div>
                             <Separator/>
                             <FormField

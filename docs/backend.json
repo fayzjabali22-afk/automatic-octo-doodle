@@ -33,15 +33,17 @@
           "enum": ["traveler", "carrier", "admin"],
           "description": "The user's role in the system."
         },
-        "bankDetails": {
+        "vehicleType": { "type": "string", "description": "The primary vehicle type used by the carrier (e.g., GMC Yukon 2023)." },
+        "vehicleModel": { "type": "string", "description": "The model of the carrier's vehicle (e.g., Suburban)." },
+        "vehicleYear": { "type": "string", "description": "The manufacturing year of the vehicle." },
+        "vehicleCapacity": { "type": "number", "description": "The total number of seats in the carrier's vehicle." },
+        "primaryRoute": {
             "type": "object",
-            "description": "The carrier's bank account details for payouts, stored on the user object for security.",
+            "description": "The carrier's specialized route for smart filtering.",
             "properties": {
-                "bankName": { "type": "string", "description": "Name of the bank." },
-                "accountHolderName": { "type": "string", "description": "Full name of the account holder." },
-                "iban": { "type": "string", "description": "International Bank Account Number." }
-            },
-            "required": ["bankName", "accountHolderName", "iban"]
+                "origin": { "type": "string", "description": "The typical origin country/area." },
+                "destination": { "type": "string", "description": "The typical destination country/area." }
+            }
         },
         "paymentInformation": {
             "type": "string",
@@ -535,3 +537,5 @@
     ]
   }
 }
+
+    
