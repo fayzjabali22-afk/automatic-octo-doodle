@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, doc, writeBatch, arrayUnion, increment } from 'firebase/firestore'; 
 import React, { useEffect, useMemo, useState } from 'react';
