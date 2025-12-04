@@ -135,7 +135,7 @@ export function BookingPaymentDialog({
                                         <span className="font-bold">{totalAmount.toFixed(2)} {currency}</span>
                                     </div>
                                     <Separator />
-                                    <div className="flex justify-between font-bold text-lg pt-1 text-primary">
+                                    <div className="flex justify-between font-bold text-lg pt-1 text-accent">
                                         <span>
                                             <CreditCard className="inline-block ml-2 h-5 w-5" />
                                             العربون المطلوب (الآن)
