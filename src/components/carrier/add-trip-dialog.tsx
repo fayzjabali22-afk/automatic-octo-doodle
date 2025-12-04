@@ -35,7 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { collection, serverTimestamp } from 'firebase/firestore';
-import { Loader2, CalendarIcon, Send } from 'lucide-react';
+import { Loader2, CalendarIcon, Send, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from "date-fns";
 import { Label } from '@/components/ui/label';
@@ -61,7 +61,7 @@ const addTripSchema = z.object({
   departureDate: z.date({ required_error: 'تاريخ المغادرة مطلوب' }),
   price: z.coerce.number().positive('السعر يجب أن يكون رقماً موجباً'),
   availableSeats: z.coerce.number().int().min(1, 'يجب توفر مقعد واحد على الأقل'),
-  vehicleType: z.string().min(3, 'نوع المركبة مطلوب'),
+  estimatedDurationHours: z.coerce.number().positive('مدة الرحلة المتوقعة مطلوبة ويجب أن تكون رقماً موجباً'),
 });
 
 type AddTripFormValues = z.infer<typeof addTripSchema>;
@@ -99,6 +99,8 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
         userId: user.uid,
         carrierId: user.uid,
         carrierName: profile.firstName,
+        vehicleType: profile.vehicleType || 'غير محدد', // Fetch from profile
+        vehicleCategory: profile.vehicleCategory || 'small', // Fetch from profile
         status: 'Planned',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -110,8 +112,8 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
         carrierId: user.uid,
         origin: data.origin,
         destination: data.destination,
-        departureDate: data.departureDate.toISOString().split('T')[0], // YYYY-MM-DD
-        vehicleType: data.vehicleType,
+        departureDate: data.departureDate.toISOString().split('T')[0],
+        vehicleType: profile.vehicleType,
         price: data.price,
         availableSeats: data.availableSeats,
       });
@@ -229,13 +231,22 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                     </FormItem>
                 )}/>
             </div>
-             <FormField control={form.control} name="vehicleType" render={({ field }) => (
+             <FormField
+              control={form.control}
+              name="estimatedDurationHours"
+              render={({ field }) => (
                 <FormItem>
-                    <FormLabel>نوع المركبة</FormLabel>
-                    <FormControl><Input placeholder="e.g., GMC Yukon 2023" {...field} /></FormControl>
-                    <FormMessage />
+                  <FormLabel className="flex items-center gap-1">
+                    <Clock className="h-4 w-4 text-muted-foreground"/>
+                    مدة الرحلة المتوقعة (بالساعات)
+                  </FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g., 8" {...field} />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
-            )}/>
+              )}
+            />
             <DialogFooter className="gap-2 sm:gap-0 pt-4">
               <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={isSubmitting}>إلغاء</Button>
               <Button type="submit" disabled={isSubmitting}>
@@ -248,3 +259,5 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
     </Dialog>
   );
 }
+
+    
