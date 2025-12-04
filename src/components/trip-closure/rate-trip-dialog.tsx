@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -142,7 +142,7 @@ export function RateTripDialog({ isOpen, onOpenChange, trip, onConfirm }: RateTr
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-2">
             
             <div className="space-y-4">
-                {ratingCriteria.map((criterion, index) => (
+                {ratingCriteria.map((criterion) => (
                     <FormField
                         key={criterion.key}
                         control={form.control}

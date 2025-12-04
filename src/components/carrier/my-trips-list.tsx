@@ -16,8 +16,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from '../ui/button';
 import { EditTripDialog } from './edit-trip-dialog';
-// The CancelTripDialog is no longer needed as per the new "no cancellation" policy.
-// import { CancelTripDialog } from './cancel-trip-dialog';
 import { PassengersListDialog } from './passengers-list-dialog';
 import { useToast } from '@/hooks/use-toast';
 
@@ -171,8 +169,6 @@ function TripListItem({ trip, onEdit, onManagePassengers, onInitiateTransfer }: 
 
 export function MyTripsList() {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    // const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false); // Removed
-    const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false); // Placeholder for new dialog
     const [isPassengersDialogOpen, setIsPassengersDialogOpen] = useState(false);
     const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
 
@@ -191,9 +187,6 @@ export function MyTripsList() {
     };
 
     const handleInitiateTransferClick = (trip: Trip) => {
-        //setSelectedTrip(trip);
-        //setIsTransferDialogOpen(true);
-        // This functionality is pending the creation of the transfer dialog.
          toast({
             variant: 'default',
             title: 'قيد الإنشاء',
@@ -244,7 +237,6 @@ export function MyTripsList() {
                 onOpenChange={setIsEditDialogOpen}
                 trip={selectedTrip}
             />
-            {/* The CancelTripDialog has been removed according to the new policy */}
             <PassengersListDialog
                 isOpen={isPassengersDialogOpen}
                 onOpenChange={setIsPassengersDialogOpen}

@@ -5,12 +5,10 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import type { Trip, Booking, UserProfile } from '@/lib/data';
-import { Loader2, Trash2, User, AlertTriangle, ShieldCheck } from 'lucide-react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { User, ShieldCheck } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback } from '../ui/avatar';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
+
 
 // --- MOCK DATA ---
 const mockBookings: Booking[] = [
@@ -26,12 +24,6 @@ const mockUsers: { [key: string]: UserProfile } = {
 }
 // --- END MOCK DATA ---
 
-const cancellationReasons = [
-    { id: 'no-show', label: 'المسافر لم يحضر' },
-    { id: 'inappropriate-behavior', label: 'سلوك غير لائق' },
-    { id: 'by-request', label: 'بطلب من المسافر' },
-    { id: 'emergency', label: 'ظروف طارئة خاصة بالناقل' },
-];
 
 function PassengerItem({ booking }: { booking: Booking }) {
     const isLoading = false;
@@ -41,8 +33,6 @@ function PassengerItem({ booking }: { booking: Booking }) {
         return <Skeleton className="h-12 w-full rounded-md" />;
     }
 
-    // The button to remove a passenger has been removed to comply with the "no cancellation" policy.
-    // The carrier must transfer passengers, not remove them individually from this interface.
     return (
         <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
             <div className="flex items-center gap-3">
@@ -51,11 +41,6 @@ function PassengerItem({ booking }: { booking: Booking }) {
                 </Avatar>
                 <span className="font-semibold text-sm">{user?.firstName} {user?.lastName}</span>
             </div>
-            {/*
-            <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => onCancel(booking)}>
-                <Trash2 className="h-4 w-4" />
-            </Button>
-            */}
         </div>
     );
 }
@@ -67,11 +52,6 @@ interface PassengersListDialogProps {
 }
 
 export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersListDialogProps) {
-    const { toast } = useToast();
-    const [isCancelling, setIsCancelling] = useState(false);
-    const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
-    const [cancellationReason, setCancellationReason] = useState('');
-
     const isLoading = false;
     const bookings = useMemo(() => {
         if (!trip) return [];
