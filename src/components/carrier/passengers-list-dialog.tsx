@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import type { Trip, Booking, UserProfile } from '@/lib/data';
-import { Loader2, Trash2, User, AlertTriangle } from 'lucide-react';
+import { Loader2, Trash2, User, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback } from '../ui/avatar';
@@ -136,8 +136,7 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
                 </DialogContent>
             </Dialog>
 
-            {/* Confirmation Dialog for Cancellation */}
-            <AlertDialog open={!!bookingToCancel} onOpenChange={() => setBookingToCancel(null)}>
+            <AlertDialog open={!!bookingToCancel} onOpenChange={(open) => !open && setBookingToCancel(null)}>
                 <AlertDialogContent dir="rtl">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="flex items-center gap-2">
@@ -145,7 +144,7 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
                             تأكيد إلغاء حجز الراكب
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                            لتوثيق العملية، الرجاء تحديد سبب الإلغاء. سيتم إبلاغ الراكب بالسبب وسيتم إعادة مقعده ليكون متاحاً.
+                            لتوثيق العملية، الرجاء تحديد سبب الإلغاء. سيتم إبلاغ الراكب بالسبب وسيتم إعادة مقاعده لتكون متاحة.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="py-2">
@@ -158,7 +157,15 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
                             ))}
                         </RadioGroup>
                     </div>
-                    <AlertDialogFooter className="gap-2 sm:gap-0 pt-4">
+                    
+                    <div className="p-3 my-2 bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-lg text-xs space-y-1">
+                        <p className="font-bold flex items-center gap-1"><ShieldCheck className="h-4 w-4"/> تنبيه قانوني:</p>
+                        <p>
+                            هذا الإجراء يتم بقرار شخصي منك وبمسؤوليتك الكاملة. إدارة المنصة تخلي مسؤوليتها القانونية والمالية تماماً عن هذا الإلغاء تجاه الطرفين. بإتمامك لهذا الإجراء، فإنك تقر بتحمل كافة التبعات القانونية وحقوق المسافر المترتبة على ذلك.
+                        </p>
+                    </div>
+
+                    <AlertDialogFooter className="gap-2 sm:gap-0 pt-2">
                         <AlertDialogCancel disabled={isCancelling}>تراجع</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleConfirmCancellation}
@@ -167,7 +174,7 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
                         >
                             {isCancelling ? (
                                 <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جاري الإلغاء...</>
-                            ) : "تأكيد الإلغاء"}
+                            ) : "أقر بالمسؤولية وإلغاء التذكرة"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -175,4 +182,3 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
         </>
     );
 }
-    
