@@ -5,13 +5,13 @@ import { useFirestore, useDoc, addDocumentNonBlocking } from '@/firebase';
 import { doc, writeBatch, increment, serverTimestamp, collection } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Check, X, Calendar, Users, ArrowRight, Loader2, Info } from 'lucide-react';
+import { Check, X, Calendar, Users, ArrowRight, Loader2, Info, Wallet, CircleDollarSign, Banknote } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { logEvent } from '@/lib/analytics';
+import { Separator } from '../ui/separator';
 
 const cities: { [key: string]: string } = {
     damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص',
@@ -58,8 +58,22 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
     const { toast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
     
+    // Fetch related trip to get financial details
+    const tripRef = useMemo(() => firestore ? doc(firestore, 'trips', booking.tripId) : null, [firestore, booking.tripId]);
+    const { data: trip, isLoading: isLoadingTrip } = useDoc<Trip>(tripRef);
+
+    const { depositAmount, remainingAmount } = useMemo(() => {
+        if (!trip) return { depositAmount: 0, remainingAmount: 0 };
+        const deposit = booking.totalPrice * ((trip.depositPercentage || 20) / 100);
+        const remaining = booking.totalPrice - deposit;
+        return { depositAmount: deposit, remainingAmount: remaining };
+    }, [booking.totalPrice, trip]);
+
     const handleBookingAction = async (action: 'confirm' | 'reject') => {
-        if (!firestore) return;
+        if (!firestore || !trip) {
+            toast({ variant: 'destructive', title: 'خطأ', description: 'لا يمكن إتمام الإجراء، تفاصيل الرحلة غير متوفرة.' });
+            return;
+        }
         setIsProcessing(true);
         
         const bookingRef = doc(firestore, 'bookings', booking.id);
@@ -74,7 +88,7 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
             const notificationData = {
                 userId: booking.userId,
                 title: 'تم تأكيد حجزك!',
-                message: `خبر سعيد! تم تأكيد حجزك لرحلة ${getCityName(booking.tripId)}. نتمنى لك رحلة موفقة!`,
+                message: `خبر سعيد! تم تأكيد حجزك لرحلة ${getCityName(trip.origin)}. نتمنى لك رحلة موفقة!`,
                 type: 'booking_confirmed',
                 isRead: false,
                 createdAt: new Date().toISOString(),
@@ -96,7 +110,7 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
             const notificationData = {
                 userId: booking.userId,
                 title: 'تحديث بخصوص طلب الحجز',
-                message: `نعتذر، لم يتمكن الناقل من تأكيد طلب الحجز الخاص بك لرحلة ${getCityName(booking.tripId)} في الوقت الحالي.`,
+                message: `نعتذر، لم يتمكن الناقل من تأكيد طلب الحجز الخاص بك لرحلة ${getCityName(trip.origin)} في الوقت الحالي.`,
                 type: 'trip_update',
                 isRead: false,
                 createdAt: new Date().toISOString(),
@@ -130,30 +144,50 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
                 </div>
                  <Badge className={statusInfo.className}>{statusInfo.text}</Badge>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4 text-sm pb-4">
-                 <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                    <Users className="h-4 w-4 text-primary" />
-                    <strong>عدد الركاب:</strong> {booking.seats}
-                </div>
-                <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                    <Calendar className="h-4 w-4 text-primary" />
-                    <strong>تاريخ الطلب:</strong> {new Date(booking.createdAt).toLocaleDateString('ar-SA')}
+            <CardContent className="space-y-4 pb-4">
+                 <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                        <Users className="h-4 w-4 text-primary" />
+                        <strong>عدد الركاب:</strong> {booking.seats}
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        <strong>تاريخ الطلب:</strong> {new Date(booking.createdAt).toLocaleDateString('ar-SA')}
+                    </div>
                 </div>
                 {booking.passengersDetails?.length > 0 && (
-                     <div className="col-span-2 p-3 bg-muted/50 rounded-md border border-dashed">
+                     <div className="p-3 bg-muted/30 rounded-md border border-dashed">
                         <p className="font-bold text-xs mb-2 flex items-center gap-1"><Info className="h-4 w-4"/> أسماء الركاب:</p>
                         <ul className="list-disc pr-5 text-xs text-muted-foreground">
                             {booking.passengersDetails.map((p, i) => <li key={i}>{p.name} ({p.type === 'adult' ? 'بالغ' : 'طفل'})</li>)}
                         </ul>
                     </div>
                 )}
+                 <div className="p-3 bg-muted/40 rounded-lg border">
+                    <h4 className="font-bold text-sm mb-2 flex items-center gap-2"><Wallet className="h-4 w-4 text-primary"/>التفاصيل المالية</h4>
+                     <div className="space-y-1 text-xs">
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">السعر الإجمالي للحجز:</span>
+                            <span className="font-bold">{booking.totalPrice.toFixed(2)} د.أ</span>
+                        </div>
+                        <Separator/>
+                        <div className="flex justify-between items-center text-green-600">
+                            <span className="flex items-center gap-1"><CircleDollarSign className="h-4 w-4"/> العربون المدفوع (مُحصّل):</span>
+                            <span className="font-bold text-base">{isLoadingTrip ? '...' : depositAmount.toFixed(2)} د.أ</span>
+                        </div>
+                        <div className="flex justify-between items-center text-muted-foreground">
+                            <span className="flex items-center gap-1"><Banknote className="h-4 w-4"/> المبلغ المتبقي للتحصيل:</span>
+                            <span className="font-bold">{isLoadingTrip ? '...' : remainingAmount.toFixed(2)} د.أ</span>
+                        </div>
+                    </div>
+                </div>
             </CardContent>
             {isPending && (
                 <CardFooter className="flex gap-2 bg-muted/30 p-2">
                     <Button 
                         className="w-full bg-green-600 hover:bg-green-700 text-white" 
                         onClick={() => handleBookingAction('confirm')}
-                        disabled={isProcessing}
+                        disabled={isProcessing || isLoadingTrip}
                     >
                         {isProcessing ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Check className="ml-2 h-4 w-4" />}
                         تأكيد الحجز
@@ -162,7 +196,7 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
                         variant="destructive" 
                         className="w-full"
                         onClick={() => handleBookingAction('reject')}
-                        disabled={isProcessing}
+                        disabled={isProcessing || isLoadingTrip}
                     >
                          {isProcessing ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <X className="ml-2 h-4 w-4" />}
                         رفض

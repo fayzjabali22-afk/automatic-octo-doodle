@@ -1,109 +1,48 @@
-
 'use client';
 import { useMemo } from 'react';
 import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import { Booking, Trip, UserProfile } from '@/lib/data';
+import { Booking } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Inbox, History, Hourglass } from 'lucide-react';
 import { BookingActionCard } from '@/components/carrier/booking-action-card';
 
-const mockPendingBookings: Booking[] = [
-    {
-        id: 'mock_booking_1',
-        tripId: 'mock_trip_1',
-        userId: 'mock_user_1',
-        carrierId: 'carrier_user_id',
-        seats: 2,
-        passengersDetails: [
-            { name: 'أحمد الصالح', type: 'adult' },
-            { name: 'سارة الصالح', type: 'adult' },
-        ],
-        status: 'Pending-Carrier-Confirmation',
-        totalPrice: 100,
-        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-        id: 'mock_booking_2',
-        tripId: 'mock_trip_2',
-        userId: 'mock_user_2',
-        carrierId: 'carrier_user_id',
-        seats: 1,
-        passengersDetails: [
-            { name: 'فاطمة العلي', type: 'adult' },
-        ],
-        status: 'Pending-Carrier-Confirmation',
-        totalPrice: 25,
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-        id: 'mock_booking_3',
-        tripId: 'mock_trip_3',
-        userId: 'mock_user_5',
-        carrierId: 'carrier_user_id',
-        seats: 4,
-        passengersDetails: [
-            { name: 'يوسف المغربي', type: 'adult' },
-            { name: 'مريم المغربي', type: 'adult' },
-            { name: 'علي المغربي', type: 'child' },
-            { name: 'نور المغربي', type: 'child' },
-        ],
-        status: 'Pending-Carrier-Confirmation',
-        totalPrice: 200,
-        createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    }
-];
-
-const mockHistoricalBookings: Booking[] = [
-    {
-        id: 'mock_hist_booking_1',
-        tripId: 'mock_hist_trip_1',
-        userId: 'mock_user_3',
-        carrierId: 'carrier_user_id',
-        seats: 1,
-        passengersDetails: [{ name: 'خالد المصري', type: 'adult' }],
-        status: 'Confirmed',
-        totalPrice: 50,
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-        id: 'mock_hist_booking_2',
-        tripId: 'mock_hist_trip_2',
-        userId: 'mock_user_4',
-        carrierId: 'carrier_user_id',
-        seats: 3,
-        passengersDetails: [
-            { name: 'عمر حداد', type: 'adult' },
-            { name: 'ليلى حداد', type: 'adult' },
-            { name: 'كريم حداد', type: 'child' },
-        ],
-        status: 'Completed',
-        totalPrice: 150,
-        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-    }
-];
-
-
 export default function CarrierBookingsPage() {
-    const isLoading = false;
-    const pendingBookings = mockPendingBookings;
-    const historicalBookings = mockHistoricalBookings;
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
+
+    const bookingsQuery = useMemo(() => {
+        if (!firestore || !user) return null;
+        return query(
+            collection(firestore, 'bookings'),
+            where('carrierId', '==', user.uid),
+            orderBy('createdAt', 'desc')
+        );
+    }, [firestore, user]);
+
+    const { data: allBookings, isLoading: areBookingsLoading } = useCollection<Booking>(bookingsQuery);
+
+    const { pendingBookings, historicalBookings } = useMemo(() => {
+        if (!allBookings) return { pendingBookings: [], historicalBookings: [] };
+
+        const pending = allBookings.filter(b => b.status === 'Pending-Carrier-Confirmation');
+        const historical = allBookings.filter(b => b.status !== 'Pending-Carrier-Confirmation');
+
+        return { pendingBookings: pending, historicalBookings: historical };
+    }, [allBookings]);
+    
+    const isLoading = isUserLoading || areBookingsLoading;
 
     if (isLoading) {
         return (
           <div className="space-y-6">
               <Skeleton key="header-1" className="h-8 w-48 rounded-lg" />
               <div className="space-y-3">
-                {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-40 w-full rounded-lg" />)}
+                {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)}
               </div>
               <Skeleton key="header-2" className="h-8 w-48 rounded-lg" />
               <div className="space-y-3">
-                 {[...Array(1)].map((_, i) => <Skeleton key={`hist-${i}`} className="h-40 w-full rounded-lg" />)}
+                 {[...Array(1)].map((_, i) => <Skeleton key={`hist-${i}`} className="h-48 w-full rounded-lg" />)}
               </div>
           </div>
         );
