@@ -1,7 +1,6 @@
-
 'use client';
 
-import type { CarrierProfile, Trip } from '@/lib/data';
+import type { CarrierProfile, Trip, Booking } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +19,7 @@ import {
   Clock,
   XCircle,
   Flag,
+  Ban,
 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Skeleton } from './ui/skeleton';
@@ -27,7 +27,7 @@ import { useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Badge } from './ui/badge';
 import Image from 'next/image';
-import { format } from 'date-fns';
+import { format, isFuture } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useMemo } from 'react';
 
@@ -62,7 +62,7 @@ const getCityName = (key: string) => {
 };
 
 const statusMap: Record<string, { text: string; icon: React.ElementType; color: string }> = {
-  'Planned': { text: 'مؤكدة', icon: CheckCircle, color: 'text-green-500' },
+  'Confirmed': { text: 'مؤكدة', icon: CheckCircle, color: 'text-green-500' },
   'Completed': { text: 'مكتملة', icon: CheckCircle, color: 'text-blue-500' },
   'Cancelled': { text: 'ملغاة', icon: XCircle, color: 'text-red-500' },
   'In-Transit': { text: 'قيد التنفيذ', icon: Clock, color: 'text-yellow-500' },
@@ -114,14 +114,18 @@ const CarrierInfo = ({ carrierId, carrierName }: { carrierId?: string; carrierNa
 };
 
 export function ScheduledTripCard({ 
-    trip, 
+    trip,
+    booking,
     onBookNow, 
-    onClosureAction, 
+    onClosureAction,
+    onCancelBooking,
     context = 'dashboard' 
 }: { 
     trip: Trip; 
+    booking?: Booking;
     onBookNow: (trip: Trip) => void; 
     onClosureAction?: (trip: Trip) => void;
+    onCancelBooking?: (trip: Trip, booking: Booking) => void;
     context?: 'dashboard' | 'history' 
 }) {
   const depositAmount = (trip.price || 0) * ((trip.depositPercentage || 0) / 100);
@@ -130,7 +134,7 @@ export function ScheduledTripCard({
   // @ts-ignore
   const vehicleImageUrl = trip.vehicleImageUrl || placeholderCar?.imageUrl;
 
-  const StatusComponent = trip.status ? statusMap[trip.status] : null;
+  const StatusComponent = booking?.status ? statusMap[booking.status] : null;
 
   return (
     <Card className="w-full overflow-hidden shadow-lg transition-all hover:shadow-primary/20 border-2 border-border/60 flex flex-col justify-between bg-card">
@@ -170,7 +174,7 @@ export function ScheduledTripCard({
         <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">
             <p className='flex items-center gap-2 font-bold'><HandCoins className="h-4 w-4 text-accent" /> تفاصيل السعر:</p>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-6">
-                <p><strong>السعر الكلي:</strong> {trip.price} دينار</p>
+                <p><strong>السعر الكلي للمقعد:</strong> {trip.price} دينار</p>
                 {trip.depositPercentage && <p><strong>العربون ({trip.depositPercentage || 0}%):</strong> {depositAmount.toFixed(2)} دينار</p>}
             </div>
         </div>
@@ -192,6 +196,12 @@ export function ScheduledTripCard({
                 <Flag className="ml-2 h-4 w-4"/>
                 إجراءات إغلاق الرحلة
             </Button>
+          )}
+          {context === 'history' && onCancelBooking && booking && (
+              <Button size="sm" variant="destructive" className="w-full" onClick={() => onCancelBooking(trip, booking)}>
+                  <Ban className="ml-2 h-4 w-4" />
+                  إلغاء الحجز
+              </Button>
           )}
       </CardFooter>
     </Card>

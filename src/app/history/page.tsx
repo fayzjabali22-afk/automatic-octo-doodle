@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, writeBatch, arrayUnion } from 'firebase/firestore'; 
+import { collection, query, where, doc, writeBatch, arrayUnion, increment } from 'firebase/firestore'; 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,12 +19,13 @@ import type { Trip, Offer, Booking } from '@/lib/data';
 import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Sparkles, Flag } from 'lucide-react';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
-import { format, addHours } from 'date-fns';
+import { format, addHours, isFuture } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { BookingDialog, type PassengerDetails } from '@/components/booking/booking-dialog';
 import { ScheduledTripCard } from '@/components/scheduled-trip-card';
 import { TripClosureDialog } from '@/components/trip-closure/trip-closure-dialog';
 import { RateTripDialog } from '@/components/trip-closure/rate-trip-dialog';
+import { CancellationDialog } from '@/components/booking/cancellation-dialog';
 
 // --- Helper Functions & Data ---
 const cities: { [key: string]: string } = {
@@ -88,6 +89,11 @@ export default function HistoryPage() {
   const [isClosureDialogOpen, setIsClosureDialogOpen] = useState(false);
   const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
   const [selectedTripForClosure, setSelectedTripForClosure] = useState<Trip | null>(null);
+
+  // Cancellation Dialog State
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [selectedBookingForCancellation, setSelectedBookingForCancellation] = useState<{trip: Trip, booking: Booking} | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
   
 
   // --- Queries ---
@@ -99,64 +105,57 @@ export default function HistoryPage() {
     );
   }, [firestore, user]);
 
-  const scheduledTripsQuery = useMemo(() => {
-      if (!firestore || !user) return null;
-      return query(
-          collection(firestore, 'trips'),
-          where('status', '==', 'Planned'),
-          where('userId', '!=', user.uid) // Don't show user their own trips as alternatives
-      );
+  const userBookingsQuery = useMemo(() => {
+    if (!firestore || !user) return null;
+    return query(
+        collection(firestore, 'bookings'),
+        where('userId', '==', user.uid)
+    )
   }, [firestore, user]);
   
   const { data: allUserTrips, isLoading: isLoadingTrips } = useCollection<Trip>(userTripsQuery);
-  const { data: allScheduledTrips, isLoading: isLoadingScheduled } = useCollection<Trip>(scheduledTripsQuery);
+  const { data: allUserBookings, isLoading: isLoadingBookings } = useCollection<Booking>(userBookingsQuery);
 
   const { awaitingTrips, pendingConfirmationTrips, confirmedTrips } = useMemo(() => {
-    if (!allUserTrips) {
-      return { awaitingTrips: [], pendingConfirmationTrips: [], confirmedTrips: [] };
-    }
-    
-    const sortedTrips = [...allUserTrips].sort((a, b) => 
-        new Date(b.departureDate).getTime() - new Date(a.departureDate).getTime()
-    );
+    const tripMap = new Map(allUserTrips?.map(t => [t.id, t]));
+    const bookings = allUserBookings || [];
 
-    const awaiting = sortedTrips.filter(t => t.status === 'Awaiting-Offers');
-    const pending = sortedTrips.filter(t => t.status === 'Pending-Carrier-Confirmation');
-    const confirmed = sortedTrips.filter(t => ['Planned', 'In-Transit', 'Completed', 'Cancelled'].includes(t.status));
+    const awaiting: Trip[] = [];
+    const pending: { trip: Trip, booking: Booking }[] = [];
+    const confirmed: { trip: Trip, booking: Booking }[] = [];
+
+    bookings.forEach(booking => {
+        const trip = tripMap.get(booking.tripId);
+        if (trip) {
+            if (booking.status === 'Pending-Carrier-Confirmation') {
+                pending.push({ trip, booking });
+            } else if (['Confirmed', 'Completed', 'Cancelled'].includes(booking.status)) {
+                confirmed.push({ trip, booking });
+            }
+        }
+    });
     
+    // Add trips that are still awaiting offers (no bookings yet)
+    allUserTrips?.forEach(trip => {
+      if(trip.status === 'Awaiting-Offers') {
+        awaiting.push(trip);
+      }
+    })
+
     return { 
-        awaitingTrips: awaiting, 
-        pendingConfirmationTrips: pending, 
-        confirmedTrips: confirmed 
+        awaitingTrips: awaiting.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), 
+        pendingConfirmationTrips: pending.sort((a,b) => new Date(b.booking.createdAt).getTime() - new Date(a.booking.createdAt).getTime()), 
+        confirmedTrips: confirmed.sort((a,b) => new Date(b.trip.departureDate).getTime() - new Date(a.trip.departureDate).getTime())
     };
-  }, [allUserTrips]);
-
-  const matchingScheduledTripsMap = useMemo(() => {
-      if (!awaitingTrips || !allScheduledTrips) return new Map<string, Trip[]>();
-
-      const map = new Map<string, Trip[]>();
-      awaitingTrips.forEach(request => {
-          const matches = allScheduledTrips.filter(scheduled => 
-              scheduled.origin === request.origin &&
-              scheduled.destination === request.destination &&
-              isSameDay(scheduled.departureDate, request.departureDate) &&
-              (scheduled.availableSeats || 0) >= (request.passengers || 1)
-          );
-          if (matches.length > 0) {
-              map.set(request.id, matches);
-          }
-      });
-      return map;
-
-  }, [awaitingTrips, allScheduledTrips]);
+  }, [allUserTrips, allUserBookings]);
 
 
   const hasAwaitingTrips = awaitingTrips && awaitingTrips.length > 0;
   const hasPendingConfirmationTrips = pendingConfirmationTrips && pendingConfirmationTrips.length > 0;
   const hasConfirmedTrips = confirmedTrips && confirmedTrips.length > 0;
 
-  const totalLoading = isUserLoading || isLoadingTrips || isLoadingScheduled;
-  const noTripsAtAll = !totalLoading && !hasAwaitingTrips && !hasPendingConfirmationTrips && !hasConfirmedTrips;
+  const totalLoading = isUserLoading || isLoadingTrips || isLoadingBookings;
+  const noHistoryAtAll = !totalLoading && !hasAwaitingTrips && !hasPendingConfirmationTrips && !hasConfirmedTrips;
 
   useEffect(() => {
     if (!totalLoading) {
@@ -172,15 +171,57 @@ export default function HistoryPage() {
       setIsBookingDialogOpen(true);
   };
   
-  const handleBookScheduledTrip = (trip: Trip) => {
-      setSelectedScheduledTrip(trip);
-      setIsBookingDialogOpen(true);
-  }
-  
   const handleOpenClosureDialog = (trip: Trip) => {
       setSelectedTripForClosure(trip);
       setIsClosureDialogOpen(true);
   }
+
+  const handleOpenCancelDialog = (trip: Trip, booking: Booking) => {
+      setSelectedBookingForCancellation({ trip, booking });
+      setIsCancelDialogOpen(true);
+  }
+
+  const handleConfirmCancellation = async () => {
+      if (!firestore || !user || !selectedBookingForCancellation) return;
+      
+      const { trip, booking } = selectedBookingForCancellation;
+      setIsCancelling(true);
+
+      try {
+        const batch = writeBatch(firestore);
+        
+        // 1. Update booking status
+        const bookingRef = doc(firestore, 'bookings', booking.id);
+        batch.update(bookingRef, { status: 'Cancelled' });
+
+        // 2. Restore seats to the trip
+        const tripRef = doc(firestore, 'trips', trip.id);
+        batch.update(tripRef, { availableSeats: increment(booking.seats) });
+        
+        await batch.commit();
+
+        // 3. Send notification (non-blocking)
+        addDocumentNonBlocking(collection(firestore, 'notifications'), {
+            userId: trip.carrierId,
+            title: 'إلغاء حجز',
+            message: `قام المسافر ${user.displayName || 'أحد المسافرين'} بإلغاء حجزه في رحلة ${cities[trip.origin]} إلى ${cities[trip.destination]}.`,
+            type: 'trip_update', // Re-using trip_update for simplicity
+            isRead: false,
+            createdAt: new Date().toISOString(),
+            link: `/carrier/trips` 
+        });
+
+        toast({ title: 'تم إلغاء الحجز بنجاح', description: 'تم استرجاع المقاعد للناقل.' });
+        setIsCancelDialogOpen(false);
+
+      } catch (error) {
+          console.error("Cancellation Error:", error);
+          toast({ variant: 'destructive', title: 'فشل الإلغاء', description: 'حدث خطأ أثناء إلغاء الحجز.' });
+      } finally {
+          setIsCancelling(false);
+      }
+  };
+
 
   const handleConfirmBookingFromOffer = async (passengers: PassengerDetails[]) => {
       if (!firestore || !user || !selectedOfferForBooking) return;
@@ -190,27 +231,32 @@ export default function HistoryPage() {
       try {
         const batch = writeBatch(firestore);
         
-        const bookingData: Omit<Booking, 'id'> = {
+        const bookingRef = doc(collection(firestore, 'bookings'));
+        
+        const bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'> = {
             tripId: trip.id,
             userId: user.uid,
             carrierId: offer.carrierId,
             seats: passengers.length,
             passengersDetails: passengers,
             status: 'Pending-Carrier-Confirmation',
-            totalPrice: offer.price * passengers.length,
+            totalPrice: offer.price,
+        };
+        batch.set(bookingRef, {
+            ...bookingData,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
-        };
-
-        const bookingRef = doc(collection(firestore, 'bookings'));
-        batch.set(bookingRef, bookingData);
+        });
         
         batch.update(doc(firestore, 'trips', trip.id), { 
             status: 'Pending-Carrier-Confirmation',
             acceptedOfferId: offer.id,
+            // We now create the booking first, so we use the booking ID
+        });
+
+        // Link booking to trip
+        batch.update(doc(firestore, 'trips', trip.id), {
             bookingIds: arrayUnion(bookingRef.id),
-            carrierId: offer.carrierId,
-            carrierName: (offer as any).carrierName || 'Unknown Carrier'
         });
         
         addDocumentNonBlocking(collection(firestore, 'notifications'), {
@@ -236,57 +282,6 @@ export default function HistoryPage() {
       }
   };
 
-  const handleConfirmBookingFromScheduled = async (passengers: PassengerDetails[]) => {
-    if (!firestore || !user || !selectedScheduledTrip) return;
-    setIsProcessingBooking(true);
-    const trip = selectedScheduledTrip;
-  
-    try {
-      const batch = writeBatch(firestore);
-      
-      const bookingData: Omit<Booking, 'id'> = {
-          tripId: trip.id,
-          userId: user.uid,
-          carrierId: trip.carrierId!,
-          seats: passengers.length,
-          passengersDetails: passengers,
-          status: 'Confirmed', // Direct confirmation as it's a scheduled trip
-          totalPrice: (trip.price || 0) * passengers.length,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-      };
-
-      const bookingRef = doc(collection(firestore, 'bookings'));
-      batch.set(bookingRef, bookingData);
-      
-      batch.update(doc(firestore, 'trips', trip.id), { 
-          availableSeats: (trip.availableSeats || 0) - passengers.length,
-          bookingIds: arrayUnion(bookingRef.id),
-      });
-      
-      addDocumentNonBlocking(collection(firestore, 'notifications'), {
-          userId: trip.carrierId!,
-          title: 'حجز جديد ومؤكد!',
-          message: `لديك حجز مؤكد جديد في رحلة ${cities[trip.origin]} - ${cities[trip.destination]}.`,
-          type: 'booking_confirmed',
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          link: `/carrier/trips`
-      });
-
-      await batch.commit();
-      
-      toast({ title: 'تم تأكيد حجزك الفوري بنجاح!', description: 'تم نقل الحجز إلى قسم "رحلاتي المؤكدة".' });
-      setIsBookingDialogOpen(false);
-      setSelectedScheduledTrip(null);
-    } catch (error) {
-      console.error("Scheduled Booking Error:", error);
-      toast({ variant: 'destructive', title: 'فشل الحجز الفوري', description: 'حدث خطأ أثناء الحجز، حاول لاحقاً.' });
-    } finally {
-      setIsProcessingBooking(false);
-    }
-  };
-
 
   const renderSkeleton = () => (
     <div className="space-y-4" role="status" aria-label="جار التحميل">
@@ -294,9 +289,9 @@ export default function HistoryPage() {
     </div>
   );
   
-  if (isUserLoading) return <AppLayout>{renderSkeleton()}</AppLayout>;
+  if (totalLoading) return <AppLayout>{renderSkeleton()}</AppLayout>;
 
-  const bookingDialogData = selectedOfferForBooking || { trip: selectedScheduledTrip, offer: { price: selectedScheduledTrip?.price || 0, depositPercentage: selectedScheduledTrip?.depositPercentage || 20 }};
+  const bookingDialogData = selectedOfferForBooking;
 
   return (
     <AppLayout>
@@ -305,14 +300,14 @@ export default function HistoryPage() {
         <Card className="bg-card/90 border-border/50">
            <CardHeader className="p-4 md:p-6 flex flex-row justify-between items-center">
             <div>
-              <CardTitle>إدارة الحجز</CardTitle>
-              <CardDescription>تابع عروضك وحجوزاتك من هنا</CardDescription>
+              <CardTitle>إدارة الحجز والرحلات</CardTitle>
+              <CardDescription>تابع طلباتك، عروضك، وحجوزاتك من هنا.</CardDescription>
             </div>
           </CardHeader>
         </Card>
 
         {/* Empty State */}
-        {noTripsAtAll && (
+        {noHistoryAtAll && (
           <div className="text-center py-16 border-2 border-dashed rounded-lg bg-card/50">
             <CalendarX className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" aria-hidden="true" />
             <h3 className="text-xl font-bold">لا يوجد سجل رحلات</h3>
@@ -327,13 +322,13 @@ export default function HistoryPage() {
         {/* Accordion Sections */}
         <Accordion type="single" collapsible className="space-y-6" value={openAccordion} onValueChange={setOpenAccordion}>
           {/* Awaiting Offers */}
-          {isLoadingTrips ? renderSkeleton() : hasAwaitingTrips && (
+          {hasAwaitingTrips && (
             <AccordionItem value="awaiting" className="border-none">
               <Card>
                 <AccordionTrigger className="p-6 text-lg hover:no-underline">
                   <div className="flex items-center gap-2">
                     <PackageOpen className="h-6 w-6 text-primary" aria-hidden="true" />
-                    <CardTitle>عروض الناقلين ({awaitingTrips.length})</CardTitle>
+                    <CardTitle>طلبات بانتظار العروض ({awaitingTrips.length})</CardTitle>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
@@ -348,24 +343,6 @@ export default function HistoryPage() {
                         </div>
                         <TripOffers trip={trip} onAcceptOffer={handleAcceptOffer} />
                       </div>
-                      
-                      {matchingScheduledTripsMap.has(trip.id) && (
-                          <div className="space-y-4">
-                              <h3 className="font-bold text-lg flex items-center gap-2 justify-center text-accent">
-                                <Sparkles className="h-5 w-5" />
-                                رحلات مجدولة متاحة للحجز الفوري
-                              </h3>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  {matchingScheduledTripsMap.get(trip.id)?.map(scheduledTrip => (
-                                      <ScheduledTripCard 
-                                          key={scheduledTrip.id}
-                                          trip={scheduledTrip}
-                                          onBookNow={() => handleBookScheduledTrip(scheduledTrip)}
-                                      />
-                                  ))}
-                              </div>
-                          </div>
-                      )}
                     </CardContent>
                   ))}
                 </AccordionContent>
@@ -374,7 +351,7 @@ export default function HistoryPage() {
           )}
           
           {/* Pending Confirmation */}
-          {isLoadingTrips ? renderSkeleton() : hasPendingConfirmationTrips && (
+          {hasPendingConfirmationTrips && (
              <AccordionItem value="pending" className="border-none">
               <Card>
                 <AccordionTrigger className="p-6 text-lg hover:no-underline">
@@ -385,19 +362,19 @@ export default function HistoryPage() {
                 </AccordionTrigger>
                 <AccordionContent>
                   <CardContent className="space-y-6 pt-6">
-                    {pendingConfirmationTrips.map(trip => (
-                      <Card key={trip.id} className="bg-background/50 border-yellow-500/50">
+                    {pendingConfirmationTrips.map(({trip, booking}) => (
+                      <Card key={booking.id} className="bg-background/50 border-yellow-500/50">
                         <CardHeader>
                           <div className="flex justify-between items-center">
                             <CardTitle className="text-base font-bold">رحلة {cities[trip.origin] || trip.origin} إلى {cities[trip.destination] || trip.destination}</CardTitle>
-                            <Badge variant={statusVariantMap[trip.status] || 'outline'}>{statusMap[trip.status] || trip.status}</Badge>
+                            <Badge variant={statusVariantMap[booking.status] || 'outline'}>{statusMap[booking.status] || booking.status}</Badge>
                           </div>
                         </CardHeader>
                         <CardContent className="flex flex-col items-center justify-center text-center space-y-2 p-6">
                             <AlertCircle className="h-8 w-8 text-yellow-500" aria-hidden="true" />
                             <p className="font-bold">بانتظار موافقة الناقل</p>
                             <p className="text-sm text-muted-foreground">
-                              تم إرسال طلبك للناقل "{trip.carrierName || 'غير معروف'}". سيتم إعلامك فور تأكيد الحجز.
+                              تم إرسال طلبك للناقل. سيتم إعلامك فور تأكيد الحجز.
                             </p>
                           </CardContent>
                       </Card>
@@ -408,29 +385,32 @@ export default function HistoryPage() {
             </AccordionItem>
           )}
 
-          {/* Confirmed Trips */}
-          {isLoadingTrips ? renderSkeleton() : hasConfirmedTrips && (
+          {/* Confirmed & Past Trips */}
+          {hasConfirmedTrips && (
             <AccordionItem value="confirmed" className="border-none">
               <Card>
                 <AccordionTrigger className="p-6 text-lg hover:no-underline">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-6 w-6 text-green-500" aria-hidden="true" />
-                    <CardTitle>رحلاتي المؤكدة ({confirmedTrips.length})</CardTitle>
+                    <CardTitle>رحلاتي المؤكدة والسابقة ({confirmedTrips.length})</CardTitle>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 p-6">
-                    {confirmedTrips.map(trip => {
-                      const isCompleted = trip.status === 'Completed';
+                    {confirmedTrips.map(({trip, booking}) => {
+                      const isCompleted = booking.status === 'Completed';
+                      const canCancel = booking.status === 'Confirmed' && isFuture(new Date(trip.departureDate));
                       const closureTime = trip.departureDate && trip.durationHours ? addHours(new Date(trip.departureDate), trip.durationHours + 4) : null;
                       const isClosureDue = closureTime ? new Date() > closureTime : false;
 
                       return (
                          <ScheduledTripCard
-                            key={trip.id}
+                            key={booking.id}
                             trip={trip}
+                            booking={booking}
                             onBookNow={() => {}}
                             onClosureAction={isClosureDue ? () => handleOpenClosureDialog(trip) : undefined}
+                            onCancelBooking={canCancel ? () => handleOpenCancelDialog(trip, booking) : undefined}
                             context="history"
                           />
                       )
@@ -444,15 +424,15 @@ export default function HistoryPage() {
       </div>
 
       {/* --- Dialogs --- */}
-      {(selectedOfferForBooking || selectedScheduledTrip) && (
+      {selectedOfferForBooking && (
           <BookingDialog
             isOpen={isBookingDialogOpen}
             onOpenChange={setIsBookingDialogOpen}
-            trip={bookingDialogData.trip!}
-            seatCount={bookingDialogData.trip?.passengers || 1}
-            offerPrice={bookingDialogData.offer.price}
-            depositPercentage={bookingDialogData.offer.depositPercentage || 20}
-            onConfirm={selectedScheduledTrip ? handleConfirmBookingFromScheduled : handleConfirmBookingFromOffer}
+            trip={bookingDialogData!.trip}
+            seatCount={bookingDialogData!.trip?.passengers || 1}
+            offerPrice={bookingDialogData!.offer.price}
+            depositPercentage={bookingDialogData!.offer.depositPercentage || 20}
+            onConfirm={handleConfirmBookingFromOffer}
             isProcessing={isProcessingBooking}
           />
       )}
@@ -464,7 +444,6 @@ export default function HistoryPage() {
             trip={selectedTripForClosure}
             onRate={() => {
                 setIsClosureDialogOpen(false);
-                // A slight delay to allow dialogs to transition smoothly
                 setTimeout(() => setIsRatingDialogOpen(true), 150);
             }}
         />
@@ -476,6 +455,15 @@ export default function HistoryPage() {
         trip={selectedTripForClosure}
         onConfirm={() => setSelectedTripForClosure(null)}
       />
+      
+      {selectedBookingForCancellation && (
+        <CancellationDialog
+            isOpen={isCancelDialogOpen}
+            onOpenChange={setIsCancelDialogOpen}
+            isCancelling={isCancelling}
+            onConfirm={handleConfirmCancellation}
+        />
+      )}
     </AppLayout>
   );
 }

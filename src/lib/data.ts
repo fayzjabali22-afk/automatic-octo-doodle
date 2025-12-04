@@ -99,6 +99,23 @@ export type Notification = {
   link?: string;
 };
 
+export type Rating = {
+    id: string;
+    tripId: string;
+    carrierId: string;
+    userId: string;
+    ratingValue: number;
+    details: {
+        vehicleQuality: number;
+        vehicleCleanliness: number;
+        driverCourtesy: number;
+        drivingProfessionalism: number;
+        specificationCredibility: number;
+    };
+    comment?: string;
+    createdAt: string;
+};
+
 export type Chat = {
   id: string;
   tripId: string;
