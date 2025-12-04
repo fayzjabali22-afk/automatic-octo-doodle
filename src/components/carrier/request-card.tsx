@@ -1,9 +1,10 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trip } from '@/lib/data';
-import { Calendar, Users, Handshake, Info, ArrowRight, CircleDollarSign } from 'lucide-react';
+import { Calendar, Users, Handshake, Info, ArrowRight, CircleDollarSign, UserCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -37,16 +38,31 @@ const safeDateFormat = (dateInput: any): string => {
 interface RequestCardProps {
     tripRequest: Trip;
     onOffer: (trip: Trip) => void;
+    isMock?: boolean;
 }
 
-export function RequestCard({ tripRequest, onOffer }: RequestCardProps) {
+export function RequestCard({ tripRequest, onOffer, isMock = false }: RequestCardProps) {
+
+    const isDirectRequest = tripRequest.requestType === 'Direct';
 
     return (
         <div className={cn(
             "flex flex-col sm:flex-row sm:items-center sm:justify-between",
-            "w-full p-4 border rounded-lg shadow-sm transition-shadow duration-300 hover:shadow-primary/20 bg-card"
+            "w-full p-4 border rounded-lg shadow-sm transition-shadow duration-300 bg-card",
+            isDirectRequest ? "border-primary hover:shadow-primary/20" : "hover:shadow-accent/20"
         )}>
             <div className="flex-1 mb-4 sm:mb-0">
+                
+                {isDirectRequest && (
+                    <Badge variant="default" className="mb-2">
+                        <UserCheck className="ml-1 h-3 w-3" />
+                        موجه لك خصيصاً
+                    </Badge>
+                )}
+                {isMock && !isDirectRequest && (
+                     <Badge variant="destructive" className="mb-2">محاكاة</Badge>
+                )}
+                
                 {/* Destination */}
                 <div className="flex items-center gap-2 font-bold text-lg text-foreground">
                     <span>{getCityName(tripRequest.origin)}</span>
@@ -71,6 +87,11 @@ export function RequestCard({ tripRequest, onOffer }: RequestCardProps) {
                         </div>
                      )}
                 </div>
+                 {tripRequest.notes && (
+                    <div className="text-xs text-muted-foreground mt-2 p-2 bg-muted/50 rounded-md border border-dashed">
+                       <span className="font-bold">ملاحظات المسافر:</span> {tripRequest.notes}
+                    </div>
+                )}
             </div>
 
             {/* Action Button */}

@@ -15,6 +15,55 @@ import { OfferDialog } from '@/components/carrier/offer-dialog';
 import { suggestOfferPrice, type SuggestOfferPriceInput } from '@/ai/flows/suggest-offer-price-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { Badge } from '@/components/ui/badge';
+
+
+// --- STRATEGIC FALLBACK DATA ---
+const mockRequests: Trip[] = [
+    {
+        id: 'mock_req_1',
+        userId: 'traveler_mock_1',
+        origin: 'amman',
+        destination: 'riyadh',
+        departureDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+        passengers: 2,
+        status: 'Awaiting-Offers',
+        requestType: 'General',
+        targetPrice: 150,
+        currency: 'JOD',
+        notes: 'لدينا حقائب كثيرة، نفضل سيارة كبيرة.',
+        createdAt: new Date().toISOString(),
+    },
+    {
+        id: 'mock_req_2',
+        userId: 'traveler_mock_2',
+        origin: 'damascus',
+        destination: 'amman',
+        departureDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        passengers: 1,
+        status: 'Awaiting-Offers',
+        requestType: 'General',
+        notes: 'رحلة عمل عاجلة، أفضل الانطلاق في الصباح الباكر.',
+        createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: 'mock_req_3',
+        userId: 'traveler_mock_3',
+        origin: 'cairo',
+        destination: 'jeddah',
+        departureDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+        passengers: 4,
+        status: 'Awaiting-Offers',
+        requestType: 'Direct', // This is a direct request
+        targetCarrierId: 'carrier_user_id', // Assuming this is the current carrier's ID
+        isShared: false,
+        targetPrice: 400,
+        currency: 'SAR',
+        notes: 'عائلة ترغب برحلة خاصة ومريحة.',
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    },
+];
+// --- END STRATEGIC FALLBACK DATA ---
 
 function LoadingState() {
   return (
@@ -78,7 +127,8 @@ export default function CarrierRequestsPage() {
     let q = query(
         collection(firestore, 'trips'), 
         where('status', '==', 'Awaiting-Offers'),
-        where('requestType', '==', 'General') // Only show general market requests for now
+        // Show both general requests and direct requests to this carrier
+        where('targetCarrierId', 'in', [null, user.uid])
     );
 
     // Smart Filter: Filter by carrier's specialization route if enabled and defined
@@ -96,10 +146,14 @@ export default function CarrierRequestsPage() {
 
   }, [firestore, user, filterBySpecialization, canFilter, userProfile]);
 
-  const { data: requests, isLoading: isLoadingRequests } = useCollection<Trip>(requestsQuery);
+  const { data: realRequests, isLoading: isLoadingRequests } = useCollection<Trip>(requestsQuery);
 
   const isLoading = isLoadingProfile || isLoadingRequests;
   
+  // HYBRID LOGIC: Use real data if available, otherwise fall back to mock data
+  const isUsingMockData = !isLoading && (!realRequests || realRequests.length === 0);
+  const requests = isUsingMockData ? mockRequests : realRequests;
+
   const handleOfferClick = (trip: Trip) => {
     setSuggestion(null); // Clear previous suggestion
     setSelectedTrip(trip);
@@ -149,6 +203,9 @@ export default function CarrierRequestsPage() {
   return (
     <>
     <div className="space-y-4">
+        {isUsingMockData && (
+            <Badge variant="destructive" className="w-full justify-center py-2 text-sm">أنت تعرض بيانات محاكاة (لأغراض التطوير)</Badge>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-center justify-center sm:justify-start space-x-2 rtl:space-x-reverse bg-card p-3 rounded-lg border">
                 <Label htmlFor="filter-switch" className="flex items-center gap-2 font-semibold">
@@ -172,7 +229,7 @@ export default function CarrierRequestsPage() {
         {requests && requests.length > 0 ? (
             <div className="space-y-3">
                 {requests.map(req => (
-                    <RequestCard key={req.id} tripRequest={req} onOffer={handleOfferClick} />
+                    <RequestCard key={req.id} tripRequest={req} onOffer={handleOfferClick} isMock={isUsingMockData} />
                 ))}
             </div>
         ) : (
