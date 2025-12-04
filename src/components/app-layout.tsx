@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert, Lock, AlertTriangle, MessageSquare, Check, ArrowRightLeft, Loader2 } from 'lucide-react';
+import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert, Lock, AlertTriangle, MessageSquare, ArrowRightLeft, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,12 +32,11 @@ import {
   setDocumentNonBlocking,
   useAuth,
 } from '@/firebase';
-import { doc, collection, query, where, limit, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, collection, query, where, limit, updateDoc } from 'firebase/firestore';
 import type { Notification } from '@/lib/data';
-import { Badge } from '@/components/ui/badge';
-import { signOut, deleteUser, sendEmailVerification } from 'firebase/auth';
+import { signOut, sendEmailVerification } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useUserProfile } from '@/hooks/use-user-profile';
@@ -52,13 +51,13 @@ const menuItems = [
   {
     href: '/history',
     label: 'إدارة الحجز',
-    auth: false, // DEV MODE: Auth check disabled
+    auth: false,
     icon: null,
   },
   {
     href: '/chats',
     label: 'الدردشات',
-    auth: false, // DEV MODE: Auth check disabled
+    auth: false,
     icon: MessageSquare,
   }
 ];
@@ -83,8 +82,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const { profile, isLoading: isProfileLoading } = useUserProfile();
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
+  
+  // State to track if the component has mounted on the client
+  const [isMounted, setIsMounted] = useState(false);
 
-  const isCarrierPath = pathname.startsWith('/carrier');
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const isCarrierPath = pathname?.startsWith('/carrier');
 
   const userProfileRef = useMemo(() => {
     if (!firestore || !user) return null;
@@ -146,7 +152,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
   
-    const handleSwitchRole = async () => {
+  const handleSwitchRole = async () => {
         if (!userProfileRef || !profile) return;
         setIsSwitchingRole(true);
         const newRole = profile.role === 'carrier' ? 'traveler' : 'carrier';
@@ -168,11 +174,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         } finally {
             setIsSwitchingRole(false);
         }
-    }
-
+  }
 
   const handleDeleteAccount = async () => {
-    // DEV MODE: Bypassing auth check
     toast({
         title: 'تم تعطيل المصادقة',
         description: 'تم تعطيل حذف الحساب في وضع التطوير.',
@@ -234,9 +238,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           "bg-accent text-accent-foreground border-b border-border/10"
         )}>
 
-          {/* Hamburger Menu (Mobile) */}
+          {/* Hamburger Menu (Mobile) - FIXED HYDRATION ERROR */}
           <div className="flex items-center md:hidden">
-            {!isCarrierPath && (
+            {isMounted && !isCarrierPath && (
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-black/10">
@@ -286,7 +290,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          {/* Actions (Notifications, User Menu) */}
+          {/* Actions */}
           <div className="flex items-center gap-2 ms-auto">
             
             {isDevUser && (
@@ -341,7 +345,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                         </div>
                                         <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
                                         <span className="text-[10px] text-muted-foreground/70 w-full text-start">
-                                            {new Date(notification.createdAt).toLocaleDateString('ar-SA')}
+                                            {isMounted ? new Date(notification.createdAt).toLocaleDateString('ar-SA') : ''}
                                         </span>
                                     </DropdownMenuItem>
                                 ))
@@ -378,7 +382,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {!isCarrierPath && <nav className="sticky top-16 z-40 hidden h-12 items-center justify-center gap-8 border-b border-b-border/10 bg-secondary px-6 text-secondary-foreground shadow-sm md:flex">
+        {/* Desktop Nav - Also protected with isMounted to ensure consistency */}
+        {isMounted && !isCarrierPath && <nav className="sticky top-16 z-40 hidden h-12 items-center justify-center gap-8 border-b border-b-border/10 bg-secondary px-6 text-secondary-foreground shadow-sm md:flex">
           {menuItems.map((item) => {
             const isDisabled = item.auth && !user;
             const linkClass = cn(
