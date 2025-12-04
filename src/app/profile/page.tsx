@@ -28,7 +28,7 @@ import { doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState, useMemo } from 'react';
 import { deleteUser, sendEmailVerification } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, MailCheck, TestTube2, ArrowRightLeft, Loader2, Upload, Briefcase } from 'lucide-react';
+import { ShieldAlert, Trash2, MailCheck, TestTube2, ArrowRightLeft, Loader2, Upload, Briefcase, Car } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { actionCodeSettings } from '@/firebase/config';
 import { useUserProfile } from '@/hooks/use-user-profile';
@@ -55,6 +55,7 @@ const profileFormSchema = z.object({
   vehicleModel: z.string().optional(),
   vehicleYear: z.string().optional(),
   vehicleCapacity: z.coerce.number().int().optional(),
+  vehicleImageUrls: z.array(z.string().url('الرجاء إدخال رابط صورة صالح').or(z.literal(''))).max(2).optional(),
   primaryRoute: z.object({
       origin: z.string().optional(),
       destination: z.string().optional(),
@@ -92,6 +93,7 @@ export default function ProfilePage() {
         vehicleModel: '',
         vehicleYear: '',
         vehicleCapacity: 0,
+        vehicleImageUrls: ['',''],
         primaryRoute: { origin: '', destination: '' },
         paymentInformation: ''
     },
@@ -110,6 +112,7 @@ export default function ProfilePage() {
         vehicleModel: profile.vehicleModel || '',
         vehicleYear: profile.vehicleYear || '',
         vehicleCapacity: profile.vehicleCapacity || 0,
+        vehicleImageUrls: profile.vehicleImageUrls || ['',''],
         primaryRoute: profile.primaryRoute || { origin: '', destination: '' },
         paymentInformation: profile.paymentInformation || '',
       });
@@ -135,6 +138,11 @@ export default function ProfilePage() {
     if (isNaN(dataToSave.vehicleCapacity!)) {
         delete dataToSave.vehicleCapacity;
     }
+    
+    // Filter out empty image URLs
+    if (dataToSave.vehicleImageUrls) {
+        dataToSave.vehicleImageUrls = dataToSave.vehicleImageUrls.filter(url => url && url.trim() !== '');
+    }
 
     if (profile?.role !== 'carrier') {
         // Don't save carrier fields if user is not a carrier
@@ -142,6 +150,7 @@ export default function ProfilePage() {
         delete dataToSave.vehicleModel;
         delete dataToSave.vehicleYear;
         delete dataToSave.vehicleCapacity;
+        delete dataToSave.vehicleImageUrls;
         delete dataToSave.primaryRoute;
         delete dataToSave.paymentInformation;
     }
@@ -289,7 +298,13 @@ export default function ProfilePage() {
                                 <FormField control={form.control} name="vehicleType" render={({ field }) => (<FormItem><FormLabel>نوع المركبة</FormLabel><FormControl><Input placeholder="e.g., GMC Yukon" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="vehicleModel" render={({ field }) => (<FormItem><FormLabel>موديل المركبة</FormLabel><FormControl><Input placeholder="e.g., Suburban" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="vehicleYear" render={({ field }) => (<FormItem><FormLabel>سنة الصنع</FormLabel><FormControl><Input placeholder="e.g., 2024" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="vehicleCapacity" render={({ field }) => (<FormItem><FormLabel>سعة الركاب</FormLabel><FormControl><Input type="number" placeholder="e.g., 4" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="vehicleCapacity" render={({ field }) => (<FormItem><FormLabel>سعة الركاب</FormLabel><FormControl><Input type="number" placeholder="e.g., 4" {...field} /></FormControl><FormMessage /></FormMessage>)} />
+                            </div>
+                            <Separator/>
+                             <div className="space-y-4">
+                                <FormLabel className="flex items-center gap-2 font-semibold"><Car className="h-4 w-4"/>روابط صور المركبة</FormLabel>
+                                <FormField control={form.control} name="vehicleImageUrls.0" render={({ field }) => (<FormItem><FormLabel className="text-xs">الصورة الأساسية</FormLabel><FormControl><Input dir="ltr" placeholder="https://example.com/main-image.jpg" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="vehicleImageUrls.1" render={({ field }) => (<FormItem><FormLabel className="text-xs">صورة إضافية</FormLabel><FormControl><Input dir="ltr" placeholder="https://example.com/extra-image.jpg" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             </div>
                             <Separator/>
                             <div className="space-y-2">
@@ -349,4 +364,5 @@ export default function ProfilePage() {
     </AlertDialog>
     </>
   );
-}
+
+    

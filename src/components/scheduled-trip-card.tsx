@@ -75,14 +75,14 @@ const CarrierInfo = ({ carrierId, carrierName }: { carrierId?: string; carrierNa
   const firestore = useFirestore();
   const carrierRef = useMemo(() => {
     if (!firestore || !carrierId) return null;
-    return doc(firestore, 'carriers', carrierId);
+    return doc(firestore, 'users', carrierId); // carriers are now in 'users'
   }, [firestore, carrierId]);
 
   const { data: carrier, isLoading } = useDoc<CarrierProfile>(carrierRef);
   
   const placeholderImage = PlaceHolderImages.find((img) => img.id === 'user-avatar');
   // @ts-ignore
-  const displayImage = carrier?.imageUrl || placeholderImage?.imageUrl;
+  const displayImage = carrier?.photoURL || placeholderImage?.imageUrl;
 
   if (isLoading) {
     return (
@@ -134,9 +134,8 @@ export function ScheduledTripCard({
 }) {
   const depositAmount = (trip.price || 0) * ((trip.depositPercentage || 0) / 100);
   
-  const placeholderCar = PlaceHolderImages.find((img) => img.id === 'car-placeholder');
-  // @ts-ignore
-  const vehicleImageUrl = trip.vehicleImageUrl || placeholderCar?.imageUrl;
+  const defaultCarImage = PlaceHolderImages.find((img) => img.id === 'car-placeholder');
+  const vehicleImageUrl = trip.vehicleImageUrls && trip.vehicleImageUrls.length > 0 ? trip.vehicleImageUrls[0] : defaultCarImage?.imageUrl;
 
   const StatusComponent = booking?.status ? statusMap[booking.status] : null;
   const isMessageable = context === 'history' && booking?.status === 'Confirmed';
@@ -160,13 +159,14 @@ export function ScheduledTripCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4 flex-grow">
-        {vehicleImageUrl && context === 'dashboard' && (
+        {vehicleImageUrl && (
             <div className="relative aspect-video w-full overflow-hidden rounded-md">
                 <Image 
                     src={vehicleImageUrl}
                     alt="Vehicle image" 
                     fill
                     className="object-cover transition-transform hover:scale-105 duration-500"
+                    unoptimized
                 />
             </div>
         )}
@@ -200,7 +200,7 @@ export function ScheduledTripCard({
                 {trip.depositPercentage && <p><strong>العربون ({trip.depositPercentage || 0}%):</strong> {depositAmount.toFixed(2)} {trip.currency}</p>}
             </div>
         </div>
-        {trip.conditions && (
+        {trip.conditions && trip.conditions.trim() !== '' && (
             <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">
                 <p className='flex items-center gap-2 font-bold'><ListChecks className="h-4 w-4 text-accent" /> شروط الناقل:</p>
                 <p className="text-xs ps-6 whitespace-pre-wrap">{trip.conditions}</p>

@@ -14,6 +14,7 @@ export type UserProfile = {
   vehicleModel?: string;
   vehicleYear?: string;
   vehicleCapacity?: number;
+  vehicleImageUrls?: string[]; // UPDATED: Array for vehicle images
   primaryRoute?: {
     origin: string;
     destination: string;
@@ -38,6 +39,7 @@ export type CarrierProfile = {
   vehicleType?: string;
   vehicleCategory?: 'small' | 'bus';
   vehicleCapacity?: number;
+  vehicleImageUrls?: string[]; // UPDATED: Array for vehicle images
   primaryRoute?: CarrierSpecialization;
   paymentInformation?: string;
   createdAt?: any;
@@ -68,8 +70,10 @@ export type Trip = {
   durationHours?: number; // Added field for trip duration
   conditions?: string; // Carrier's conditions for the trip
   vehicleType?: string; // Denormalized from CarrierProfile
+  vehicleImageUrls?: string[]; // Denormalized for quick access
   meetingPoint?: string; // Precise meeting point address
   meetingPointLink?: string; // Optional Google Maps link for the meeting point
+  vehicleCategory?: 'small' | 'bus';
 };
 
 export type Booking = {
