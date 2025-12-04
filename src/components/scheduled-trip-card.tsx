@@ -188,14 +188,14 @@ export function ScheduledTripCard({
 
         <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">
             <p className='flex items-center gap-2 font-bold'><Car className="h-4 w-4 text-accent" /> تفاصيل المركبة:</p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-6">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs ps-6">
                 <p><strong>النوع:</strong> {trip.vehicleType || 'N/A'}</p>
                 <p><strong>المقاعد المتاحة:</strong> {trip.availableSeats ?? 'N/A'}</p>
             </div>
         </div>
         <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">
             <p className='flex items-center gap-2 font-bold'><HandCoins className="h-4 w-4 text-accent" /> تفاصيل السعر:</p>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-6">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs ps-6">
                 <p><strong>السعر الكلي للمقعد:</strong> {trip.price} {trip.currency}</p>
                 {trip.depositPercentage && <p><strong>العربون ({trip.depositPercentage || 0}%):</strong> {depositAmount.toFixed(2)} {trip.currency}</p>}
             </div>
@@ -203,7 +203,7 @@ export function ScheduledTripCard({
         {trip.conditions && (
             <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">
                 <p className='flex items-center gap-2 font-bold'><ListChecks className="h-4 w-4 text-accent" /> شروط الناقل:</p>
-                <p className="text-xs pl-6 whitespace-pre-wrap">{trip.conditions}</p>
+                <p className="text-xs ps-6 whitespace-pre-wrap">{trip.conditions}</p>
             </div>
         )}
          {context === 'history' && StatusComponent && (
