@@ -2,17 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Archive, Search, Route, PlusCircle } from 'lucide-react';
+import { Archive, Search, Route, PlusCircle, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-// New nav items structure for the 5-column grid
+// 5-column grid with a placeholder for the central FAB
 const navItems = [
   { href: '/carrier/requests', label: 'الطلبات', icon: Search },
   { href: '/carrier/trips', label: 'رحلاتي', icon: Route },
   null, // Placeholder for the central FAB
   { href: '/carrier/archive', label: 'الأرشيف', icon: Archive },
-  { href: '/carrier/bookings', label: 'الحجوزات', icon: 'Briefcase' }, // Placeholder for a potential 4th item
+  { href: '/carrier/bookings', label: 'الحجوزات', icon: Briefcase },
 ];
 
 interface CarrierBottomNavProps {
@@ -44,11 +44,8 @@ export function CarrierBottomNav({ onAddTripClick }: CarrierBottomNavProps) {
                 return <div key={`spacer-${index}`} aria-hidden="true" />;
             }
 
-            const isActive = pathname === item.href;
+            const isActive = pathname.startsWith(item.href);
             const Icon = item.icon;
-
-            // Do not render the 5th item for now.
-            if (index === 4) return null;
 
             return (
               <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-1 w-full py-2 h-full">

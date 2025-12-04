@@ -65,6 +65,7 @@ function TripInfo({ trip }: { trip?: Trip | null }) {
 
 export function BookingActionCard({ booking, trip }: { booking: Booking, trip: Trip | null }) {
     const { toast } = useToast();
+    const firestore = useFirestore();
     const [isProcessing, setIsProcessing] = useState(false);
     const isLoadingTrip = false; 
     
@@ -76,10 +77,39 @@ export function BookingActionCard({ booking, trip }: { booking: Booking, trip: T
     }, [booking.totalPrice, trip]);
 
     const handleBookingAction = async (action: 'confirm' | 'reject') => {
-        // In simulation, we just show a toast and don't interact with Firestore.
+        if (!firestore || !trip) {
+            toast({ title: 'خطأ', description: 'لا يمكن إتمام الإجراء، بيانات الرحلة غير متوفرة', variant: 'destructive' });
+            return;
+        }
+
         setIsProcessing(true);
+        const notificationsCollection = collection(firestore, 'notifications');
+        const notificationPayload = {
+            userId: booking.userId, // Send notification to the traveler
+            type: 'booking_confirmed',
+            isRead: false,
+            createdAt: new Date().toISOString(),
+            title: '',
+            message: '',
+            link: '',
+        };
+
+        if (action === 'confirm') {
+            notificationPayload.title = 'تم تأكيد حجزك! 🎉';
+            notificationPayload.message = `لقد قام الناقل بتأكيد حجزك لرحلة ${getCityName(trip.origin)} إلى ${getCityName(trip.destination)}. نتمنى لك رحلة سعيدة!`;
+            notificationPayload.link = '/history';
+        } else { // reject
+            notificationPayload.title = 'عذراً، تم رفض طلب الحجز';
+            notificationPayload.message = `نعتذر، لم يتمكن الناقل من تأكيد حجزك لرحلة ${getCityName(trip.origin)} إلى ${getCityName(trip.destination)}.`;
+            notificationPayload.link = '/dashboard';
+        }
+        
+        // Non-blocking notification send
+        addDocumentNonBlocking(notificationsCollection, notificationPayload);
+        
+        // SIMULATION of backend logic
         setTimeout(() => {
-            toast({ title: `محاكاة: ${action === 'confirm' ? 'تم تأكيد الحجز' : 'تم رفض الحجز'}` });
+            toast({ title: `محاكاة: ${action === 'confirm' ? 'تم تأكيد الحجز وإرسال إشعار' : 'تم رفض الحجز وإرسال إشعار'}` });
             setIsProcessing(false);
         }, 1000);
     };

@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Trip } from '@/lib/data';
+import { useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 interface CancelTripDialogProps {
   isOpen: boolean;
@@ -24,30 +26,54 @@ interface CancelTripDialogProps {
 
 export function CancelTripDialog({ isOpen, onOpenChange, trip }: CancelTripDialogProps) {
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [isCancelling, setIsCancelling] = useState(false);
 
   const handleConfirm = async () => {
-    if (!trip) return;
+    if (!trip || !firestore) return;
     setIsCancelling(true);
 
-    // --- SIMULATION LOGIC ---
-    setTimeout(() => {
-        console.log(`Simulating cancellation for trip: ${trip.id}`);
-        console.log(`Updating trip status to 'Cancelled'.`);
-        if (trip.bookingIds && trip.bookingIds.length > 0) {
-            console.log(`Updating ${trip.bookingIds.length} associated bookings to 'Cancelled'.`);
-            console.log(`Sending notifications to affected travelers.`);
-        }
-        
-        toast({
-            title: 'محاكاة: تم إلغاء الرحلة بنجاح',
-            description: 'سيتم إبلاغ جميع المسافرين بهذا الإلغاء.',
-        });
+    // --- REAL LOGIC IN SIMULATION MODE ---
+    // In a real scenario, you'd fetch the actual booking documents.
+    // Here, we'll just use the mock bookingIds to send notifications.
+    const mockAffectedUserIds = ['traveler_A', 'traveler_B', 'traveler_C']; // Simulate users who booked this trip
+    const notificationsCollection = collection(firestore, 'notifications');
+    const tripDate = new Date(trip.departureDate).toISOString().split('T')[0];
 
+    // The smart link for searching for an alternative trip
+    const smartSearchLink = `/dashboard?origin=${trip.origin}&destination=${trip.destination}&date=${tripDate}`;
+    
+    // Create a notification for each affected user
+    const notificationPromises = mockAffectedUserIds.map(userId => {
+        const notificationPayload = {
+            userId: userId,
+            title: 'إلغاء رحلة وحجز!',
+            message: `نعتذر، لقد قام الناقل بإلغاء رحلتك من ${trip.origin} إلى ${trip.destination} لظروف طارئة. اضغط هنا للبحث عن بديل فوراً.`,
+            type: 'trip_update',
+            isRead: false,
+            createdAt: new Date().toISOString(),
+            link: smartSearchLink
+        };
+        return addDocumentNonBlocking(notificationsCollection, notificationPayload);
+    });
+
+    try {
+      await Promise.all(notificationPromises);
+       toast({
+          title: 'تم إلغاء الرحلة بنجاح',
+          description: `تم إرسال إشعارات إلى ${mockAffectedUserIds.length} مسافرين متأثرين.`,
+      });
+    } catch (error) {
+       toast({
+          variant: 'destructive',
+          title: 'فشل إرسال الإشعارات',
+          description: 'حدث خطأ أثناء إبلاغ المسافرين.',
+      });
+    } finally {
         setIsCancelling(false);
         onOpenChange(false);
-    }, 1500);
-    // --- END SIMULATION LOGIC ---
+    }
+    // --- END LOGIC ---
   };
 
   const bookedSeats = trip?.bookingIds?.length || 0;
