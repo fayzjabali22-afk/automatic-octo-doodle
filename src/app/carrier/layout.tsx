@@ -4,7 +4,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShieldAlert, Ship, LayoutDashboard, FilePlus, Route, Briefcase, Wallet, MessageSquare, BarChart3, PlusCircle, Archive } from 'lucide-react';
+import { ShieldAlert, Ship, LayoutDashboard, FilePlus, Route, Briefcase, MessageSquare, BarChart3, PlusCircle, Archive } from 'lucide-react';
 import { AppLayout } from '@/components/app-layout';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -32,7 +32,6 @@ const sidebarNavLinks = [
     { href: '/carrier/archive', label: 'الأرشيف', icon: Archive, exact: false },
     { href: '/carrier/bookings', label: 'طلبات الموافقة', icon: Briefcase, exact: false },
     { href: '/carrier/chats', label: 'المحادثات', icon: MessageSquare, exact: false },
-    { href: '/carrier/wallet', label: 'المحفظة المالية', icon: Wallet, exact: false }
 ];
 
 

@@ -39,7 +39,7 @@ export type CarrierProfile = {
   vehicleCategory?: 'small' | 'bus';
   vehicleCapacity?: number;
   primaryRoute?: CarrierSpecialization;
-  paymentInformation?: string; // Added for flexibility
+  paymentInformation?: string;
   createdAt?: any;
   updatedAt?: any;
 };
@@ -146,5 +146,3 @@ export type Message = {
   content: string;
   timestamp: string;
 };
-
-    
