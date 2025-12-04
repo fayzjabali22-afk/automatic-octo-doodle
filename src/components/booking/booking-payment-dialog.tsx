@@ -205,10 +205,10 @@ export function BookingPaymentDialog({
                             </div>
                             ))}
                         </div>
-                         <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
-                            <Info className="h-4 w-4" />
-                            <AlertTitle className="font-bold">إقرار هام</AlertTitle>
-                            <AlertDescription className="text-xs">
+                         <Alert variant="destructive" className="bg-black text-white border-destructive">
+                            <Info className="h-4 w-4 !text-destructive" />
+                            <AlertTitle className="font-bold !text-destructive">إقرار هام</AlertTitle>
+                            <AlertDescription className="text-xs !text-white/80">
                                 بالضغط على الزر أدناه، أنت تقر بأنك قمت بتحويل مبلغ العربون مباشرة إلى الناقل بناءً على التعليمات المذكورة. التطبيق هو وسيط ولا يتحمل مسؤولية التحويلات المالية.
                             </AlertDescription>
                         </Alert>
