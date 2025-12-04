@@ -343,7 +343,6 @@ export default function ProfilePage() {
                 <div className="flex justify-end">
                     <Button type="submit">حفظ التغييرات</Button>
                 </div>
-
             </form>
         </Form>
         
@@ -364,5 +363,6 @@ export default function ProfilePage() {
     </AlertDialog>
     </>
   );
+}
 
     
