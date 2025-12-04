@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert, Lock, AlertTriangle, MessageSquare, ArrowRightLeft, Loader2 } from 'lucide-react';
+import { LogOut, Settings, Menu, Bell, Trash2, ShieldAlert, Lock, AlertTriangle, MessageSquare, ArrowRightLeft, Loader2, User } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -237,7 +237,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           "bg-accent text-accent-foreground border-b border-border/10"
         )}>
 
-          {/* Hamburger Menu (Mobile) - FIXED HYDRATION ERROR */}
+          {/* Left-side icons on mobile */}
+          <div className="flex items-center gap-2 md:hidden">
+            {isMounted && isCarrierPath && (
+              <Button asChild variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-black/10">
+                <Link href="/profile" aria-label="الملف الشخصي">
+                  <User className="h-5 w-5" />
+                </Link>
+              </Button>
+            )}
+          </div>
+          
+          {/* Hamburger Menu (Mobile, Traveler only) - FIXED HYDRATION ERROR */}
           <div className="md:hidden">
             {isMounted && !isCarrierPath && (
               <Sheet>
@@ -289,7 +300,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          {/* Actions */}
+          {/* Right-side actions */}
           <div className="flex items-center gap-2 ms-auto">
             
             {isDevUser && (
