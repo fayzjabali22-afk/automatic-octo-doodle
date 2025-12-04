@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { collection, serverTimestamp } from 'firebase/firestore';
-import { Loader2, CalendarIcon, Send, Clock, PlaneTakeoff, PlaneLanding, Settings, ListChecks } from 'lucide-react';
+import { Loader2, CalendarIcon, Send, Clock, PlaneTakeoff, PlaneLanding, Settings, ListChecks, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from "date-fns";
 import { Label } from '@/components/ui/label';
@@ -68,6 +68,9 @@ const addTripSchema = z.object({
   origin: z.string().min(1, 'مدينة الانطلاق مطلوبة'),
   destination: z.string().min(1, 'مدينة الوصول مطلوبة'),
   departureDate: z.date({ required_error: 'تاريخ المغادرة مطلوب' }),
+  departureTime: z.string().min(1, 'وقت المغادرة مطلوب'),
+  meetingPoint: z.string().min(3, 'نقطة التجمع مطلوبة'),
+  meetingPointLink: z.string().url('الرجاء إدخال رابط خرائط جوجل صالح').optional().or(z.literal('')),
   price: z.coerce.number().positive('السعر يجب أن يكون رقماً موجباً'),
   currency: z.string().min(1, "العملة مطلوبة").max(10, "رمز العملة طويل جداً"),
   availableSeats: z.coerce.number().int().min(1, 'يجب توفر مقعد واحد على الأقل'),
@@ -98,6 +101,9 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
     defaultValues: {
       origin: '',
       destination: '',
+      departureTime: '',
+      meetingPoint: '',
+      meetingPointLink: '',
       price: undefined,
       availableSeats: 4,
       depositPercentage: 10,
@@ -126,9 +132,15 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
     setIsSubmitting(true);
     try {
       const tripsCollection = collection(firestore, 'trips');
+      
+      const [hours, minutes] = data.departureTime.split(':');
+      const combinedDepartureDateTime = new Date(data.departureDate);
+      combinedDepartureDateTime.setHours(parseInt(hours, 10));
+      combinedDepartureDateTime.setMinutes(parseInt(minutes, 10));
+
       const tripData = {
         ...data,
-        departureDate: data.departureDate.toISOString(),
+        departureDate: combinedDepartureDateTime.toISOString(),
         userId: user.uid,
         carrierId: user.uid,
         carrierName: profile.firstName,
@@ -138,13 +150,16 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
+      // remove departureTime as it's now merged into departureDate
+      delete (tripData as any).departureTime;
+
       await addDocumentNonBlocking(tripsCollection, tripData);
 
       logEvent('TRIP_PUBLISHED', {
         carrierId: user.uid,
         origin: data.origin,
         destination: data.destination,
-        departureDate: data.departureDate.toISOString().split('T')[0],
+        departureDate: combinedDepartureDateTime.toISOString(),
         vehicleType: profile.vehicleType,
         price: data.price,
         availableSeats: data.availableSeats,
@@ -235,29 +250,45 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                 <AccordionTrigger className="p-4 font-bold text-base hover:no-underline">
                     <div className='flex items-center gap-2'>
                         <Settings className='h-5 w-5'/>
-                        بقية التفاصيل (السعر، التاريخ، المقاعد، الشروط)
+                        بقية التفاصيل
                     </div>
                 </AccordionTrigger>
                 <AccordionContent className="p-4 pt-0 space-y-4">
-                  <FormField control={form.control} name="departureDate" render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                          <FormLabel>تاريخ المغادرة</FormLabel>
-                          <Popover>
-                              <PopoverTrigger asChild>
-                              <FormControl>
-                                  <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal bg-card", !field.value && "text-muted-foreground")}>
-                                      {field.value ? format(field.value, "PPP") : <span>اختر تاريخاً</span>}
-                                      <CalendarIcon className="mr-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                              </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                              </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                      </FormItem>
-                  )}/>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="departureDate" render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>تاريخ المغادرة</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal bg-card", !field.value && "text-muted-foreground")}>
+                                        {field.value ? format(field.value, "PPP") : <span>اختر تاريخاً</span>}
+                                        <CalendarIcon className="mr-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
+                     <FormField control={form.control} name="departureTime" render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>وقت المغادرة</FormLabel>
+                            <FormControl>
+                                <Input type="time" className="bg-card" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                     )}/>
+                  </div>
+                  
+                   <div className="grid grid-cols-1 gap-4">
+                     <FormField control={form.control} name="meetingPoint" render={({ field }) => (<FormItem><FormLabel className='flex items-center gap-1'><MapPin className="h-4 w-4"/>نقطة التجمع (العنوان)</FormLabel><FormControl><Input className="bg-card" placeholder="مثال: العبدلي - بجانب جت" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                     <FormField control={form.control} name="meetingPointLink" render={({ field }) => (<FormItem><FormLabel>رابط الموقع (اختياري)</FormLabel><FormControl><Input className="bg-card" dir="ltr" placeholder="https://maps.app.goo.gl/..." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormField control={form.control} name="price" render={({ field }) => (
@@ -365,4 +396,3 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
     </Dialog>
   );
 }
-    

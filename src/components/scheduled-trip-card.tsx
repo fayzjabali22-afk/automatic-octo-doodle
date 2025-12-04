@@ -23,6 +23,8 @@ import {
   ListChecks,
   MessageSquare,
   Search,
+  MapPin,
+  Link as LinkIcon
 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Skeleton } from './ui/skeleton';
@@ -35,16 +37,12 @@ import { cn } from '@/lib/utils';
 import { useMemo } from 'react';
 import Link from 'next/link';
 
-// Helper to safely format dates whether they are Strings, Dates, or Firestore Timestamps
-const safeDateFormat = (dateInput: any): string => {
+// Helper to safely format dates and time
+const safeDateTimeFormat = (dateInput: any): string => {
   if (!dateInput) return 'N/A';
   try {
-    // If it's a Firestore Timestamp (has toDate method)
-    if (typeof dateInput.toDate === 'function') {
-      return format(dateInput.toDate(), "PPP");
-    }
-    // If it's a string or Date object
-    return format(new Date(dateInput), "PPP");
+    const dateObj = typeof dateInput.toDate === 'function' ? dateInput.toDate() : new Date(dateInput);
+    return format(dateObj, "d MMM, h:mm a");
   } catch (error) {
     console.error("Date formatting error:", error);
     return 'Invalid Date';
@@ -152,7 +150,7 @@ export function ScheduledTripCard({
         <div className="flex justify-between items-center pt-2">
             <Badge variant="secondary" className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                {safeDateFormat(trip.departureDate)}
+                {safeDateTimeFormat(trip.departureDate)}
             </Badge>
             <div className="flex items-center gap-2 text-sm font-bold">
                {getCityName(trip.origin)}
@@ -172,6 +170,22 @@ export function ScheduledTripCard({
                 />
             </div>
         )}
+        
+        {trip.meetingPoint && (
+          <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">
+              <p className='flex items-center gap-2 font-bold'><MapPin className="h-4 w-4 text-accent" /> نقطة وتوقيت الانطلاق:</p>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-1 text-xs ps-6">
+                  <p>{trip.meetingPoint}</p>
+                  {trip.meetingPointLink && (
+                    <Link href={trip.meetingPointLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-500 hover:underline">
+                      <LinkIcon className="h-3 w-3" />
+                      عرض على الخريطة
+                    </Link>
+                  )}
+              </div>
+          </div>
+        )}
+
         <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">
             <p className='flex items-center gap-2 font-bold'><Car className="h-4 w-4 text-accent" /> تفاصيل المركبة:</p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-6">

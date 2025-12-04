@@ -58,7 +58,7 @@ export type Trip = {
   cargoDetails?: string;
   passengers?: number;
   price?: number;
-  currency?: 'JOD' | 'SAR' | 'USD';
+  currency?: string;
   availableSeats?: number;
   depositPercentage?: number;
   acceptedOfferId?: string | null;
@@ -68,6 +68,8 @@ export type Trip = {
   durationHours?: number; // Added field for trip duration
   conditions?: string; // Carrier's conditions for the trip
   vehicleType?: string; // Denormalized from CarrierProfile
+  meetingPoint?: string; // Precise meeting point address
+  meetingPointLink?: string; // Optional Google Maps link for the meeting point
 };
 
 export type Booking = {
@@ -91,7 +93,7 @@ export type Offer = {
   tripId: string;
   carrierId: string;
   price: number;
-  currency: 'JOD' | 'SAR' | 'USD';
+  currency?: string;
   notes?: string;
   status: 'Pending' | 'Accepted' | 'Rejected';
   createdAt: string;
