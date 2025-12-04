@@ -8,10 +8,19 @@ import { useState, useEffect } from 'react';
 
 export default function CarrierDashboardPage() {
   const { profile, isLoading } = useUserProfile();
+  const [greeting, setGreeting] = useState('');
   const [currentDate, setCurrentDate] = useState('');
 
   useEffect(() => {
-    // This effect runs only on the client, after hydration
+    // This effect runs only on the client, after hydration, preventing mismatches.
+    const getGreeting = () => {
+      const hour = new Date().getHours();
+      if (hour < 12) return 'صباح الخير';
+      if (hour < 18) return 'مساء الخير';
+      return 'مساء الخير';
+    };
+
+    setGreeting(getGreeting());
     setCurrentDate(new Date().toLocaleDateString('ar-SA', {
         weekday: 'long',
         year: 'numeric',
@@ -19,13 +28,6 @@ export default function CarrierDashboardPage() {
         day: 'numeric',
     }));
   }, []); // Empty dependency array ensures it runs once on mount
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'صباح الخير';
-    if (hour < 18) return 'مساء الخير';
-    return 'مساء الخير';
-  };
 
   return (
     <div className="p-2 md:p-6 lg:p-8 space-y-8">
@@ -36,7 +38,8 @@ export default function CarrierDashboardPage() {
             {isLoading ? (
               <Skeleton className="h-9 w-48" />
             ) : (
-              `${getGreeting()}، ${profile?.firstName || 'أيها الناقل'}`
+              // Display greeting only after it's been set on the client
+              greeting ? `${greeting}، ${profile?.firstName || 'أيها الناقل'}` : <Skeleton className="h-9 w-48" />
             )}
           </h1>
           <p className="text-muted-foreground mt-1">
