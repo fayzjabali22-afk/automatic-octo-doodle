@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trip } from '@/lib/data';
-import { Calendar, Users, Handshake, Info, ArrowRight } from 'lucide-react';
+import { Calendar, Users, Handshake, Info, ArrowRight, CircleDollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,7 @@ const safeDateFormat = (dateInput: any): string => {
   if (!dateInput) return 'غير محدد';
   try {
     const dateObj = new Date(dateInput);
+    // Format to show day and month
     return dateObj.toLocaleDateString('ar-SA', {
       month: 'long',
       day: 'numeric',
@@ -54,15 +55,21 @@ export function RequestCard({ tripRequest, onOffer }: RequestCardProps) {
                 </div>
 
                 {/* Meta Info */}
-                <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                    <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mt-2">
+                    <div className="flex items-center gap-1 font-semibold">
                         <Calendar className="h-3.5 w-3.5" />
                         <span>{safeDateFormat(tripRequest.departureDate)}</span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 font-semibold">
                         <Users className="h-3.5 w-3.5" />
                         <span>{tripRequest.passengers || 1} راكب</span>
                     </div>
+                     {tripRequest.targetPrice && (
+                        <div className="flex items-center gap-1 font-semibold text-green-600">
+                            <CircleDollarSign className="h-3.5 w-3.5" />
+                            <span>الميزانية: ~{tripRequest.targetPrice} {tripRequest.currency || 'د.أ'}</span>
+                        </div>
+                     )}
                 </div>
             </div>
 

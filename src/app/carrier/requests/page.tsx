@@ -73,11 +73,12 @@ export default function CarrierRequestsPage() {
   const canFilter = !!(userProfile?.primaryRoute?.origin && userProfile?.primaryRoute?.destination);
   
   const requestsQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
 
     let q = query(
         collection(firestore, 'trips'), 
-        where('status', '==', 'Awaiting-Offers')
+        where('status', '==', 'Awaiting-Offers'),
+        where('requestType', '==', 'General') // Only show general market requests for now
     );
 
     // Smart Filter: Filter by carrier's specialization route if enabled and defined
@@ -91,9 +92,9 @@ export default function CarrierRequestsPage() {
         q = query(q, where('passengers', '<=', userProfile.vehicleCapacity));
     }
     
-    return query(q, orderBy('passengers', 'desc'), orderBy('departureDate', 'asc'));
+    return query(q, orderBy('createdAt', 'desc'));
 
-  }, [firestore, filterBySpecialization, canFilter, userProfile]);
+  }, [firestore, user, filterBySpecialization, canFilter, userProfile]);
 
   const { data: requests, isLoading: isLoadingRequests } = useCollection<Trip>(requestsQuery);
 
