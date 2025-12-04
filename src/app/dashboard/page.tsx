@@ -64,6 +64,7 @@ const mockScheduledTrips: Trip[] = [
         availableSeats: 3,
         depositPercentage: 15,
         vehicleType: 'GMC Yukon 2023',
+        vehicleImageUrls: ['https://i.postimg.cc/kXqJ80b4/gmc-yukon.jpg']
     },
     {
         id: 'mock_scheduled_2',
@@ -79,6 +80,7 @@ const mockScheduledTrips: Trip[] = [
         availableSeats: 4,
         depositPercentage: 10,
         vehicleType: 'Hyundai Staria 2024',
+        vehicleImageUrls: ['https://i.postimg.cc/tJ095xJc/hyundai-staria.jpg']
     },
     {
         id: 'mock_scheduled_3',
@@ -95,6 +97,7 @@ const mockScheduledTrips: Trip[] = [
         depositPercentage: 20,
         vehicleType: 'باص مرسيدس 50 راكب',
         vehicleCategory: 'bus',
+        vehicleImageUrls: ['https://i.postimg.cc/NMyT3T3R/mercedes-bus.jpg']
     },
 ];
 
@@ -143,7 +146,6 @@ export default function DashboardPage() {
   const [searchVehicleType, setSearchVehicleType] = useState('all');
   const [searchMode, setSearchMode] = useState<'specific-carrier' | 'all-carriers'>('all-carriers');
 
-  const [groupedAndFilteredTrips, setGroupedAndFilteredTrips] = useState<GroupedTrips>({});
   const [openAccordion, setOpenAccordion] = useState<string[]>([]);
   
   useEffect(() => {
@@ -183,7 +185,7 @@ export default function DashboardPage() {
   };
 
 
-  useEffect(() => {
+  const groupedAndFilteredTrips = useMemo(() => {
     let baseTrips: Trip[] = allTrips || [];
     
     if (searchMode === 'specific-carrier') {
@@ -229,14 +231,13 @@ export default function DashboardPage() {
         sortedGroupedTrips[date] = grouped[date];
     });
 
-    setGroupedAndFilteredTrips(sortedGroupedTrips);
-    
     if (sortedDates.length > 0) {
         setOpenAccordion([sortedDates[0]]);
     } else {
         setOpenAccordion([]);
     }
-
+    
+    return sortedGroupedTrips;
   }, [searchOriginCity, searchDestinationCity, searchSeats, date, allTrips, searchMode, selectedCarrier, searchVehicleType]);
 
 

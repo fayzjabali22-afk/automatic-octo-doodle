@@ -146,7 +146,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
         carrierName: profile.firstName,
         vehicleType: profile.vehicleType || 'غير محدد',
         vehicleImageUrls: profile.vehicleImageUrls || [],
-        vehicleCategory: profile.vehicleCategory || 'small',
+        vehicleCategory: profile.vehicleCapacity && profile.vehicleCapacity > 7 ? 'bus' : 'small',
         status: 'Planned',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
