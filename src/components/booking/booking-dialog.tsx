@@ -86,14 +86,9 @@ export function BookingDialog({
     };
 
     const handleCopy = () => {
-        const paymentInfo = carrierProfile?.paymentInformation;
-        if (paymentInfo) {
-            navigator.clipboard.writeText(paymentInfo);
-            toast({ title: 'تم نسخ تعليمات الدفع بنجاح!' });
-        } else {
-             navigator.clipboard.writeText("الدفع نقداً عند الالتقاء (لم يحدد الناقل طريقة أخرى).");
-             toast({ title: 'تم نسخ التعليمات بنجاح!' });
-        }
+        const paymentInfo = carrierProfile?.paymentInformation || "الدفع نقداً عند الالتقاء (لم يحدد الناقل طريقة أخرى).";
+        navigator.clipboard.writeText(paymentInfo);
+        toast({ title: 'تم نسخ تعليمات الدفع بنجاح!' });
     };
 
     const handleSubmit = () => {
@@ -247,3 +242,4 @@ export function BookingDialog({
         </Dialog>
     );
 }
+    
