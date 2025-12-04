@@ -32,9 +32,9 @@ interface BookingPaymentDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   trip: Trip;
-  booking?: Booking; // Optional, for scenarios where booking already exists
+  booking?: Booking | null; // MODIFIED: Can be null
   offer?: Offer; // Optional, for scenarios where this is a new booking from an offer
-  onConfirm: (passengers: PassengerDetails[]) => void;
+  onConfirm: () => void; // MODIFIED: No longer passes passengers
   isProcessing?: boolean;
 }
 
@@ -50,9 +50,6 @@ export function BookingPaymentDialog({
     const { toast } = useToast();
     const firestore = useFirestore();
 
-    const initialSeatCount = useMemo(() => booking?.seats || trip?.passengers || 1, [booking, trip]);
-    const [passengers, setPassengers] = useState<PassengerDetails[]>([]);
-
     const carrierProfileRef = useMemo(() => {
         if (!firestore || !trip.carrierId) return null;
         return doc(firestore, 'users', trip.carrierId);
@@ -62,7 +59,8 @@ export function BookingPaymentDialog({
 
     const { totalAmount, depositAmount, remainingAmount, currency, depositPercentage } = useMemo(() => {
         const pricePerSeat = offer?.price || trip.price || 0;
-        const total = pricePerSeat * initialSeatCount;
+        const seatCount = booking?.seats || trip.passengers || 1;
+        const total = pricePerSeat * seatCount;
         const depositPerc = offer?.depositPercentage || trip.depositPercentage || 20;
         const deposit = total * (depositPerc / 100);
         const remaining = total - deposit;
@@ -73,22 +71,8 @@ export function BookingPaymentDialog({
             currency: offer?.currency || trip.currency || 'USD',
             depositPercentage: depositPerc,
         };
-    }, [offer, trip, initialSeatCount]);
+    }, [offer, trip, booking]);
 
-    useEffect(() => {
-        if (isOpen) {
-            const initialPassengers = booking?.passengersDetails || Array.from({ length: initialSeatCount }, () => ({ name: '', type: 'adult' as 'adult' }));
-            setPassengers(initialPassengers);
-        }
-    }, [isOpen, initialSeatCount, booking]);
-
-    const handlePassengerChange = (index: number, field: keyof PassengerDetails, value: string) => {
-        setPassengers(prev => {
-            const newPassengers = [...prev];
-            newPassengers[index] = { ...newPassengers[index], [field]: value as any }; 
-            return newPassengers;
-        });
-    };
 
     const handleCopy = () => {
         const paymentInfo = carrierProfile?.paymentInformation || "الدفع نقداً عند الالتقاء (لم يحدد الناقل طريقة أخرى).";
@@ -97,16 +81,8 @@ export function BookingPaymentDialog({
     };
 
     const handleSubmit = () => {
-        const allNamesFilled = passengers.every(p => p.name.trim() !== '');
-        if (!allNamesFilled) {
-            toast({
-                variant: 'destructive',
-                title: 'بيانات غير مكتملة',
-                description: 'الرجاء إدخال أسماء جميع الركاب.',
-            });
-            return;
-        }
-        onConfirm(passengers);
+        // No validation needed as we are not collecting data anymore
+        onConfirm();
     };
     
     return (
@@ -131,11 +107,11 @@ export function BookingPaymentDialog({
                             <Card className="bg-muted/50">
                                 <CardContent className="p-4 space-y-2 text-sm">
                                     <div className="flex justify-between text-muted-foreground">
-                                        <span>السعر الإجمالي ({initialSeatCount} مقاعد)</span>
+                                        <span>السعر الإجمالي ({booking?.seats || trip.passengers || 1} مقاعد)</span>
                                         <span className="font-bold">{totalAmount.toFixed(2)} {currency}</span>
                                     </div>
                                     <Separator />
-                                    <div className="flex justify-between font-bold text-lg pt-1 text-accent">
+                                    <div className="flex justify-between font-bold text-lg pt-1 text-accent-foreground dark:text-accent">
                                         <span className="flex items-center gap-2">
                                             <CreditCard className="inline-block h-5 w-5" />
                                             العربون المطلوب ({depositPercentage}%)
@@ -169,42 +145,23 @@ export function BookingPaymentDialog({
                             </div>
                         </div>
 
-                        {/* Passenger Details */}
-                        <div className="space-y-3">
-                            <h3 className="font-semibold text-sm flex items-center gap-2">
-                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">3</span>
-                                بيانات الركاب ({initialSeatCount})
-                            </h3>
-                            {passengers.map((passenger, index) => (
-                            <div key={index} className="p-3 border rounded-lg space-y-3 bg-card">
-                                <Label className="text-xs text-muted-foreground">الراكب {index + 1}</Label>
-                                <div className="grid gap-3">
-                                    <Input
-                                        placeholder="الاسم الكامل"
-                                        value={passenger.name}
-                                        onChange={(e) => handlePassengerChange(index, 'name', e.target.value)}
-                                        disabled={isProcessing}
-                                        className="h-9"
-                                    />
-                                    <RadioGroup
-                                        value={passenger.type}
-                                        onValueChange={(value) => handlePassengerChange(index, 'type', value)}
-                                        className="flex gap-2"
-                                        disabled={isProcessing}
-                                    >
-                                        <div className="flex items-center space-x-2 rtl:space-x-reverse border px-3 py-1.5 rounded-md bg-background flex-1 cursor-pointer hover:bg-accent/50">
-                                            <RadioGroupItem value="adult" id={`adult-${index}`} />
-                                            <Label htmlFor={`adult-${index}`} className="cursor-pointer text-sm">بالغ</Label>
-                                        </div>
-                                        <div className="flex items-center space-x-2 rtl:space-x-reverse border px-3 py-1.5 rounded-md bg-background flex-1 cursor-pointer hover:bg-accent/50">
-                                            <RadioGroupItem value="child" id={`child-${index}`} />
-                                            <Label htmlFor={`child-${index}`} className="cursor-pointer text-sm">طفل</Label>
-                                        </div>
-                                    </RadioGroup>
+                        {/* Passenger Details READ-ONLY */}
+                        {booking?.passengersDetails && booking.passengersDetails.length > 0 && (
+                            <div className="space-y-3">
+                                <h3 className="font-semibold text-sm flex items-center gap-2">
+                                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">3</span>
+                                    بيانات الركاب ({booking.passengersDetails.length})
+                                </h3>
+                                <div className="p-3 border rounded-lg space-y-2 bg-muted/30">
+                                    <ul className="list-disc pr-4 space-y-1">
+                                    {booking.passengersDetails.map((p, index) => (
+                                        <li key={index} className="text-sm">{p.name} ({p.type === 'adult' ? 'بالغ' : 'طفل'})</li>
+                                    ))}
+                                    </ul>
                                 </div>
                             </div>
-                            ))}
-                        </div>
+                        )}
+                        
                          <Alert variant="destructive" className="bg-black text-white border-destructive">
                             <Info className="h-4 w-4 !text-destructive" />
                             <AlertTitle className="font-bold !text-destructive">إقرار هام</AlertTitle>
@@ -238,7 +195,7 @@ export function BookingPaymentDialog({
                         ) : (
                             <>
                                 <Send className="ml-2 h-4 w-4" />
-                                {offer ? 'أوافق على العرض' : 'تم التحويل، أكّد الحجز'}
+                                تم التحويل، أكّد الحجز
                             </>
                         )}
                     </Button>

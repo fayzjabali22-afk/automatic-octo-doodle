@@ -18,7 +18,6 @@ interface OfferCardProps {
   offer: Offer;
   trip: Trip;
   onAccept: () => void;
-  onActionComplete: () => void;
   isAccepting: boolean;
 }
 
@@ -83,7 +82,7 @@ const CarrierInfo = React.memo(({ carrierId }: { carrierId: string }) => {
 CarrierInfo.displayName = 'CarrierInfo';
 
 
-export function OfferCard({ offer, trip, onAccept, onActionComplete, isAccepting }: OfferCardProps) {
+export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps) {
   const router = useRouter();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -175,12 +174,12 @@ export function OfferCard({ offer, trip, onAccept, onActionComplete, isAccepting
               {isAccepting ? (
                   <>
                       <Loader2 className="ms-2 h-4 w-4 animate-spin" />
-                      جاري المعالجة...
+                      جاري إرسال طلب التأكيد...
                   </>
               ) : (
                   <>
                       <Send className="ms-2 h-4 w-4" />
-                      قبول العرض والحجز الآن
+                      قبول وإرسال طلب تأكيد
                   </>
               )}
           </Button>

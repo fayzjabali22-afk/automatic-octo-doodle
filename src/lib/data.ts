@@ -30,7 +30,7 @@ export type CarrierSpecialization = {
 }
 
 export type CarrierProfile = {
-  id: string;
+  id:string;
   name: string;
   contactEmail: string;
   phoneNumber?: string;
@@ -59,6 +59,7 @@ export type Trip = {
   status: 'Planned' | 'In-Transit' | 'Completed' | 'Cancelled' | 'Awaiting-Offers' | 'Pending-Carrier-Confirmation';
   cargoDetails?: string;
   passengers?: number;
+  passengersDetails?: { name: string; type: 'adult' | 'child' }[]; // For trip requests
   price?: number;
   currency?: string;
   availableSeats?: number;

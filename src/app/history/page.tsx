@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, writeBatch, arrayUnion, increment } from 'firebase/firestore'; 
+import { collection, query, where, doc, writeBatch, arrayUnion, increment, serverTimestamp } from 'firebase/firestore'; 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,6 +37,7 @@ const mockAwaitingTrips: Trip[] = [
         destination: 'riyadh',
         departureDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
         passengers: 2,
+        passengersDetails: [{ name: 'Ahmad Al-Masri', type: 'adult' }, { name: 'Reem Al-Masri', type: 'child' }],
         status: 'Awaiting-Offers',
         createdAt: new Date().toISOString(),
     }
@@ -241,7 +242,6 @@ export default function HistoryPage() {
 
   const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
   const [isBookingPaymentOpen, setIsBookingPaymentOpen] = useState(false);
-  const [selectedOfferForBooking, setSelectedOfferForBooking] = useState<{ trip: Trip, offer: Offer } | null>(null);
   const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<{ trip: Trip, booking: Booking } | null>(null);
   const [isProcessingBooking, setIsProcessingBooking] = useState(false);
 
@@ -288,9 +288,60 @@ export default function HistoryPage() {
     }
   }, [totalLoading, hasAwaitingTrips, hasPendingConfirmationTrips, hasPendingPaymentTrips, hasConfirmedTrips]);
 
-  const handleAcceptOffer = (trip: Trip, offer: Offer) => {
-      setSelectedOfferForBooking({ trip, offer });
-      setIsBookingPaymentOpen(true);
+  const handleAcceptOffer = async (trip: Trip, offer: Offer) => {
+    if (!firestore || !user) {
+        toast({ title: 'يجب تسجيل الدخول أولاً', variant: 'destructive'});
+        return;
+    }
+    
+    // Start background processing
+    setIsProcessingBooking(true);
+    
+    try {
+        const batch = writeBatch(firestore);
+
+        // 1. Create a new Booking document
+        const bookingRef = doc(collection(firestore, 'bookings'));
+        const bookingData = {
+            id: bookingRef.id,
+            tripId: trip.id,
+            userId: user.uid,
+            carrierId: offer.carrierId,
+            seats: trip.passengers || 1,
+            passengersDetails: trip.passengersDetails || [],
+            status: 'Pending-Carrier-Confirmation',
+            totalPrice: offer.price,
+            currency: offer.currency,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        };
+        batch.set(bookingRef, bookingData);
+
+        // 2. Update the Trip (request) to link the accepted offer
+        const tripRef = doc(firestore, 'trips', trip.id);
+        batch.update(tripRef, { 
+            acceptedOfferId: offer.id,
+            status: 'Pending-Carrier-Confirmation' 
+        });
+
+        // 3. Update the Offer status
+        const offerRef = doc(firestore, 'trips', trip.id, 'offers', offer.id);
+        batch.update(offerRef, { status: 'Accepted' });
+
+        await batch.commit();
+
+        toast({ 
+            title: 'تم إرسال طلب التأكيد للناقل!',
+            description: 'سيتم إعلامك بالنتيجة قريباً. يمكنك المتابعة من هذا القسم.',
+        });
+        setOpenAccordion('pending'); // Switch view to pending confirmation
+
+    } catch (e) {
+        console.error("Error accepting offer:", e);
+        toast({ title: 'فشل قبول العرض', variant: 'destructive' });
+    } finally {
+        setIsProcessingBooking(false);
+    }
   };
 
   const handlePayNow = (trip: Trip, booking: Booking) => {
@@ -338,18 +389,17 @@ export default function HistoryPage() {
   };
 
 
-  const handleConfirmBookingPayment = async (passengers: any[]) => {
-      if (!firestore || !user || (!selectedOfferForBooking && !selectedBookingForPayment)) return;
+  const handleConfirmBookingPayment = async () => {
+      if (!firestore || !user || !selectedBookingForPayment) return;
       setIsProcessingBooking(true);
       
       // SIMULATION
       setTimeout(() => {
-        const title = selectedOfferForBooking ? 'محاكاة: تم إرسال طلب الحجز!' : 'محاكاة: تم تأكيد الدفع!';
-        const description = selectedOfferForBooking ? 'بانتظار موافقة الناقل.' : 'تم تأكيد حجزك، نتمنى لك رحلة سعيدة.';
+        const title = 'محاكاة: تم تأكيد الدفع!';
+        const description = 'تم تأكيد حجزك، نتمنى لك رحلة سعيدة.';
         toast({ title, description });
         setIsProcessingBooking(false);
         setIsBookingPaymentOpen(false);
-        setSelectedOfferForBooking(null);
         setSelectedBookingForPayment(null);
       }, 1500);
   };
@@ -362,8 +412,6 @@ export default function HistoryPage() {
   );
   
   if (totalLoading) return <AppLayout>{renderSkeleton()}</AppLayout>;
-
-  const bookingDialogData = selectedOfferForBooking || selectedBookingForPayment;
 
   return (
     <AppLayout>
@@ -414,7 +462,7 @@ export default function HistoryPage() {
                                     تاريخ الطلب: {safeDateFormat(trip.departureDate)} | عدد الركاب: {trip.passengers || 'غير محدد'}
                                     </CardDescription>
                                 </div>
-                                <TripOffers trip={trip} onAcceptOffer={handleAcceptOffer} />
+                                <TripOffers trip={trip} onAcceptOffer={handleAcceptOffer} isProcessing={isProcessingBooking} />
                             </div>
                         </CardContent>
                          <CardFooter className="bg-muted/30 p-2 border-t">
@@ -547,13 +595,12 @@ export default function HistoryPage() {
       </div>
 
       {/* --- Dialogs --- */}
-      {bookingDialogData && (
+      {selectedBookingForPayment && (
           <BookingPaymentDialog
             isOpen={isBookingPaymentOpen}
             onOpenChange={setIsBookingPaymentOpen}
-            trip={bookingDialogData.trip}
-            booking={bookingDialogData.booking}
-            offer={bookingDialogData.offer}
+            trip={selectedBookingForPayment.trip}
+            booking={selectedBookingForPayment.booking}
             onConfirm={handleConfirmBookingPayment}
             isProcessing={isProcessingBooking}
           />

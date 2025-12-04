@@ -47,11 +47,10 @@ const mockOffers: Offer[] = [
 interface TripOffersProps {
   trip: Trip;
   onAcceptOffer: (trip: Trip, offer: Offer) => void;
+  isProcessing: boolean;
 }
 
-export function TripOffers({ trip, onAcceptOffer }: TripOffersProps) {
-  const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
-
+export function TripOffers({ trip, onAcceptOffer, isProcessing }: TripOffersProps) {
   // --- USE MOCK DATA ---
   const offers = mockOffers.filter(o => o.tripId === trip.id);
   const isLoading = false;
@@ -59,18 +58,8 @@ export function TripOffers({ trip, onAcceptOffer }: TripOffersProps) {
 
 
   const handleAcceptClick = async (offer: Offer) => {
-    setAcceptingOfferId(offer.id);
-    try {
-        await onAcceptOffer(trip, offer);
-    } catch (error) {
-        console.error("Error accepting offer:", error);
-        setAcceptingOfferId(null); 
-    }
+    await onAcceptOffer(trip, offer);
   };
-
-  const handleActionComplete = () => {
-    setAcceptingOfferId(null);
-  }
 
   // ✅ حالة التحميل
   if (isLoading) {
@@ -103,8 +92,7 @@ export function TripOffers({ trip, onAcceptOffer }: TripOffersProps) {
           offer={offer}
           trip={trip}
           onAccept={() => handleAcceptClick(offer)}
-          onActionComplete={handleActionComplete}
-          isAccepting={acceptingOfferId === offer.id}
+          isAccepting={isProcessing}
         />
       ))}
     </div>
