@@ -94,9 +94,9 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
     defaultValues: {
       origin: '',
       destination: '',
-      price: 0,
-      availableSeats: 1,
-      estimatedDurationHours: 0,
+      price: undefined,
+      availableSeats: 4,
+      estimatedDurationHours: undefined,
     }
   });
 
@@ -155,7 +155,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             
-            <Card className="bg-muted/30 border-primary">
+            <Card className="bg-primary/10 border-primary/30">
               <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className='space-y-2'>
                       <Label className='flex items-center gap-2 font-bold'><PlaneTakeoff className='h-4 w-4' /> من</Label>
