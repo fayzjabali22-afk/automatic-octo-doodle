@@ -352,7 +352,12 @@ export default function ProfilePage() {
           <Card className="border-destructive shadow-lg">
             <CardHeader><CardTitle className="flex items-center gap-2 text-destructive"><ShieldAlert /> منطقة الخطر</CardTitle><CardDescription>هذه الإجراءات دائمة ولا يمكن التراجع عنها. يرجى المتابعة بحذر.</CardDescription></CardHeader>
             <CardContent><p>بمجرد حذف حسابك، ستفقد كل بياناتك الشخصية وسجل الحجوزات بشكل نهائي.</p></CardContent>
-            <CardFooter><Button variant="destructive" onClick={() => setIsDeleteConfirmOpen(true)}><Trash2 className="ml-2 h-4 w-4" /> حذف الحساب بشكل نهائي</Button></CardFooter>
+            <CardFooter>
+                <Button variant="destructive" onClick={() => setIsDeleteConfirmOpen(true)}>
+                    <Trash2 className="ml-2 h-4 w-4" />
+                    حذف الحساب بشكل نهائي
+                </Button>
+            </CardFooter>
           </Card>
         </div>
       </AppLayout>
