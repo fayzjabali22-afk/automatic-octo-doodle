@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,11 +27,12 @@ import { useToast } from '@/hooks/use-toast';
 import type { Trip } from '@/lib/data';
 import { Loader2, Send, Sparkles, ListChecks } from 'lucide-react';
 import React from 'react';
+import { Slider } from '../ui/slider';
 
 const offerFormSchema = z.object({
   price: z.coerce.number().positive('يجب أن يكون السعر رقماً موجباً'),
   vehicleType: z.string().min(3, 'نوع المركبة مطلوب'),
-  depositPercentage: z.coerce.number().min(0).max(100).optional(),
+  depositPercentage: z.coerce.number().min(0).max(10, "نسبة العربون لا يمكن أن تتجاوز 10%"),
   notes: z.string().optional(),
   conditions: z.string().max(200, "الشروط يجب ألا تتجاوز 200 حرف").optional(),
 });
@@ -56,13 +57,23 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
     defaultValues: {
       price: undefined,
       vehicleType: '',
-      depositPercentage: 20,
+      depositPercentage: 10,
       notes: '',
       conditions: '',
     },
   });
   
   const conditionsValue = form.watch('conditions');
+  const priceValue = form.watch('price');
+  const depositPercentageValue = form.watch('depositPercentage');
+
+  const depositAmount = useMemo(() => {
+    if (priceValue && depositPercentageValue) {
+      return (priceValue * (depositPercentageValue / 100)).toFixed(2);
+    }
+    return '0.00';
+  }, [priceValue, depositPercentageValue]);
+
 
   React.useEffect(() => {
     if (suggestion) {
@@ -95,34 +106,21 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>السعر الإجمالي (بالدينار)</FormLabel>
-                        <FormControl>
-                            <Input type="number" placeholder="e.g., 100" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="depositPercentage"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>نسبة العربون (%)</FormLabel>
-                        <FormControl>
-                            <Input type="number" placeholder="e.g., 20" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
+            
+            <FormField
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                  <FormItem>
+                  <FormLabel>السعر الإجمالي (بالدينار)</FormLabel>
+                  <FormControl>
+                      <Input type="number" placeholder="e.g., 100" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                  </FormItem>
+              )}
+            />
+             
              <Button type="button" variant="outline" className="w-full" onClick={onSuggestPrice} disabled={isSuggestingPrice}>
                 {isSuggestingPrice ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : <Sparkles className="ml-2 h-4 w-4 text-yellow-500" />}
                 {isSuggestingPrice ? 'جاري التفكير...' : 'اقترح لي سعراً مناسباً (AI)'}
@@ -132,6 +130,30 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
                     <p><strong>تعليل الاقتراح:</strong> {suggestion.justification}</p>
                 </div>
             )}
+            
+             <FormField
+                control={form.control}
+                name="depositPercentage"
+                render={({ field }) => (
+                    <FormItem>
+                        <div className="flex justify-between items-center mb-2">
+                            <FormLabel>نسبة العربون المطلوب</FormLabel>
+                            <span className="text-sm font-bold text-primary">{field.value}% = {depositAmount} د.أ</span>
+                        </div>
+                        <FormControl>
+                            <Slider
+                                min={0}
+                                max={10}
+                                step={1}
+                                value={[field.value]}
+                                onValueChange={(value) => field.onChange(value[0])}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
              <FormField
               control={form.control}
               name="vehicleType"
@@ -209,3 +231,4 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
     </Dialog>
   );
 }
+    

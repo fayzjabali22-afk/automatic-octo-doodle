@@ -48,6 +48,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Textarea } from '../ui/textarea';
+import { Slider } from '../ui/slider';
 
 
 const countries: { [key: string]: { name: string; cities: string[] } } = {
@@ -70,6 +71,7 @@ const addTripSchema = z.object({
   departureDate: z.date({ required_error: 'تاريخ المغادرة مطلوب' }),
   price: z.coerce.number().positive('السعر يجب أن يكون رقماً موجباً'),
   availableSeats: z.coerce.number().int().min(1, 'يجب توفر مقعد واحد على الأقل'),
+  depositPercentage: z.coerce.number().min(0, "الحد الأدنى 0%").max(10, "نسبة العربون لا يمكن أن تتجاوز 10% حسب قوانين المنصة"),
   durationHours: z.coerce.number().positive('مدة الرحلة المتوقعة مطلوبة ويجب أن تكون رقماً موجباً'),
   conditions: z.string().max(200, 'الشروط يجب ألا تتجاوز 200 حرف').optional(),
 });
@@ -98,12 +100,23 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
       destination: '',
       price: undefined,
       availableSeats: 4,
+      depositPercentage: 10,
       durationHours: undefined,
       conditions: '',
     }
   });
 
   const conditionsValue = form.watch('conditions');
+  const priceValue = form.watch('price');
+  const depositPercentageValue = form.watch('depositPercentage');
+
+  const depositAmount = useMemo(() => {
+    if (priceValue && depositPercentageValue) {
+      return (priceValue * (depositPercentageValue / 100)).toFixed(2);
+    }
+    return '0.00';
+  }, [priceValue, depositPercentageValue]);
+
 
   const onSubmit = async (data: AddTripFormValues) => {
     if (!firestore || !user || !profile) {
@@ -262,6 +275,29 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                           </FormItem>
                       )}/>
                   </div>
+
+                  <FormField
+                      control={form.control}
+                      name="depositPercentage"
+                      render={({ field }) => (
+                          <FormItem>
+                              <div className="flex justify-between items-center mb-2">
+                                  <FormLabel>نسبة العربون المطلوب</FormLabel>
+                                  <span className="text-sm font-bold text-primary">{field.value}% = {depositAmount} د.أ</span>
+                              </div>
+                              <FormControl>
+                                  <Slider
+                                      min={0}
+                                      max={10}
+                                      step={1}
+                                      value={[field.value]}
+                                      onValueChange={(value) => field.onChange(value[0])}
+                                  />
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                      )}
+                  />
                   
                   <FormField
                     control={form.control}
@@ -319,3 +355,4 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
     </Dialog>
   );
 }
+    

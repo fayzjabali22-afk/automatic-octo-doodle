@@ -254,6 +254,15 @@
             "type": "string",
             "format": "date-time",
             "description": "The timestamp when the booking was last updated."
+        },
+        "cancelledBy": {
+          "type": "string",
+          "enum": ["carrier", "traveler"],
+          "description": "Indicates who initiated the cancellation."
+        },
+        "cancellationReason": {
+          "type": "string",
+          "description": "The reason for the cancellation, if provided."
         }
       },
       "required": [
@@ -506,3 +515,4 @@
     ]
   }
 }
+    

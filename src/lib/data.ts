@@ -73,6 +73,8 @@ export type Booking = {
   totalPrice: number;
   createdAt?: any;
   updatedAt?: any;
+  cancelledBy?: 'carrier' | 'traveler';
+  cancellationReason?: string;
 };
 
 export type Offer = {

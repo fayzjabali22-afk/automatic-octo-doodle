@@ -9,7 +9,8 @@ import { Loader2, Trash2, User, AlertTriangle } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback } from '../ui/avatar';
-
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 // --- MOCK DATA ---
 const mockBookings: Booking[] = [
@@ -25,6 +26,12 @@ const mockUsers: { [key: string]: UserProfile } = {
 }
 // --- END MOCK DATA ---
 
+const cancellationReasons = [
+    { id: 'no-show', label: 'المسافر لم يحضر' },
+    { id: 'inappropriate-behavior', label: 'سلوك غير لائق' },
+    { id: 'by-request', label: 'بطلب من المسافر' },
+    { id: 'emergency', label: 'ظروف طارئة خاصة بالناقل' },
+];
 
 function PassengerItem({ booking, onCancel }: { booking: Booking, onCancel: (booking: Booking) => void }) {
     const isLoading = false;
@@ -49,7 +56,6 @@ function PassengerItem({ booking, onCancel }: { booking: Booking, onCancel: (boo
     );
 }
 
-
 interface PassengersListDialogProps {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
@@ -60,6 +66,7 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
     const { toast } = useToast();
     const [isCancelling, setIsCancelling] = useState(false);
     const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
+    const [cancellationReason, setCancellationReason] = useState('');
 
     const isLoading = false;
     const bookings = useMemo(() => {
@@ -69,19 +76,24 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
 
     const handleCancelClick = (booking: Booking) => {
         setBookingToCancel(booking);
+        setCancellationReason(''); // Reset reason
     };
 
     const handleConfirmCancellation = async () => {
-        if (!bookingToCancel) return;
+        if (!bookingToCancel || !cancellationReason) {
+            toast({ variant: 'destructive', title: 'الرجاء اختيار سبب الإلغاء' });
+            return;
+        }
         setIsCancelling(true);
         
         // SIMULATE BACKEND LOGIC
         setTimeout(() => {
             console.log(`Simulating cancellation for booking: ${bookingToCancel.id}`);
+            console.log(`Reason: ${cancellationReason}`);
             console.log(`Seat increment: ${bookingToCancel.seats}`);
             toast({
                 title: 'محاكاة: تم إلغاء الحجز',
-                description: `تم إبلاغ الراكب وإعادة ${bookingToCancel.seats} مقعد(مقاعد) للرحلة.`,
+                description: `تم إبلاغ الراكب بالسبب وإعادة ${bookingToCancel.seats} مقعد(مقاعد) للرحلة.`,
             });
             setIsCancelling(false);
             setBookingToCancel(null);
@@ -130,22 +142,32 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
                     <AlertDialogHeader>
                         <AlertDialogTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-6 w-6 text-destructive" />
-                            تأكيد إلغاء الحجز
+                            تأكيد إلغاء حجز الراكب
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                            هل أنت متأكد من إلغاء حجز هذا الراكب؟ سيتم إعلامه فوراً وإعادة مقعده ليكون متاحاً للآخرين.
+                            لتوثيق العملية، الرجاء تحديد سبب الإلغاء. سيتم إبلاغ الراكب بالسبب وسيتم إعادة مقعده ليكون متاحاً.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <div className="py-2">
+                        <RadioGroup value={cancellationReason} onValueChange={setCancellationReason} className="space-y-2">
+                            {cancellationReasons.map(reason => (
+                                <div key={reason.id} className="flex items-center space-x-2 rtl:space-x-reverse">
+                                    <RadioGroupItem value={reason.id} id={reason.id} />
+                                    <Label htmlFor={reason.id} className="font-normal">{reason.label}</Label>
+                                </div>
+                            ))}
+                        </RadioGroup>
+                    </div>
                     <AlertDialogFooter className="gap-2 sm:gap-0 pt-4">
                         <AlertDialogCancel disabled={isCancelling}>تراجع</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleConfirmCancellation}
-                            disabled={isCancelling}
+                            disabled={isCancelling || !cancellationReason}
                             className="bg-destructive hover:bg-destructive/90"
                         >
                             {isCancelling ? (
                                 <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جاري الإلغاء...</>
-                            ) : "نعم، قم بإلغاء الحجز"}
+                            ) : "تأكيد الإلغاء"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -153,3 +175,4 @@ export function PassengersListDialog({ isOpen, onOpenChange, trip }: PassengersL
         </>
     );
 }
+    
