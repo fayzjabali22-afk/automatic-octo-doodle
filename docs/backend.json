@@ -37,6 +37,11 @@
         "vehicleModel": { "type": "string", "description": "The model of the carrier's vehicle (e.g., Suburban)." },
         "vehicleYear": { "type": "string", "description": "The manufacturing year of the vehicle." },
         "vehicleCapacity": { "type": "number", "description": "The total number of seats in the carrier's vehicle." },
+        "vehicleImageUrls": {
+            "type": "array",
+            "description": "A list of URLs for the carrier's vehicle images.",
+            "items": { "type": "string", "format": "uri" }
+        },
         "primaryRoute": {
             "type": "object",
             "description": "The carrier's specialized route for smart filtering.",
@@ -109,7 +114,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Trip",
       "type": "object",
-      "description": "Represents an international transport trip.",
+      "description": "Represents an international transport trip. Can be a scheduled trip by a carrier or a request from a traveler.",
       "properties": {
         "id": {
           "type": "string",
@@ -187,6 +192,28 @@
         "depositPercentage": {
             "type": "number",
             "description": "The percentage of the total price required as a deposit."
+        },
+        "requestType": {
+          "type": "string",
+          "enum": ["General", "Direct"],
+          "description": "Type of the trip request, either to the general market or a direct request to a carrier."
+        },
+        "targetCarrierId": {
+            "type": "string",
+            "description": "The ID of the carrier this request is specifically for, if it's a Direct request."
+        },
+        "preferredVehicle": {
+            "type": "string",
+            "enum": ["any", "small", "bus"],
+            "description": "The traveler's preferred vehicle type for a request."
+        },
+        "isShared": {
+            "type": "boolean",
+            "description": "Indicates if the traveler is willing to share the ride on a request."
+        },
+        "targetPrice": {
+            "type": "number",
+            "description": "The traveler's target price for a request."
         },
         "createdAt": {
             "type": "string",
@@ -537,5 +564,3 @@
     ]
   }
 }
-
-    

@@ -74,6 +74,12 @@ export type Trip = {
   meetingPoint?: string; // Precise meeting point address
   meetingPointLink?: string; // Optional Google Maps link for the meeting point
   vehicleCategory?: 'small' | 'bus';
+  // Fields for trip requests
+  requestType?: 'General' | 'Direct';
+  targetCarrierId?: string;
+  preferredVehicle?: 'any' | 'small' | 'bus';
+  isShared?: boolean;
+  targetPrice?: number;
 };
 
 export type Booking = {

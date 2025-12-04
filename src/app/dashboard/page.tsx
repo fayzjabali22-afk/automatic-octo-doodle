@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star, ArrowRightLeft } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
-import type { Trip, CarrierProfile, Booking } from '@/lib/data';
+import type { Trip, CarrierProfile } from '@/lib/data';
 import { ScheduledTripCard } from '@/components/scheduled-trip-card';
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -43,6 +43,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { BookingDialog, type PassengerDetails } from '@/components/booking-dialog';
+import { RequestDialog } from '@/components/requests/request-dialog';
 import { logEvent } from '@/lib/analytics';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -130,6 +131,8 @@ export default function DashboardPage() {
   // Booking Dialog State
   const [selectedTripForBooking, setSelectedTripForBooking] = useState<Trip | null>(null);
   const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
+  // Request Dialog State
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
 
   // USE MOCK DATA INSTEAD OF FIREBASE
   const allTrips = mockScheduledTrips;
@@ -262,71 +265,23 @@ export default function DashboardPage() {
         setSelectedTripForBooking(null);
         router.push('/history');
     };
-
-
-  const handleMainActionButtonClick = () => {
-    // Shared validation for all modes
-     if (!user) {
-        setIsAuthRedirectOpen(true);
-        return;
-      }
-       if (!searchOriginCity || !searchDestinationCity) {
-          toast({
-              title: "بيانات غير مكتملة",
-              description: "الرجاء اختيار مدينة الانطلاق والوصول.",
-              variant: "destructive",
-          });
-          return;
-      }
-
-      logEvent('TRIP_SEARCH', {
-        userId: user.uid,
-        origin: searchOriginCity,
-        destination: searchDestinationCity,
-        date: date ? date.toISOString().split('T')[0] : null,
-        seats: searchSeats,
-        searchMode: searchMode,
-        carrierId: searchMode === 'specific-carrier' ? selectedCarrier?.id : null,
-      });
-
-    // Mode-specific logic
-    if (searchMode === 'all-carriers') {
-      handleGeneralBookingRequestSubmit();
-    } else { // 'specific-carrier' mode
-      if (!selectedCarrier) {
-        toast({
-          title: "الرجاء تحديد ناقل أولاً",
-          description: "ابحث عن ناقل لتتمكن من إرسال طلب له.",
-          variant: "destructive",
-        });
-        return;
-      }
-      handleSpecificCarrierRequestSubmit();
+    
+    const handleRequestAction = () => {
+        if (!user) {
+            setIsAuthRedirectOpen(true);
+            return;
+        }
+        setIsRequestDialogOpen(true);
     }
-  };
-  
-  const handleGeneralBookingRequestSubmit = async () => {
-      if (!firestore || !user) return;
+    
+    const handleRequestSent = () => {
         toast({
-            title: "محاكاة: تم إرسال طلبك بنجاح!",
-            description: "سيتم توجيهك الآن لصفحة حجوزاتك لمتابعة طلبك.",
+            title: "تم إرسال طلبك بنجاح!",
+            description: "سيتم توجيهك الآن لصفحة حجوزاتك لمتابعة العروض.",
         });
         router.push('/history');
-  };
-  
-  const handleSpecificCarrierRequestSubmit = async () => {
-    if (!firestore || !user || !selectedCarrier) return;
+    }
 
-    toast({
-        title: `محاكاة: تم إرسال طلبك إلى ${selectedCarrier.name}`,
-        description: "سيتم توجيهك الآن لصفحة حجوزاتك لمتابعة العرض.",
-    });
-    router.push('/history');
-  };
-  
-
-  const showFilterMessage = searchMode === 'specific-carrier' && selectedCarrier && Object.keys(groupedAndFilteredTrips).length > 0;
-  const showAllCarriersMessage = searchMode === 'all-carriers' && Object.keys(groupedAndFilteredTrips).length > 0;
   const showNoResultsMessage = Object.keys(groupedAndFilteredTrips).length === 0;
 
   const sortedTripDates = Object.keys(groupedAndFilteredTrips);
@@ -515,23 +470,6 @@ export default function DashboardPage() {
                       </Select>
                     </div>
                   </div>
-                  
-                  {showFilterMessage && (
-                    <div className="mt-2 text-center text-sm text-accent bg-accent/10 p-2 rounded-md border border-accent/30">
-                        {`هناك رحلات مجدولة لـ ${selectedCarrier?.name} معروضة أدناه. يمكنك الآن تصفية النتائج أو تكملة إدخال بياناتك ثم إرسال طلب جديد.`}
-                    </div>
-                  )}
-
-                  {showAllCarriersMessage && (
-                     <div className="mt-2 text-center text-sm text-accent bg-accent/10 p-2 rounded-md border border-accent/30">
-                        هناك رحلات مجدولة معروضة أدناه. يمكنك الآن تصفية النتائج أو تكملة إدخال بياناتك ثم إرسال طلب جديد.
-                    </div>
-                  )}
-
-
-                  <Button onClick={handleMainActionButtonClick} size="lg" className="w-full justify-self-stretch sm:justify-self-end mt-2 bg-accent hover:bg-accent/90 text-accent-foreground">
-                    {searchMode === 'all-carriers' ? 'البحث عن مناقص ناقلين' : 'ارسال طلب للناقل المحدد'}
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -544,12 +482,16 @@ export default function DashboardPage() {
                       {[...Array(3)].map((_,i) => <Skeleton key={i} className="h-48 w-full" />)}
                     </div>
                 ) : showNoResultsMessage ? (
-                    <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg">
+                    <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg bg-background/50">
                         <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
                         <p className="text-lg font-bold">لا توجد رحلات تطابق بحثك</p>
-                        <p className="text-sm mt-2">
-                           {searchMode === 'all-carriers' ? 'جرب تغيير معايير البحث أو أرسل طلباً عاماً.' : `لا توجد رحلات مجدولة لهذا الناقل. يمكنك إرسال طلب مباشر له.`}
+                        <p className="text-sm mt-2 mb-6">
+                           هل ترغب بتحويل بحثك إلى طلب يراه الناقلون؟
                         </p>
+                        <Button onClick={handleRequestAction}>
+                            <Send className="ml-2 h-4 w-4" />
+                            {searchMode === 'all-carriers' ? 'إرسال الطلب إلى السوق العام' : `إرسال طلب مباشر إلى ${selectedCarrier?.name || 'الناقل'}`}
+                        </Button>
                     </div>
                 ) : (
                     <Accordion type="multiple" value={openAccordion} onValueChange={setOpenAccordion} className="space-y-4">
@@ -592,6 +534,19 @@ export default function DashboardPage() {
             onConfirm={handleConfirmBooking}
         />
       )}
+      <RequestDialog
+        isOpen={isRequestDialogOpen}
+        onOpenChange={setIsRequestDialogOpen}
+        searchParams={{
+            origin: searchOriginCity,
+            destination: searchDestinationCity,
+            departureDate: date,
+            passengers: searchSeats,
+            requestType: searchMode === 'specific-carrier' ? 'Direct' : 'General',
+            targetCarrierId: selectedCarrier?.id,
+        }}
+        onSuccess={handleRequestSent}
+      />
     </AppLayout>
   );
 }
