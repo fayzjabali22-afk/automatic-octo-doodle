@@ -2,15 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Archive, FilePlus, Plus } from 'lucide-react';
+import { Home, Archive, User, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-// تم تحديث القائمة لتشمل ثلاثة عناصر أساسية فقط
 const navItems = [
-  { href: '/carrier/requests', label: 'الطلبات', icon: FilePlus },
-  { href: '/carrier/trips', label: 'رحلاتي', icon: Home },
+  { href: '/carrier/trips', label: 'الرئيسية', icon: Home },
   { href: '/carrier/archive', label: 'الأرشيف', icon: Archive },
+  { href: '/profile', label: 'حسابي', icon: User },
 ];
 
 interface CarrierBottomNavProps {
@@ -31,36 +30,55 @@ export function CarrierBottomNav({ onAddTripClick }: CarrierBottomNavProps) {
                 onClick={onAddTripClick}
                 aria-label="تأسيس رحلة جديدة"
             >
-                <Plus className="h-8 w-8" />
+                <PlusCircle className="h-8 w-8" />
             </Button>
         </div>
 
-        {/* تم تحديث الشبكة لتوزيع ثلاثة عناصر بشكل متساوٍ */}
-        <nav className="grid grid-cols-3 h-full items-center px-2">
-          {navItems.map((item) => {
+        <nav className="grid grid-cols-4 h-full items-center px-2">
+          {navItems.slice(0, 2).map((item) => {
             const isActive = pathname === item.href;
             return (
-              <div 
-                key={item.href}
-                className="flex flex-col items-center justify-center h-full"
-              >
-                <Link href={item.href} className="flex flex-col items-center gap-1 w-full py-2">
-                  <item.icon
-                    className={cn(
-                      'h-6 w-6 transition-colors',
-                      isActive ? 'text-primary' : 'text-muted-foreground'
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      'text-[10px] font-bold transition-colors',
-                      isActive ? 'text-primary' : 'text-muted-foreground'
-                    )}
-                  >
-                    {item.label}
-                  </span>
-                </Link>
-              </div>
+              <Link key={item.href} href={item.href} className="flex flex-col items-center gap-1 w-full py-2">
+                <item.icon
+                  className={cn(
+                    'h-6 w-6 transition-colors',
+                    isActive ? 'text-primary' : 'text-muted-foreground'
+                  )}
+                />
+                <span
+                  className={cn(
+                    'text-[10px] font-bold transition-colors',
+                    isActive ? 'text-primary' : 'text-muted-foreground'
+                  )}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+          
+          {/* Spacer for the central button */}
+          <div />
+
+          {navItems.slice(2).map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link key={item.href} href={item.href} className="flex flex-col items-center gap-1 w-full py-2">
+                <item.icon
+                  className={cn(
+                    'h-6 w-6 transition-colors',
+                    isActive ? 'text-primary' : 'text-muted-foreground'
+                  )}
+                />
+                <span
+                  className={cn(
+                    'text-[10px] font-bold transition-colors',
+                    isActive ? 'text-primary' : 'text-muted-foreground'
+                  )}
+                >
+                  {item.label}
+                </span>
+              </Link>
             );
           })}
         </nav>
