@@ -16,17 +16,18 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Offer, Booking } from '@/lib/data';
-import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Sparkles, Flag, MessageSquare } from 'lucide-react';
+import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Sparkles, Flag, MessageSquare, Radar } from 'lucide-react';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
 import { format, addHours, isFuture } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { BookingDialog } from '@/components/booking/booking-dialog';
 import { ScheduledTripCard } from '@/components/scheduled-trip-card';
-import { TripClosureDialog } from '@/components/trip-closure/trip-closure-dialog';
+import { TripClosureDialog } from '@/components/trip-closure/rate-trip-dialog';
 import { RateTripDialog } from '@/components/trip-closure/rate-trip-dialog';
 import { CancellationDialog } from '@/components/booking/cancellation-dialog';
 import { ChatDialog } from '@/components/chat/chat-dialog';
+import { SmartResubmissionDialog } from '@/components/booking/smart-resubmission-dialog';
 
 // --- MOCK DATA ---
 const mockAwaitingTrips: Trip[] = [
@@ -41,6 +42,38 @@ const mockAwaitingTrips: Trip[] = [
         createdAt: new Date().toISOString(),
     }
 ];
+
+// Relevant scheduled trips for the smart resubmission dialog
+const mockRelevantScheduledTrips: Trip[] = [
+     // Perfect Match
+    {
+        id: 'scheduled_match_1',
+        userId: 'carrier_smart',
+        carrierId: 'carrier_smart',
+        carrierName: 'الناقل الذكي',
+        origin: 'amman',
+        destination: 'riyadh',
+        departureDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+        price: 75,
+        currency: 'JOD',
+        availableSeats: 3,
+        status: 'Planned',
+    },
+    // Nearby Date Match
+    {
+        id: 'scheduled_nearby_1',
+        userId: 'carrier_flexible',
+        carrierId: 'carrier_flexible',
+        carrierName: 'المرن للنقل',
+        origin: 'amman',
+        destination: 'riyadh',
+        departureDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(), // One day after
+        price: 70,
+        currency: 'JOD',
+        availableSeats: 4,
+        status: 'Planned',
+    }
+]
 
 const mockPendingConfirmationTrips: { trip: Trip, booking: Booking }[] = [
     {
@@ -203,7 +236,6 @@ export default function HistoryPage() {
   const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
   const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
   const [selectedOfferForBooking, setSelectedOfferForBooking] = useState<{ trip: Trip, offer: Offer } | null>(null);
-  const [selectedScheduledTrip, setSelectedScheduledTrip] = useState<Trip | null>(null);
   const [isProcessingBooking, setIsProcessingBooking] = useState(false);
 
   // Closure and Rating Dialog State
@@ -219,6 +251,10 @@ export default function HistoryPage() {
   // Chat Dialog State
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedChatInfo, setSelectedChatInfo] = useState<{bookingId: string, otherPartyName: string} | null>(null);
+
+  // Smart Resubmission State
+  const [isResubmissionDialogOpen, setIsResubmissionDialogOpen] = useState(false);
+  const [selectedTripForResubmission, setSelectedTripForResubmission] = useState<Trip | null>(null);
   
 
   // --- USE MOCK DATA ---
@@ -264,6 +300,11 @@ export default function HistoryPage() {
           otherPartyName: trip.carrierName || "الناقل"
       });
       setIsChatOpen(true);
+  }
+
+  const handleOpenResubmissionDialog = (trip: Trip) => {
+    setSelectedTripForResubmission(trip);
+    setIsResubmissionDialogOpen(true);
   }
 
   const handleConfirmCancellation = async () => {
@@ -347,17 +388,26 @@ export default function HistoryPage() {
                 </AccordionTrigger>
                 <AccordionContent>
                   {awaitingTrips.map(trip => (
-                    <CardContent key={trip.id} className="border-t pt-6 space-y-8">
-                      <div>
-                        <div className="mb-4">
-                            <CardTitle className="text-md">طلب رحلة: {cities[trip.origin] || trip.origin} إلى {cities[trip.destination] || trip.destination}</CardTitle>
-                            <CardDescription className="text-xs">
-                            تاريخ الطلب: {safeDateFormat(trip.departureDate)} | عدد الركاب: {trip.passengers || 'غير محدد'}
-                            </CardDescription>
-                        </div>
-                        <TripOffers trip={trip} onAcceptOffer={handleAcceptOffer} />
-                      </div>
-                    </CardContent>
+                    <div key={trip.id}>
+                        <CardContent className="border-t pt-6 space-y-4">
+                            <div>
+                                <div className="mb-4">
+                                    <CardTitle className="text-md">طلب رحلة: {cities[trip.origin] || trip.origin} إلى {cities[trip.destination] || trip.destination}</CardTitle>
+                                    <CardDescription className="text-xs">
+                                    تاريخ الطلب: {safeDateFormat(trip.departureDate)} | عدد الركاب: {trip.passengers || 'غير محدد'}
+                                    </CardDescription>
+                                </div>
+                                <TripOffers trip={trip} onAcceptOffer={handleAcceptOffer} />
+                            </div>
+                        </CardContent>
+                         <CardFooter className="bg-muted/30 p-2 border-t">
+                            <Button variant="outline" className="w-full" onClick={() => handleOpenResubmissionDialog(trip)}>
+                               <Radar className="ml-2 h-4 w-4" />
+                               خيارات إعادة النشر الذكية
+                               <Badge variant="destructive" className="mr-2">جديد</Badge>
+                            </Button>
+                        </CardFooter>
+                    </div>
                   ))}
                 </AccordionContent>
               </Card>
@@ -455,21 +505,9 @@ export default function HistoryPage() {
       )}
       
       {selectedTripForClosure && (
-        <TripClosureDialog
+        <RateTripDialog 
             isOpen={isClosureDialogOpen}
             onOpenChange={setIsClosureDialogOpen}
-            trip={selectedTripForClosure}
-            onRate={() => {
-                setIsClosureDialogOpen(false);
-                setTimeout(() => setIsRatingDialogOpen(true), 150);
-            }}
-        />
-      )}
-
-      {selectedTripForClosure && (
-        <RateTripDialog 
-            isOpen={isRatingDialogOpen}
-            onOpenChange={setIsRatingDialogOpen}
             trip={selectedTripForClosure}
             onConfirm={() => setSelectedTripForClosure(null)}
         />
@@ -483,6 +521,7 @@ export default function HistoryPage() {
             onConfirm={handleConfirmCancellation}
         />
       )}
+
       {selectedChatInfo && (
           <ChatDialog
               isOpen={isChatOpen}
@@ -491,8 +530,16 @@ export default function HistoryPage() {
               otherPartyName={selectedChatInfo.otherPartyName}
           />
       )}
+
+      {selectedTripForResubmission && (
+        <SmartResubmissionDialog
+          isOpen={isResubmissionDialogOpen}
+          onOpenChange={setIsResubmissionDialogOpen}
+          tripRequest={selectedTripForResubmission}
+          // Passing mock scheduled trips for demonstration
+          allScheduledTrips={mockRelevantScheduledTrips}
+        />
+      )}
     </AppLayout>
   );
 }
-
-    
