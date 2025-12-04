@@ -16,7 +16,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Offer, Booking } from '@/lib/data';
-import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass } from 'lucide-react';
+import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Sparkles } from 'lucide-react';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -59,6 +59,17 @@ const safeDateFormat = (dateInput: any, formatStr: string = 'PPP'): string => {
   }
 };
 
+const isSameDay = (date1: string, date2: string) => {
+    try {
+        const d1 = new Date(date1).toDateString();
+        const d2 = new Date(date2).toDateString();
+        return d1 === d2;
+    } catch {
+        return false;
+    }
+}
+
+
 export default function HistoryPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -68,6 +79,7 @@ export default function HistoryPage() {
   const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
   const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
   const [selectedOfferForBooking, setSelectedOfferForBooking] = useState<{ trip: Trip, offer: Offer } | null>(null);
+  const [selectedScheduledTrip, setSelectedScheduledTrip] = useState<Trip | null>(null);
   const [isProcessingBooking, setIsProcessingBooking] = useState(false);
 
   // --- Queries ---
@@ -78,8 +90,18 @@ export default function HistoryPage() {
       where('userId', '==', user.uid)
     );
   }, [firestore, user]);
+
+  const scheduledTripsQuery = useMemo(() => {
+      if (!firestore || !user) return null;
+      return query(
+          collection(firestore, 'trips'),
+          where('status', '==', 'Planned'),
+          where('userId', '!=', user.uid) // Don't show user their own trips as alternatives
+      );
+  }, [firestore, user]);
   
   const { data: allUserTrips, isLoading: isLoadingTrips } = useCollection<Trip>(userTripsQuery);
+  const { data: allScheduledTrips, isLoading: isLoadingScheduled } = useCollection<Trip>(scheduledTripsQuery);
 
   const { awaitingTrips, pendingConfirmationTrips, confirmedTrips } = useMemo(() => {
     if (!allUserTrips) {
@@ -101,12 +123,31 @@ export default function HistoryPage() {
     };
   }, [allUserTrips]);
 
+  const matchingScheduledTripsMap = useMemo(() => {
+      if (!awaitingTrips || !allScheduledTrips) return new Map<string, Trip[]>();
+
+      const map = new Map<string, Trip[]>();
+      awaitingTrips.forEach(request => {
+          const matches = allScheduledTrips.filter(scheduled => 
+              scheduled.origin === request.origin &&
+              scheduled.destination === request.destination &&
+              isSameDay(scheduled.departureDate, request.departureDate) &&
+              (scheduled.availableSeats || 0) >= (request.passengers || 1)
+          );
+          if (matches.length > 0) {
+              map.set(request.id, matches);
+          }
+      });
+      return map;
+
+  }, [awaitingTrips, allScheduledTrips]);
+
 
   const hasAwaitingTrips = awaitingTrips && awaitingTrips.length > 0;
   const hasPendingConfirmationTrips = pendingConfirmationTrips && pendingConfirmationTrips.length > 0;
   const hasConfirmedTrips = confirmedTrips && confirmedTrips.length > 0;
 
-  const totalLoading = isUserLoading || isLoadingTrips;
+  const totalLoading = isUserLoading || isLoadingTrips || isLoadingScheduled;
   const noTripsAtAll = !totalLoading && !hasAwaitingTrips && !hasPendingConfirmationTrips && !hasConfirmedTrips;
 
   useEffect(() => {
@@ -122,6 +163,11 @@ export default function HistoryPage() {
       setSelectedOfferForBooking({ trip, offer });
       setIsBookingDialogOpen(true);
   };
+  
+  const handleBookScheduledTrip = (trip: Trip) => {
+      setSelectedScheduledTrip(trip);
+      setIsBookingDialogOpen(true);
+  }
 
   const handleConfirmBookingFromOffer = async (passengers: PassengerDetails[]) => {
       if (!firestore || !user || !selectedOfferForBooking) return;
@@ -138,7 +184,7 @@ export default function HistoryPage() {
             seats: passengers.length,
             passengersDetails: passengers,
             status: 'Pending-Carrier-Confirmation',
-            totalPrice: offer.price * passengers.length, // Correctly calculate total price
+            totalPrice: offer.price * passengers.length,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
@@ -177,6 +223,57 @@ export default function HistoryPage() {
       }
   };
 
+  const handleConfirmBookingFromScheduled = async (passengers: PassengerDetails[]) => {
+    if (!firestore || !user || !selectedScheduledTrip) return;
+    setIsProcessingBooking(true);
+    const trip = selectedScheduledTrip;
+  
+    try {
+      const batch = writeBatch(firestore);
+      
+      const bookingData: Omit<Booking, 'id'> = {
+          tripId: trip.id,
+          userId: user.uid,
+          carrierId: trip.carrierId!,
+          seats: passengers.length,
+          passengersDetails: passengers,
+          status: 'Confirmed', // Direct confirmation as it's a scheduled trip
+          totalPrice: (trip.price || 0) * passengers.length,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+      };
+
+      const bookingRef = doc(collection(firestore, 'bookings'));
+      batch.set(bookingRef, bookingData);
+      
+      batch.update(doc(firestore, 'trips', trip.id), { 
+          availableSeats: (trip.availableSeats || 0) - passengers.length,
+          bookingIds: arrayUnion(bookingRef.id),
+      });
+      
+      addDocumentNonBlocking(collection(firestore, 'notifications'), {
+          userId: trip.carrierId!,
+          title: 'حجز جديد ومؤكد!',
+          message: `لديك حجز مؤكد جديد في رحلة ${cities[trip.origin]} - ${cities[trip.destination]}.`,
+          type: 'booking_confirmed',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          link: `/carrier/trips`
+      });
+
+      await batch.commit();
+      
+      toast({ title: 'تم تأكيد حجزك الفوري بنجاح!', description: 'تم نقل الحجز إلى قسم "رحلاتي المؤكدة".' });
+      setIsBookingDialogOpen(false);
+      setSelectedScheduledTrip(null);
+    } catch (error) {
+      console.error("Scheduled Booking Error:", error);
+      toast({ variant: 'destructive', title: 'فشل الحجز الفوري', description: 'حدث خطأ أثناء الحجز، حاول لاحقاً.' });
+    } finally {
+      setIsProcessingBooking(false);
+    }
+  };
+
 
   const renderSkeleton = () => (
     <div className="space-y-4" role="status" aria-label="جار التحميل">
@@ -185,6 +282,8 @@ export default function HistoryPage() {
   );
   
   if (isUserLoading) return <AppLayout>{renderSkeleton()}</AppLayout>;
+
+  const bookingDialogData = selectedOfferForBooking || { trip: selectedScheduledTrip, offer: { price: selectedScheduledTrip?.price || 0, depositPercentage: selectedScheduledTrip?.depositPercentage || 20 }};
 
   return (
     <AppLayout>
@@ -226,14 +325,34 @@ export default function HistoryPage() {
                 </AccordionTrigger>
                 <AccordionContent>
                   {awaitingTrips.map(trip => (
-                    <CardContent key={trip.id} className="border-t pt-6">
-                      <div className="mb-4">
-                        <CardTitle className="text-md">طلب رحلة: {cities[trip.origin] || trip.origin} إلى {cities[trip.destination] || trip.destination}</CardTitle>
-                        <CardDescription className="text-xs">
-                          تاريخ الطلب: {safeDateFormat(trip.departureDate)} | عدد الركاب: {trip.passengers || 'غير محدد'}
-                        </CardDescription>
+                    <CardContent key={trip.id} className="border-t pt-6 space-y-8">
+                      <div>
+                        <div className="mb-4">
+                            <CardTitle className="text-md">طلب رحلة: {cities[trip.origin] || trip.origin} إلى {cities[trip.destination] || trip.destination}</CardTitle>
+                            <CardDescription className="text-xs">
+                            تاريخ الطلب: {safeDateFormat(trip.departureDate)} | عدد الركاب: {trip.passengers || 'غير محدد'}
+                            </CardDescription>
+                        </div>
+                        <TripOffers trip={trip} onAcceptOffer={handleAcceptOffer} />
                       </div>
-                      <TripOffers trip={trip} onAcceptOffer={handleAcceptOffer} />
+                      
+                      {matchingScheduledTripsMap.has(trip.id) && (
+                          <div className="space-y-4">
+                              <h3 className="font-bold text-lg flex items-center gap-2 justify-center text-accent">
+                                <Sparkles className="h-5 w-5" />
+                                رحلات مجدولة متاحة للحجز الفوري
+                              </h3>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {matchingScheduledTripsMap.get(trip.id)?.map(scheduledTrip => (
+                                      <ScheduledTripCard 
+                                          key={scheduledTrip.id}
+                                          trip={scheduledTrip}
+                                          onBookNow={() => handleBookScheduledTrip(scheduledTrip)}
+                                      />
+                                  ))}
+                              </div>
+                          </div>
+                      )}
                     </CardContent>
                   ))}
                 </AccordionContent>
@@ -292,7 +411,7 @@ export default function HistoryPage() {
                       <ScheduledTripCard
                         key={trip.id}
                         trip={trip}
-                        onBookNow={() => {}} // No action needed here for now
+                        onBookNow={() => {}}
                         context="history"
                       />
                     ))}
@@ -305,15 +424,15 @@ export default function HistoryPage() {
       </div>
 
       {/* Booking Dialog */}
-      {selectedOfferForBooking && (
+      {(selectedOfferForBooking || selectedScheduledTrip) && (
           <BookingDialog
             isOpen={isBookingDialogOpen}
             onOpenChange={setIsBookingDialogOpen}
-            trip={selectedOfferForBooking.trip}
-            seatCount={selectedOfferForBooking.trip.passengers || 1}
-            offerPrice={selectedOfferForBooking.offer.price}
-            depositPercentage={selectedOfferForBooking.offer.depositPercentage || 20}
-            onConfirm={handleConfirmBookingFromOffer}
+            trip={bookingDialogData.trip!}
+            seatCount={bookingDialogData.trip?.passengers || 1}
+            offerPrice={bookingDialogData.offer.price}
+            depositPercentage={bookingDialogData.offer.depositPercentage || 20}
+            onConfirm={selectedScheduledTrip ? handleConfirmBookingFromScheduled : handleConfirmBookingFromOffer}
             isProcessing={isProcessingBooking}
           />
       )}
