@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { AddTripDialog } from '@/components/carrier/add-trip-dialog';
+import { CarrierBottomNav } from '@/components/carrier/carrier-bottom-nav';
 
 
 function LoadingSpinner() {
@@ -57,6 +58,7 @@ export default function CarrierLayout({
     <>
     <AppLayout>
       <div className="grid h-full grid-cols-1 md:grid-cols-[240px_1fr]">
+        {/* --- Sidebar for Desktop --- */}
         <aside className="hidden md:block h-full bg-card border-e p-4">
            <Button className="w-full mb-4" onClick={() => setIsAddTripDialogOpen(true)}>
              <PlusCircle className="ml-2 h-4 w-4" />
@@ -80,14 +82,20 @@ export default function CarrierLayout({
            </nav>
         </aside>
 
-        <main className="flex-1 overflow-y-auto bg-muted/30">
+        {/* --- Main Content Area --- */}
+        <main className="flex-1 overflow-y-auto bg-muted/30 pb-20 md:pb-0">
              <div className="p-0 md:p-0 min-h-[calc(100vh-128px)]">
                 {children}
             </div>
         </main>
       </div>
+      
+      {/* --- Bottom Nav for Mobile --- */}
+      <CarrierBottomNav onAddTripClick={() => setIsAddTripDialogOpen(true)} />
+
     </AppLayout>
 
+    {/* --- Global Dialog --- */}
     <AddTripDialog 
       isOpen={isAddTripDialogOpen}
       onOpenChange={setIsAddTripDialogOpen}
