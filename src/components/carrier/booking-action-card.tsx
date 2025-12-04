@@ -38,11 +38,7 @@ function UserInfo({ userId }: { userId: string }) {
     return <span className="font-bold">{userProfile?.firstName} {userProfile?.lastName}</span>;
 }
 
-function TripInfo({ tripId }: { tripId: string }) {
-    const firestore = useFirestore();
-    const tripRef = useMemo(() => tripId ? doc(firestore, 'trips', tripId) : null, [firestore, tripId]);
-    const { data: trip, isLoading } = useDoc<Trip>(tripRef);
-
+function TripInfo({ trip, isLoading }: { trip?: Trip, isLoading: boolean }) {
     if (isLoading) return <Skeleton className="h-5 w-48 mt-1" />;
     if (!trip) return <div className="text-red-500 text-sm">تفاصيل الرحلة غير متاحة</div>;
 
@@ -53,13 +49,22 @@ function TripInfo({ tripId }: { tripId: string }) {
     );
 }
 
-export function BookingActionCard({ booking }: { booking: Booking }) {
+// The component now accepts an optional 'trip' prop for simulation mode.
+export function BookingActionCard({ booking, trip: simulatedTrip }: { booking: Booking, trip?: Trip }) {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
     
-    const tripRef = useMemo(() => firestore ? doc(firestore, 'trips', booking.tripId) : null, [firestore, booking.tripId]);
-    const { data: trip, isLoading: isLoadingTrip } = useDoc<Trip>(tripRef);
+    // Logic to fetch the live trip data if no simulation data is provided.
+    const tripRef = useMemo(() => {
+      if (simulatedTrip || !firestore) return null;
+      return doc(firestore, 'trips', booking.tripId);
+    }, [firestore, booking.tripId, simulatedTrip]);
+    
+    const { data: liveTrip, isLoading: isLoadingTrip } = useDoc<Trip>(tripRef);
+    
+    // Use the simulated trip if provided, otherwise use the live data.
+    const trip = simulatedTrip || liveTrip;
 
     const { depositAmount, remainingAmount } = useMemo(() => {
         if (!trip) return { depositAmount: 0, remainingAmount: 0 };
@@ -69,60 +74,50 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
     }, [booking.totalPrice, trip]);
 
     const handleBookingAction = async (action: 'confirm' | 'reject') => {
-        if (!firestore || !trip) {
+        // Guard for live mode: ensure firestore and the live trip object are available.
+        if (!firestore || (!simulatedTrip && !liveTrip)) {
             toast({ variant: 'destructive', title: 'خطأ', description: 'لا يمكن إتمام الإجراء، تفاصيل الرحلة غير متوفرة.' });
             return;
         }
+
+        // SIMULATION GUARD: Prevent writes for mock data.
+        if (booking.id.startsWith('mock_')) {
+            toast({
+                title: `تم ${action === 'confirm' ? 'تأكيد' : 'رفض'} الحجز (محاكاة)`,
+                description: "هذا إجراء وهمي لغايات الاختبار.",
+            });
+            return;
+        }
+        
         setIsProcessing(true);
-        
         const bookingRef = doc(firestore, 'bookings', booking.id);
-        const tripRef = doc(firestore, 'trips', booking.tripId);
-        
+        const liveTripRef = doc(firestore, 'trips', booking.tripId);
         const batch = writeBatch(firestore);
 
         if (action === 'confirm') {
             batch.update(bookingRef, { status: 'Confirmed' });
-            batch.update(tripRef, { availableSeats: increment(-booking.seats) });
-
+            batch.update(liveTripRef, { availableSeats: increment(-booking.seats) });
+            
             const notificationData = {
-                userId: booking.userId,
-                title: 'تم تأكيد حجزك!',
-                message: `خبر سعيد! تم تأكيد حجزك لرحلة ${getCityName(trip.origin)}. نتمنى لك رحلة موفقة!`,
-                type: 'booking_confirmed',
-                isRead: false,
-                createdAt: new Date().toISOString(),
-                link: '/history',
+                userId: booking.userId, title: 'تم تأكيد حجزك!',
+                message: `خبر سعيد! تم تأكيد حجزك لرحلة ${getCityName(trip!.origin)}. نتمنى لك رحلة موفقة!`,
+                type: 'booking_confirmed', isRead: false, createdAt: new Date().toISOString(), link: '/history',
             };
             addDocumentNonBlocking(collection(firestore, 'notifications'), notificationData);
-            
-            logEvent('BOOKING_CONFIRMED', {
-                carrierId: booking.carrierId,
-                tripId: booking.tripId,
-                bookingId: booking.id,
-                totalPrice: booking.totalPrice,
-                seats: booking.seats,
-            });
-
+            logEvent('BOOKING_CONFIRMED', { carrierId: booking.carrierId, tripId: booking.tripId, bookingId: booking.id, totalPrice: booking.totalPrice, seats: booking.seats });
         } else { // Reject
             batch.update(bookingRef, { status: 'Cancelled' });
-            
             const notificationData = {
-                userId: booking.userId,
-                title: 'تحديث بخصوص طلب الحجز',
-                message: `نعتذر، لم يتمكن الناقل من تأكيد طلب الحجز الخاص بك لرحلة ${getCityName(trip.origin)} في الوقت الحالي.`,
-                type: 'trip_update',
-                isRead: false,
-                createdAt: new Date().toISOString(),
-                link: '/history',
+                userId: booking.userId, title: 'تحديث بخصوص طلب الحجز',
+                message: `نعتذر، لم يتمكن الناقل من تأكيد طلب الحجز الخاص بك لرحلة ${getCityName(trip!.origin)} في الوقت الحالي.`,
+                type: 'trip_update', isRead: false, createdAt: new Date().toISOString(), link: '/history',
             };
             addDocumentNonBlocking(collection(firestore, 'notifications'), notificationData);
         }
 
         try {
             await batch.commit();
-            toast({
-                title: action === 'confirm' ? 'تم تأكيد الحجز بنجاح' : 'تم رفض الحجز',
-            });
+            toast({ title: action === 'confirm' ? 'تم تأكيد الحجز بنجاح' : 'تم رفض الحجز' });
         } catch (error) {
             console.error('Error processing booking:', error);
             toast({ variant: 'destructive', title: 'حدث خطأ', description: 'لم نتمكن من إتمام الإجراء. يرجى المحاولة مرة أخرى.' });
@@ -133,6 +128,8 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
 
     const statusInfo = statusMap[booking.status] || { text: booking.status, className: 'bg-gray-100 text-gray-800' };
     const isPending = booking.status === 'Pending-Carrier-Confirmation';
+    
+    // SMART CAPACITY CHECK LOGIC
     const hasSufficientSeats = trip ? booking.seats <= (trip.availableSeats || 0) : false;
 
     return (
@@ -140,7 +137,7 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
             <CardHeader className="flex flex-row justify-between items-start pb-2">
                 <div>
                     <CardTitle className="text-base"><UserInfo userId={booking.userId} /></CardTitle>
-                    <TripInfo tripId={booking.tripId} />
+                    <TripInfo trip={trip} isLoading={isLoadingTrip && !simulatedTrip} />
                 </div>
                  <Badge className={statusInfo.className}>{statusInfo.text}</Badge>
             </CardHeader>
@@ -188,7 +185,7 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
                         <Button 
                             className="w-full bg-green-600 hover:bg-green-700 text-white" 
                             onClick={() => handleBookingAction('confirm')}
-                            disabled={isProcessing || isLoadingTrip || !hasSufficientSeats}
+                            disabled={isProcessing || (isLoadingTrip && !simulatedTrip) || !hasSufficientSeats}
                         >
                             {isProcessing ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Check className="ml-2 h-4 w-4" />}
                             تأكيد الحجز
@@ -197,16 +194,16 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
                             variant="destructive" 
                             className="w-full"
                             onClick={() => handleBookingAction('reject')}
-                            disabled={isProcessing || isLoadingTrip}
+                            disabled={isProcessing || (isLoadingTrip && !simulatedTrip)}
                         >
                              {isProcessing ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <X className="ml-2 h-4 w-4" />}
                             رفض
                         </Button>
                     </div>
-                    {!isLoadingTrip && !hasSufficientSeats && (
+                    {trip && !hasSufficientSeats && (
                         <div className='flex items-center gap-2 text-xs font-bold text-destructive bg-destructive/10 border border-destructive/20 p-2 rounded-md w-full'>
                             <AlertCircle className="h-4 w-4" />
-                            <span>عذراً، السعة المتبقية ({trip?.availableSeats || 0}) لا تكفي لهذا الطلب.</span>
+                            <span>عذراً، السعة المتبقية ({trip.availableSeats || 0}) لا تكفي لهذا الطلب.</span>
                         </div>
                     )}
                 </CardFooter>
