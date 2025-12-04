@@ -34,7 +34,7 @@ import { Badge } from './ui/badge';
 import Image from 'next/image';
 import { format, isFuture } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 
 // Helper to safely format dates and time
@@ -139,6 +139,13 @@ export function ScheduledTripCard({
 
   const StatusComponent = booking?.status ? statusMap[booking.status] : null;
   const isMessageable = context === 'history' && booking?.status === 'Confirmed';
+  
+  const [formattedDate, setFormattedDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    // This runs only on the client, after hydration
+    setFormattedDate(safeDateTimeFormat(trip.departureDate));
+  }, [trip.departureDate]);
 
 
   return (
@@ -149,7 +156,7 @@ export function ScheduledTripCard({
         <div className="flex justify-between items-center pt-2">
             <Badge variant="secondary" className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                {safeDateTimeFormat(trip.departureDate)}
+                {formattedDate ? formattedDate : <Skeleton className="h-4 w-20" />}
             </Badge>
             <div className="flex items-center gap-2 text-sm font-bold">
                {getCityName(trip.origin)}
