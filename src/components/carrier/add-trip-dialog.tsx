@@ -70,6 +70,7 @@ const addTripSchema = z.object({
   destination: z.string().min(1, 'مدينة الوصول مطلوبة'),
   departureDate: z.date({ required_error: 'تاريخ المغادرة مطلوب' }),
   price: z.coerce.number().positive('السعر يجب أن يكون رقماً موجباً'),
+  currency: z.enum(['JOD', 'SAR', 'USD'], { required_error: 'العملة مطلوبة'}),
   availableSeats: z.coerce.number().int().min(1, 'يجب توفر مقعد واحد على الأقل'),
   depositPercentage: z.coerce.number().min(0, "الحد الأدنى 0%").max(25, "نسبة العربون لا يمكن أن تتجاوز 25% حسب قوانين المنصة"),
   durationHours: z.coerce.number().positive('مدة الرحلة المتوقعة مطلوبة ويجب أن تكون رقماً موجباً'),
@@ -103,6 +104,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
       depositPercentage: 10,
       durationHours: undefined,
       conditions: '',
+      currency: 'JOD',
     }
   });
 
@@ -262,11 +264,31 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormField control={form.control} name="price" render={({ field }) => (
                           <FormItem>
-                              <FormLabel>سعر المقعد (بالدينار)</FormLabel>
+                              <FormLabel>سعر المقعد</FormLabel>
                               <FormControl><Input className="bg-card" type="number" placeholder="e.g., 50" {...field} /></FormControl>
                               <FormMessage />
                           </FormItem>
                       )}/>
+                       <FormField control={form.control} name="currency" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>العملة</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="bg-card">
+                                  <SelectValue placeholder="اختر العملة" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="JOD">دينار أردني</SelectItem>
+                                <SelectItem value="SAR">ريال سعودي</SelectItem>
+                                <SelectItem value="USD">دولار أمريكي</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}/>
+                  </div>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormField control={form.control} name="availableSeats" render={({ field }) => (
                           <FormItem>
                               <FormLabel>عدد المقاعد المتاحة</FormLabel>
@@ -274,7 +296,23 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                               <FormMessage />
                           </FormItem>
                       )}/>
-                  </div>
+                        <FormField
+                            control={form.control}
+                            name="durationHours"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="flex items-center gap-1">
+                                <Clock className="h-4 w-4 text-muted-foreground"/>
+                                مدة الرحلة (بالساعات)
+                                </FormLabel>
+                                <FormControl>
+                                <Input className="bg-card" type="number" placeholder="e.g., 8" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                   </div>
 
                   <FormField
                       control={form.control}
@@ -283,7 +321,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                           <FormItem>
                               <div className="flex justify-between items-center mb-2">
                                   <FormLabel>نسبة العربون المطلوب</FormLabel>
-                                  <span className="text-sm font-bold text-primary">{field.value}% = {depositAmount} د.أ</span>
+                                  <span className="text-sm font-bold text-primary">{field.value}% = {depositAmount} {form.watch('currency')}</span>
                               </div>
                               <FormControl>
                                   <Slider
@@ -299,22 +337,6 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                       )}
                   />
                   
-                  <FormField
-                    control={form.control}
-                    name="durationHours"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1">
-                          <Clock className="h-4 w-4 text-muted-foreground"/>
-                          مدة الرحلة المتوقعة (بالساعات)
-                        </FormLabel>
-                        <FormControl>
-                          <Input className="bg-card" type="number" placeholder="e.g., 8" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                   <FormField
                     control={form.control}
                     name="conditions"
@@ -355,4 +377,3 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
     </Dialog>
   );
 }
-    

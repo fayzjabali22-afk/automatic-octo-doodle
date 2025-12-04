@@ -179,8 +179,8 @@ export function ScheduledTripCard({
         <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">
             <p className='flex items-center gap-2 font-bold'><HandCoins className="h-4 w-4 text-accent" /> تفاصيل السعر:</p>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-6">
-                <p><strong>السعر الكلي للمقعد:</strong> {trip.price} دينار</p>
-                {trip.depositPercentage && <p><strong>العربون ({trip.depositPercentage || 0}%):</strong> {depositAmount.toFixed(2)} دينار</p>}
+                <p><strong>السعر الكلي للمقعد:</strong> {trip.price} {trip.currency}</p>
+                {trip.depositPercentage && <p><strong>العربون ({trip.depositPercentage || 0}%):</strong> {depositAmount.toFixed(2)} {trip.currency}</p>}
             </div>
         </div>
         {trip.conditions && (

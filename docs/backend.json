@@ -43,6 +43,10 @@
             },
             "required": ["bankName", "accountHolderName", "iban"]
         },
+        "paymentInformation": {
+            "type": "string",
+            "description": "A flexible text field for the carrier to provide payout instructions (e.g., mobile wallet number, bank details)."
+        },
         "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -168,6 +172,11 @@
             "type": "number",
             "description": "Price per seat for a scheduled trip."
         },
+        "currency": {
+            "type": "string",
+            "enum": ["JOD", "SAR", "USD"],
+            "description": "The currency for the trip price."
+        },
         "availableSeats": {
             "type": "number",
             "description": "Number of available seats for a ride-sharing trip."
@@ -245,6 +254,11 @@
             "type": "number",
             "description": "Total price for the booking."
         },
+        "currency": {
+            "type": "string",
+            "enum": ["JOD", "SAR", "USD"],
+            "description": "The currency for the booking price."
+        },
         "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -286,6 +300,11 @@
         "tripId": { "type": "string", "description": "ID of the trip request this offer is for." },
         "carrierId": { "type": "string", "description": "ID of the carrier making the offer." },
         "price": { "type": "number", "description": "The price offered by the carrier for the trip." },
+        "currency": {
+            "type": "string",
+            "enum": ["JOD", "SAR", "USD"],
+            "description": "The currency for the offer price."
+        },
         "notes": { "type": "string", "description": "Optional notes from the carrier." },
         "status": {
           "type": "string",
@@ -299,7 +318,7 @@
         "availableSeats": { "type": "number", "description": "The number of available seats in the vehicle." },
         "depositPercentage": { "type": "number", "description": "The deposit percentage required." }
       },
-      "required": ["id", "tripId", "carrierId", "price", "status", "createdAt"]
+      "required": ["id", "tripId", "carrierId", "price", "status", "createdAt", "currency"]
     },
     "Notification": {
         "title": "Notification",
@@ -515,4 +534,3 @@
     ]
   }
 }
-    

@@ -31,6 +31,7 @@ const mockActiveTrips: Trip[] = [
         departureDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
         status: 'Planned',
         price: 80,
+        currency: 'JOD',
         availableSeats: 3,
         vehicleType: 'GMC Yukon 2023',
         createdAt: new Date().toISOString(),
@@ -46,6 +47,7 @@ const mockActiveTrips: Trip[] = [
         departureDate: new Date().toISOString(),
         status: 'In-Transit',
         price: 120,
+        currency: 'SAR',
         availableSeats: 1,
         vehicleType: 'Toyota Coaster 2022',
         createdAt: new Date().toISOString(),
@@ -61,6 +63,7 @@ const mockActiveTrips: Trip[] = [
         departureDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
         status: 'Planned',
         price: 95,
+        currency: 'JOD',
         availableSeats: 4,
         vehicleType: 'Mercedes-Benz Sprinter',
         createdAt: new Date().toISOString(),
@@ -126,7 +129,7 @@ function TripListItem({ trip, onEdit, onCancel, onManagePassengers }: { trip: Tr
                 </div>
                 <div className="flex items-center gap-2 text-sm font-bold">
                     <CircleDollarSign className="h-4 w-4 text-green-500" />
-                    <span>{trip.price} د.أ</span>
+                    <span>{trip.price} {trip.currency}</span>
                 </div>
             </div>
              <div className="flex items-center gap-4 mt-3 sm:mt-0 sm:ml-4 rtl:sm:mr-4">

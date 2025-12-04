@@ -16,6 +16,11 @@ export type UserProfile = {
   paymentInformation?: string; // Flexible text field for payment instructions
   createdAt?: any;
   updatedAt?: any;
+  bankDetails?: {
+    bankName: string;
+    accountHolderName: string;
+    iban: string;
+  };
 };
 
 export type CarrierSpecialization = {
@@ -52,6 +57,7 @@ export type Trip = {
   cargoDetails?: string;
   passengers?: number;
   price?: number;
+  currency?: 'JOD' | 'SAR' | 'USD';
   availableSeats?: number;
   depositPercentage?: number;
   acceptedOfferId?: string | null;
@@ -71,6 +77,7 @@ export type Booking = {
   passengersDetails: { name: string; type: 'adult' | 'child' }[];
   status: 'Confirmed' | 'Pending-Payment' | 'Cancelled' | 'Completed' | 'Pending-Carrier-Confirmation';
   totalPrice: number;
+  currency?: 'JOD' | 'SAR' | 'USD';
   createdAt?: any;
   updatedAt?: any;
   cancelledBy?: 'carrier' | 'traveler';
@@ -82,6 +89,7 @@ export type Offer = {
   tripId: string;
   carrierId: string;
   price: number;
+  currency: 'JOD' | 'SAR' | 'USD';
   notes?: string;
   status: 'Pending' | 'Accepted' | 'Rejected';
   createdAt: string;
@@ -136,5 +144,3 @@ export type Message = {
   content: string;
   timestamp: string;
 };
-
-    
