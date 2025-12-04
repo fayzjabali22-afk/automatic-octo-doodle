@@ -19,6 +19,7 @@ import { EditTripDialog } from './edit-trip-dialog';
 // The CancelTripDialog is no longer needed as per the new "no cancellation" policy.
 // import { CancelTripDialog } from './cancel-trip-dialog';
 import { PassengersListDialog } from './passengers-list-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 
 // --- MOCK DATA FOR SIMULATION ---
