@@ -7,8 +7,9 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
-  { href: '/carrier/requests', label: 'الطلبات', icon: Search },
   { href: '/carrier/trips', label: 'رحلاتي', icon: Home },
+  { href: '/carrier/requests', label: 'الطلبات', icon: Search },
+  null, // Placeholder for the central FAB
   { href: '/carrier/archive', label: 'الأرشيف', icon: Archive },
 ];
 
@@ -34,22 +35,15 @@ export function CarrierBottomNav({ onAddTripClick }: CarrierBottomNavProps) {
             </Button>
         </div>
 
-        <nav className="grid grid-cols-3 h-full items-center px-2">
+        <nav className="grid grid-cols-5 h-full items-center px-2">
           {navItems.map((item, index) => {
-            // Split the layout around the central FAB placeholder
-            if (index === 1) {
-              return (
-                <div key="fab-spacer-before" />
-              );
-            }
-             if (index === 2) {
-              return (
-                <div key="fab-spacer-after" />
-              );
+            if (!item) {
+                // This is the spacer for the central button
+                return <div key={index} />;
             }
             const isActive = pathname === item.href;
             return (
-              <Link key={item.href} href={item.href} className="flex flex-col items-center gap-1 w-full py-2">
+              <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center gap-1 w-full py-2 h-full col-span-2">
                 <item.icon
                   className={cn(
                     'h-6 w-6 transition-colors',
