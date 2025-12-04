@@ -4,7 +4,7 @@ import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Trip } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CalendarX, ArrowRight, Calendar, Users, CircleDollarSign, CheckCircle, Clock, XCircle, MoreVertical, Pencil, Ban, Ship } from 'lucide-react';
+import { CalendarX, ArrowRight, Calendar, Users, CircleDollarSign, CheckCircle, Clock, XCircle, MoreVertical, Pencil, Ban, Ship, List } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import {
@@ -17,6 +17,7 @@ import {
 import { Button } from '../ui/button';
 import { EditTripDialog } from './edit-trip-dialog';
 import { CancelTripDialog } from './cancel-trip-dialog';
+import { PassengersListDialog } from './passengers-list-dialog';
 
 
 // --- MOCK DATA FOR SIMULATION ---
@@ -94,7 +95,7 @@ const statusMap: Record<string, { text: string; icon: React.ElementType; classNa
   'Cancelled': { text: 'ملغاة', icon: XCircle, className: 'bg-red-100 text-red-800' },
 };
 
-function TripListItem({ trip, onEdit, onCancel }: { trip: Trip, onEdit: (trip: Trip) => void, onCancel: (trip: Trip) => void }) {
+function TripListItem({ trip, onEdit, onCancel, onManagePassengers }: { trip: Trip, onEdit: (trip: Trip) => void, onCancel: (trip: Trip) => void, onManagePassengers: (trip: Trip) => void }) {
     const statusInfo = statusMap[trip.status] || { text: trip.status, icon: CircleDollarSign, className: 'bg-gray-100 text-gray-800' };
     const [formattedDate, setFormattedDate] = useState('');
 
@@ -144,8 +145,9 @@ function TripListItem({ trip, onEdit, onCancel }: { trip: Trip, onEdit: (trip: T
                             <Pencil className="ml-2 h-4 w-4" />
                             <span>تعديل الرحلة</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <span>عرض الحجوزات</span>
+                        <DropdownMenuItem onClick={() => onManagePassengers(trip)}>
+                            <List className="ml-2 h-4 w-4" />
+                            <span>إدارة الركاب</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
@@ -166,6 +168,7 @@ function TripListItem({ trip, onEdit, onCancel }: { trip: Trip, onEdit: (trip: T
 export function MyTripsList() {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+    const [isPassengersDialogOpen, setIsPassengersDialogOpen] = useState(false);
     const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
 
     const isLoading = false;
@@ -184,6 +187,11 @@ export function MyTripsList() {
     const handleCancelClick = (trip: Trip) => {
         setSelectedTrip(trip);
         setIsCancelDialogOpen(true);
+    }
+
+    const handleManagePassengersClick = (trip: Trip) => {
+        setSelectedTrip(trip);
+        setIsPassengersDialogOpen(true);
     }
 
     if (isLoading) {
@@ -215,6 +223,7 @@ export function MyTripsList() {
                         trip={trip} 
                         onEdit={handleEditClick}
                         onCancel={handleCancelClick}
+                        onManagePassengers={handleManagePassengersClick}
                     />
                 ))}
             </div>
@@ -226,6 +235,11 @@ export function MyTripsList() {
             <CancelTripDialog
                 isOpen={isCancelDialogOpen}
                 onOpenChange={setIsCancelDialogOpen}
+                trip={selectedTrip}
+            />
+            <PassengersListDialog
+                isOpen={isPassengersDialogOpen}
+                onOpenChange={setIsPassengersDialogOpen}
                 trip={selectedTrip}
             />
         </>
