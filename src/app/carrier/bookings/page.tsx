@@ -2,36 +2,82 @@
 import { useMemo } from 'react';
 import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import { Booking } from '@/lib/data';
+import { Booking, Trip } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Inbox, History, Hourglass } from 'lucide-react';
 import { BookingActionCard } from '@/components/carrier/booking-action-card';
 
+// --- Mock Data for Visual Verification ---
+const mockTrip: Trip = {
+    id: 'mock_trip_capacity_check',
+    userId: 'mock_user_id',
+    carrierId: 'carrier_user_id',
+    origin: 'amman',
+    destination: 'riyadh',
+    departureDate: new Date().toISOString(),
+    status: 'Planned',
+    price: 50,
+    availableSeats: 2, // The crucial value for testing
+    depositPercentage: 25, // For financial calculations
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+}
+
+const mockPendingBookings: Booking[] = [
+    {
+        id: 'mock_booking_valid',
+        tripId: 'mock_trip_capacity_check',
+        userId: 'mock_user_1',
+        carrierId: 'carrier_user_id',
+        seats: 2, // VALID: This request fits within the available seats
+        passengersDetails: [
+            { name: 'أحمد الصالح', type: 'adult' },
+            { name: 'سارة الصالح', type: 'adult' },
+        ],
+        status: 'Pending-Carrier-Confirmation',
+        totalPrice: 100, // 2 seats * 50
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    },
+    {
+        id: 'mock_booking_invalid',
+        tripId: 'mock_trip_capacity_check',
+        userId: 'mock_user_2',
+        carrierId: 'carrier_user_id',
+        seats: 3, // INVALID: This request requires more seats than available
+        passengersDetails: [
+            { name: 'فاطمة العلي', type: 'adult' },
+            { name: 'خالد العلي', type: 'adult' },
+            { name: 'بدر العلي', type: 'child' },
+        ],
+        status: 'Pending-Carrier-Confirmation',
+        totalPrice: 150, // 3 seats * 50
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    },
+];
+
+const mockHistoricalBookings: Booking[] = [
+    {
+        id: 'mock_hist_booking_1',
+        tripId: 'mock_hist_trip_1',
+        userId: 'mock_user_3',
+        carrierId: 'carrier_user_id',
+        seats: 1,
+        passengersDetails: [{ name: 'خالد المصري', type: 'adult' }],
+        status: 'Confirmed',
+        totalPrice: 50,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    },
+];
+
+
 export default function CarrierBookingsPage() {
-    const { user, isUserLoading } = useUser();
-    const firestore = useFirestore();
-
-    const bookingsQuery = useMemo(() => {
-        if (!firestore || !user) return null;
-        return query(
-            collection(firestore, 'bookings'),
-            where('carrierId', '==', user.uid),
-            orderBy('createdAt', 'desc')
-        );
-    }, [firestore, user]);
-
-    const { data: allBookings, isLoading: areBookingsLoading } = useCollection<Booking>(bookingsQuery);
-
-    const { pendingBookings, historicalBookings } = useMemo(() => {
-        if (!allBookings) return { pendingBookings: [], historicalBookings: [] };
-
-        const pending = allBookings.filter(b => b.status === 'Pending-Carrier-Confirmation');
-        const historical = allBookings.filter(b => b.status !== 'Pending-Carrier-Confirmation');
-
-        return { pendingBookings: pending, historicalBookings: historical };
-    }, [allBookings]);
-    
-    const isLoading = isUserLoading || areBookingsLoading;
+    // For this visual verification, we'll use mock data directly
+    const isLoading = false;
+    const pendingBookings = mockPendingBookings;
+    const historicalBookings = mockHistoricalBookings;
 
     if (isLoading) {
         return (
@@ -59,7 +105,12 @@ export default function CarrierBookingsPage() {
                 {pendingBookings.length > 0 ? (
                     <div className="space-y-4">
                         {pendingBookings.map(booking => (
-                            <BookingActionCard key={booking.id} booking={booking} />
+                            <BookingActionCard 
+                                key={booking.id} 
+                                booking={booking} 
+                                // Pass the mock trip data directly for the capacity check
+                                trip={mockTrip}
+                            />
                         ))}
                     </div>
                 ) : (

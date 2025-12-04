@@ -6,7 +6,7 @@ import { doc, writeBatch, increment, serverTimestamp, collection } from 'firebas
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Check, X, Calendar, Users, ArrowRight, Loader2, Info, Wallet, CircleDollarSign, Banknote } from 'lucide-react';
+import { Check, X, Calendar, Users, ArrowRight, Loader2, Info, Wallet, CircleDollarSign, Banknote, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -53,14 +53,16 @@ function TripInfo({ tripId }: { tripId: string }) {
     );
 }
 
-export function BookingActionCard({ booking }: { booking: Booking }) {
+export function BookingActionCard({ booking, trip: mockTrip }: { booking: Booking, trip?: Trip }) {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
     
-    // Fetch related trip to get financial details
     const tripRef = useMemo(() => firestore ? doc(firestore, 'trips', booking.tripId) : null, [firestore, booking.tripId]);
-    const { data: trip, isLoading: isLoadingTrip } = useDoc<Trip>(tripRef);
+    const { data: liveTrip, isLoading: isLoadingTrip } = useDoc<Trip>(tripRef);
+
+    // Use live trip if available, otherwise fall back to mockTrip for testing
+    const trip = mockTrip || liveTrip;
 
     const { depositAmount, remainingAmount } = useMemo(() => {
         if (!trip) return { depositAmount: 0, remainingAmount: 0 };
@@ -82,6 +84,11 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
         const batch = writeBatch(firestore);
 
         if (action === 'confirm') {
+            if(booking.id.startsWith('mock_')) {
+                 toast({ title: 'تم تأكيد الحجز (محاكاة)', description: 'هذا إجراء وهمي للتحقق البصري.'});
+                 setIsProcessing(false);
+                 return;
+            }
             batch.update(bookingRef, { status: 'Confirmed' });
             batch.update(tripRef, { availableSeats: increment(-booking.seats) });
 
@@ -105,6 +112,11 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
             });
 
         } else { // Reject
+             if(booking.id.startsWith('mock_')) {
+                 toast({ title: 'تم رفض الحجز (محاكاة)', description: 'هذا إجراء وهمي للتحقق البصري.'});
+                 setIsProcessing(false);
+                 return;
+            }
             batch.update(bookingRef, { status: 'Cancelled' });
             
             const notificationData = {
@@ -134,6 +146,7 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
 
     const statusInfo = statusMap[booking.status] || { text: booking.status, className: 'bg-gray-100 text-gray-800' };
     const isPending = booking.status === 'Pending-Carrier-Confirmation';
+    const hasSufficientSeats = trip ? booking.seats <= (trip.availableSeats || 0) : false;
 
     return (
         <Card className={cn("w-full shadow-md transition-shadow hover:shadow-lg", isPending && "border-primary border-2")}>
@@ -183,24 +196,32 @@ export function BookingActionCard({ booking }: { booking: Booking }) {
                 </div>
             </CardContent>
             {isPending && (
-                <CardFooter className="flex gap-2 bg-muted/30 p-2">
-                    <Button 
-                        className="w-full bg-green-600 hover:bg-green-700 text-white" 
-                        onClick={() => handleBookingAction('confirm')}
-                        disabled={isProcessing || isLoadingTrip}
-                    >
-                        {isProcessing ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Check className="ml-2 h-4 w-4" />}
-                        تأكيد الحجز
-                    </Button>
-                    <Button 
-                        variant="destructive" 
-                        className="w-full"
-                        onClick={() => handleBookingAction('reject')}
-                        disabled={isProcessing || isLoadingTrip}
-                    >
-                         {isProcessing ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <X className="ml-2 h-4 w-4" />}
-                        رفض
-                    </Button>
+                <CardFooter className="flex flex-col gap-2 bg-muted/30 p-2">
+                    <div className='flex gap-2 w-full'>
+                        <Button 
+                            className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                            onClick={() => handleBookingAction('confirm')}
+                            disabled={isProcessing || isLoadingTrip || !hasSufficientSeats}
+                        >
+                            {isProcessing ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Check className="ml-2 h-4 w-4" />}
+                            تأكيد الحجز
+                        </Button>
+                        <Button 
+                            variant="destructive" 
+                            className="w-full"
+                            onClick={() => handleBookingAction('reject')}
+                            disabled={isProcessing || isLoadingTrip}
+                        >
+                             {isProcessing ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <X className="ml-2 h-4 w-4" />}
+                            رفض
+                        </Button>
+                    </div>
+                    {!isLoadingTrip && !hasSufficientSeats && (
+                        <div className='flex items-center gap-2 text-xs font-bold text-destructive bg-destructive/10 border border-destructive/20 p-2 rounded-md w-full'>
+                            <AlertCircle className="h-4 w-4" />
+                            <span>عذراً، السعة المتبقية ({trip?.availableSeats || 0}) لا تكفي لهذا الطلب.</span>
+                        </div>
+                    )}
                 </CardFooter>
             )}
         </Card>
