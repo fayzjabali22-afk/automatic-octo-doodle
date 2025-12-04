@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -71,7 +71,7 @@ const addTripSchema = z.object({
   departureDate: z.date({ required_error: 'تاريخ المغادرة مطلوب' }),
   price: z.coerce.number().positive('السعر يجب أن يكون رقماً موجباً'),
   availableSeats: z.coerce.number().int().min(1, 'يجب توفر مقعد واحد على الأقل'),
-  depositPercentage: z.coerce.number().min(0, "الحد الأدنى 0%").max(10, "نسبة العربون لا يمكن أن تتجاوز 10% حسب قوانين المنصة"),
+  depositPercentage: z.coerce.number().min(0, "الحد الأدنى 0%").max(25, "نسبة العربون لا يمكن أن تتجاوز 25% حسب قوانين المنصة"),
   durationHours: z.coerce.number().positive('مدة الرحلة المتوقعة مطلوبة ويجب أن تكون رقماً موجباً'),
   conditions: z.string().max(200, 'الشروط يجب ألا تتجاوز 200 حرف').optional(),
 });
@@ -288,7 +288,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                               <FormControl>
                                   <Slider
                                       min={0}
-                                      max={10}
+                                      max={25}
                                       step={1}
                                       value={[field.value]}
                                       onValueChange={(value) => field.onChange(value[0])}

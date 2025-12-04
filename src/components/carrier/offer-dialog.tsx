@@ -32,7 +32,7 @@ import { Slider } from '../ui/slider';
 const offerFormSchema = z.object({
   price: z.coerce.number().positive('يجب أن يكون السعر رقماً موجباً'),
   vehicleType: z.string().min(3, 'نوع المركبة مطلوب'),
-  depositPercentage: z.coerce.number().min(0).max(10, "نسبة العربون لا يمكن أن تتجاوز 10%"),
+  depositPercentage: z.coerce.number().min(0).max(25, "نسبة العربون لا يمكن أن تتجاوز 25%"),
   notes: z.string().optional(),
   conditions: z.string().max(200, "الشروط يجب ألا تتجاوز 200 حرف").optional(),
 });
@@ -143,7 +143,7 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
                         <FormControl>
                             <Slider
                                 min={0}
-                                max={10}
+                                max={25}
                                 step={1}
                                 value={[field.value]}
                                 onValueChange={(value) => field.onChange(value[0])}
