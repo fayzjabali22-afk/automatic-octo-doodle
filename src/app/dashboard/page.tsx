@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star, ArrowRightLeft, Send } from 'lucide-react';
+import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star, ArrowRightLeft, Send, Car } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import type { Trip, CarrierProfile } from '@/lib/data';
 import { ScheduledTripCard } from '@/components/scheduled-trip-card';
@@ -180,7 +180,7 @@ export default function DashboardPage() {
   const [searchDestinationCity, setSearchDestinationCity] = useState('');
   const [searchSeats, setSearchSeats] = useState(1);
   const [selectedCarrier, setSelectedCarrier] = useState<CarrierProfile | null>(null);
-  const [searchVehicleType, setSearchVehicleType] = useState('all');
+  const [searchVehicleType, setSearchVehicleType] = useState('any');
   const [searchMode, setSearchMode] = useState<'all-carriers' | 'specific-carrier'>('all-carriers');
 
   const [openAccordion, setOpenAccordion] = useState<string[]>([]);
@@ -220,7 +220,7 @@ export default function DashboardPage() {
       isSearching = true; // In this mode, we are always "searching" the carrier's schedule
     } else { // 'all-carriers' mode
       baseTrips = baseTrips.filter(trip => isFuture(new Date(trip.departureDate)));
-       if (searchVehicleType !== 'all') {
+       if (searchVehicleType !== 'any') {
         baseTrips = baseTrips.filter(trip => (trip.vehicleCategory || 'small') === searchVehicleType);
       }
       isSearching = !!(searchOriginCity || searchDestinationCity || date);
@@ -401,7 +401,21 @@ export default function DashboardPage() {
 
                   {searchMode === 'all-carriers' && (
                     <div className='grid gap-4'>
-                      
+                        <RadioGroup
+                          value={searchVehicleType}
+                          onValueChange={setSearchVehicleType}
+                          className="grid grid-cols-3 gap-2 pt-1"
+                        >
+                            <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-black has-[:checked]:text-white transition-all">
+                                <RadioGroupItem value="any" className="sr-only" /><span>المتوفر</span>
+                            </Label>
+                             <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-black has-[:checked]:text-white transition-all">
+                                <RadioGroupItem value="small" className="sr-only" /><span>مركبة صغيرة</span>
+                            </Label>
+                             <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-black has-[:checked]:text-white transition-all">
+                                <RadioGroupItem value="bus" className="sr-only" /><span>حافلة</span>
+                            </Label>
+                        </RadioGroup>
                        <div className="border-t border-blue-500/30 my-2"></div>
                     </div>
                   )}
@@ -452,7 +466,7 @@ export default function DashboardPage() {
                           <SelectTrigger id="destination-city"><SelectValue placeholder="اختر مدينة الوصول" /></SelectTrigger>
                           <SelectContent>
                             {searchDestinationCountry && countries[searchDestinationCountry as keyof typeof countries]?.cities.map(cityKey => (
-                              <SelectItem key={key} value={cityKey}>{cities[cityKey]}</SelectItem>
+                              <SelectItem key={cityKey} value={cityKey}>{cities[cityKey]}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -525,7 +539,7 @@ export default function DashboardPage() {
                       {tripDisplayResult.hasFilteredResults && (
                         <div>
                           <h2 className="text-2xl font-bold mb-4">
-                            {searchMode === 'specific-carrier' && selectedCarrier ? `جدول رحلات ${selectedCarrier.name}` : 'الرحلات المطابقة لبحثك'}
+                            {searchMode === 'specific-carrier' && selectedCarrier ? `جدول رحلات ${selectedCarrier.name}` : 'الرحلات المجدولة المتاحة'}
                           </h2>
                           {renderTripGroup(tripDisplayResult.filtered)}
                         </div>
@@ -539,15 +553,21 @@ export default function DashboardPage() {
                           <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg bg-background/50">
                             <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
                             <p className="text-lg font-bold">لا توجد رحلات مجدولة لهذا الناقل حالياً.</p>
+                             <div className="mt-8 text-center">
+                                <Button onClick={handleRequestAction} variant="secondary">
+                                    <Send className="ml-2 h-4 w-4" />
+                                    لم تجد ما تبحث عنه؟ أرسل طلباً خاصاً إلى {selectedCarrier.name}
+                                </Button>
+                            </div>
                           </div>
                       )}
                   </div>
                 )}
-                 {searchMode === 'specific-carrier' && selectedCarrier && (
+                 {searchMode === 'all-carriers' && !tripDisplayResult.showNoResultsMessage && (
                     <div className="mt-8 text-center">
                         <Button onClick={handleRequestAction} variant="secondary">
                             <Send className="ml-2 h-4 w-4" />
-                            لم تجد ما تبحث عنه؟ أرسل طلباً خاصاً إلى {selectedCarrier.name}
+                            لم تجد ما تبحث عنه؟ أرسل طلباً إلى السوق العام
                         </Button>
                     </div>
                  )}
