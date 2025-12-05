@@ -101,6 +101,11 @@ const mockScheduledTrips: Trip[] = [
     },
 ];
 
+const mockCarriers: CarrierProfile[] = [
+    { id: "carrier_user_1", name: "النقل السريع", contactEmail: "a@b.c" },
+    { id: "carrier_user_2", name: "راحة الطريق", contactEmail: "d@e.f" },
+];
+
 // Mock data for countries and cities
 const countries: { [key: string]: { name: string; cities: string[] } } = {
   syria: { name: 'سوريا', cities: ['damascus', 'aleppo', 'homs'] },
@@ -153,7 +158,6 @@ export default function DashboardPage() {
   const [searchDestinationCountry, setSearchDestinationCountry] = useState('');
   const [searchDestinationCity, setSearchDestinationCity] = useState('');
   const [searchSeats, setSearchSeats] = useState(1);
-  const [carrierSearchInput, setCarrierSearchInput] = useState('');
   const [selectedCarrier, setSelectedCarrier] = useState<CarrierProfile | null>(null);
   const [searchVehicleType, setSearchVehicleType] = useState('all');
   const [searchMode, setSearchMode] = useState<'specific-carrier' | 'all-carriers'>('all-carriers');
@@ -167,34 +171,6 @@ export default function DashboardPage() {
   useEffect(() => {
     setSearchDestinationCity('');
   }, [searchDestinationCountry]);
-
-  const handleCarrierSearch = async () => {
-    if (!carrierSearchInput) {
-        toast({ title: 'الرجاء إدخال اسم الناقل', variant: 'destructive' });
-        return;
-    }
-    if (!firestore) {
-        toast({ title: 'خطأ', description: 'خدمة قاعدة البيانات غير متوفرة', variant: 'destructive' });
-        return;
-    }
-
-    let foundCarrier: CarrierProfile | null = null;
-
-    // SIMULATION
-    if(carrierSearchInput.toLowerCase() === "النقل السريع") {
-        foundCarrier = { id: "carrier_user_1", name: "النقل السريع", contactEmail: "a@b.c" };
-    }
-
-
-    if (foundCarrier) {
-        setSelectedCarrier(foundCarrier);
-        setCarrierSearchInput(foundCarrier.name); // Normalize input field
-        toast({ title: 'تم العثور على الناقل', description: `يتم الآن عرض رحلات: ${foundCarrier.name}` });
-    } else {
-        setSelectedCarrier(null);
-        toast({ title: 'الناقل غير موجود', description: 'لم يتم العثور على ناقل بهذا الاسم.', variant: 'destructive' });
-    }
-  };
 
 
   const tripDisplayResult = useMemo((): TripDisplayResult => {
@@ -213,19 +189,17 @@ export default function DashboardPage() {
     };
 
     let baseTrips: Trip[] = allTrips || [];
-    let isSearching = false; // Flag to know if user has applied any filters
+    let isSearching = false;
 
     if (searchMode === 'specific-carrier') {
       if (!selectedCarrier) {
         return { filtered: {}, alternatives: {}, hasFilteredResults: false, hasAlternativeResults: false, showNoResultsMessage: false };
       }
-      // ** SMART LOGIC: Start with all trips for the selected carrier **
       baseTrips = baseTrips.filter(trip => trip.carrierId === selectedCarrier.id);
-      isSearching = !!(searchOriginCity || searchDestinationCity || date);
+      isSearching = true; // In this mode, we are always "searching" the carrier's schedule
     } else { // 'all-carriers' mode
       isSearching = !!(searchOriginCity || searchDestinationCity || date);
       if (!isSearching) {
-         // In 'all-carriers' mode, don't show anything until a search is performed.
          return { filtered: {}, alternatives: {}, hasFilteredResults: false, hasAlternativeResults: false, showNoResultsMessage: false };
       }
     }
@@ -243,15 +217,14 @@ export default function DashboardPage() {
     const hasFilteredResults = filteredTrips.length > 0;
 
     let alternativeTrips: Trip[] = [];
-    if (searchMode === 'specific-carrier' && isSearching && !hasFilteredResults) {
-      // ** OPPORTUNITY ALGORITHM: Find alternatives if filtered results are empty **
+    // ** OPPORTUNITY ALGORITHM: Show alternatives if a filter is applied and it returns no results **
+    if (isSearching && !hasFilteredResults) {
       alternativeTrips = baseTrips.filter(trip => !filteredTrips.includes(trip));
     }
     
     const groupedAlternatives = groupTrips(alternativeTrips);
     const hasAlternativeResults = alternativeTrips.length > 0;
 
-    // Set accordion state based on results
     const firstFilteredDate = Object.keys(groupedFiltered)[0];
     const firstAlternativeDate = Object.keys(groupedAlternatives)[0];
     if (firstFilteredDate) {
@@ -267,7 +240,6 @@ export default function DashboardPage() {
       alternatives: groupedAlternatives,
       hasFilteredResults,
       hasAlternativeResults,
-      // Show "no results" only if the user is actively searching and nothing is found at all
       showNoResultsMessage: isSearching && !hasFilteredResults && !hasAlternativeResults,
     };
   }, [searchOriginCity, searchDestinationCity, searchSeats, date, allTrips, searchMode, selectedCarrier, searchVehicleType]);
@@ -313,27 +285,34 @@ export default function DashboardPage() {
 
   const isDevUser = user?.email === 'dev@safar.com';
 
-  const renderTripGroup = (groupedTrips: GroupedTrips) => {
-    return Object.keys(groupedTrips).map(tripDate => (
-      <AccordionItem key={tripDate} value={tripDate} className="border-none">
-        <Card>
-          <AccordionTrigger className="p-4 text-md hover:no-underline font-bold">
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5 text-accent"/>
-              <span>{format(new Date(tripDate), "EEEE, d MMMM yyyy")}</span>
-              <Badge variant="outline">{groupedTrips[tripDate].length} رحلات</Badge>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 pt-0">
-              {groupedTrips[tripDate].map(trip => (
-                <ScheduledTripCard key={trip.id} trip={trip} onBookNow={handleBookNowClick} />
-              ))}
-            </div>
-          </AccordionContent>
-        </Card>
-      </AccordionItem>
-    ));
+  const renderTripGroup = (groupedTrips: GroupedTrips, isAlternative = false) => {
+    return (
+        <div>
+            {isAlternative && <h3 className="text-xl font-bold mb-4 border-t pt-6">رحلات أخرى متاحة</h3>}
+            <Accordion type="multiple" value={openAccordion} onValueChange={setOpenAccordion} className="space-y-4">
+            {Object.keys(groupedTrips).map(tripDate => (
+            <AccordionItem key={tripDate} value={tripDate} className="border-none">
+                <Card>
+                <AccordionTrigger className="p-4 text-md hover:no-underline font-bold">
+                    <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-5 w-5 text-accent"/>
+                    <span>{format(new Date(tripDate), "EEEE, d MMMM yyyy")}</span>
+                    <Badge variant="outline">{groupedTrips[tripDate].length} رحلات</Badge>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 pt-0">
+                    {groupedTrips[tripDate].map(trip => (
+                        <ScheduledTripCard key={trip.id} trip={trip} onBookNow={handleBookNowClick} />
+                    ))}
+                    </div>
+                </AccordionContent>
+                </Card>
+            </AccordionItem>
+            ))}
+        </Accordion>
+      </div>
+    )
   };
 
 
@@ -368,10 +347,10 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 gap-4">
 
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                     <Button variant={searchMode === 'specific-carrier' ? 'default' : 'outline'} onClick={() => setSearchMode('specific-carrier')} className="w-full text-xs sm:text-sm">
+                     <Button variant={searchMode === 'all-carriers' ? 'outline' : 'default'} onClick={() => setSearchMode('specific-carrier')} className="w-full text-xs sm:text-sm">
                         <UserSearch className="ml-2 h-4 w-4" /> ناقل محدد
                      </Button>
-                     <Button variant={searchMode === 'all-carriers' ? 'default' : 'outline'} onClick={() => setSearchMode('all-carriers')} className="w-full text-xs sm:text-sm">
+                     <Button variant={searchMode === 'specific-carrier' ? 'outline' : 'default'} onClick={() => setSearchMode('all-carriers')} className="w-full text-xs sm:text-sm">
                         <Globe className="ml-2 h-4 w-4" /> كل الناقلين
                      </Button>
                   </div>
@@ -379,26 +358,21 @@ export default function DashboardPage() {
                   <div className="border-t border-border/60 my-2"></div>
 
                   {searchMode === 'specific-carrier' && (
-                    <div className="grid gap-2">
-                      <Label htmlFor="carrier-search">البحث عن ناقل (بالاسم)</Label>
-                      <div className="flex gap-2">
-                        <Input 
-                            id="carrier-search" 
-                            placeholder="مثال: شركة النقل السريع" 
-                            value={carrierSearchInput} 
-                            onChange={(e) => {
-                                setCarrierSearchInput(e.target.value);
-                                if (selectedCarrier) {
-                                    setSelectedCarrier(null); 
-                                }
-                            }}
-                            onKeyPress={(e) => e.key === 'Enter' && handleCarrierSearch()}
-                            className={cn(selectedCarrier ? 'bg-green-100/10 border-green-500' : '')}
-                        />
-                        <Button onClick={handleCarrierSearch} variant="secondary">
-                            <Search className="h-4 w-4" />
-                        </Button>
-                      </div>
+                     <div className="grid gap-2">
+                      <Label htmlFor="carrier-select">اختر ناقلاً لعرض جدول رحلاته</Label>
+                       <Select onValueChange={(carrierId) => {
+                            const carrier = mockCarriers.find(c => c.id === carrierId);
+                            setSelectedCarrier(carrier || null);
+                       }}>
+                        <SelectTrigger id="carrier-select">
+                            <SelectValue placeholder="اختر ناقلاً..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mockCarriers.map(carrier => (
+                            <SelectItem key={carrier.id} value={carrier.id}>{carrier.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
 
@@ -428,7 +402,8 @@ export default function DashboardPage() {
                        <div className="border-t border-blue-500/30 my-2"></div>
                     </div>
                   )}
-
+                
+                  <h3 className="text-sm font-semibold text-muted-foreground pt-2">لتضييق النتائج (اختياري)</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="origin-country">دولة الانطلاق</Label>
@@ -547,34 +522,30 @@ export default function DashboardPage() {
                       {tripDisplayResult.hasFilteredResults && (
                         <div>
                           <h2 className="text-2xl font-bold mb-4">الرحلات المطابقة لبحثك</h2>
-                          <Accordion type="multiple" value={openAccordion} onValueChange={setOpenAccordion} className="space-y-4">
-                            {renderTripGroup(tripDisplayResult.filtered)}
-                          </Accordion>
+                          {renderTripGroup(tripDisplayResult.filtered)}
                         </div>
                       )}
                       
                        {tripDisplayResult.hasAlternativeResults && (
-                        <div>
-                          <h2 className="text-2xl font-bold mb-4 border-t pt-8">{tripDisplayResult.hasFilteredResults ? "رحلات أخرى متاحة لهذا الناقل" : "كل رحلات الناقل المجدولة"}</h2>
-                           <Accordion type="multiple" value={openAccordion} onValueChange={setOpenAccordion} className="space-y-4">
-                            {renderTripGroup(tripDisplayResult.alternatives)}
-                          </Accordion>
-                        </div>
-                      )}
+                          renderTripGroup(tripDisplayResult.alternatives, true)
+                       )}
                       
                       {searchMode === 'specific-carrier' && selectedCarrier && !tripDisplayResult.hasFilteredResults && !tripDisplayResult.hasAlternativeResults && (
                           <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg bg-background/50">
                             <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
                             <p className="text-lg font-bold">لا توجد رحلات مجدولة لهذا الناقل حالياً.</p>
-                            <p className="text-sm mt-2 mb-6">يمكنك إرسال طلب مباشر له وسيتم إعلامه.</p>
-                             <Button onClick={handleRequestAction}>
-                                <Send className="ml-2 h-4 w-4" />
-                                {`إرسال طلب مباشر إلى ${selectedCarrier?.name || 'الناقل'}`}
-                            </Button>
                           </div>
                       )}
                   </div>
                 )}
+                 {searchMode === 'specific-carrier' && selectedCarrier && (
+                    <div className="mt-8 text-center">
+                        <Button onClick={handleRequestAction} variant="secondary">
+                            <Send className="ml-2 h-4 w-4" />
+                            لم تجد ما تبحث عنه؟ أرسل طلباً خاصاً إلى {selectedCarrier.name}
+                        </Button>
+                    </div>
+                 )}
             </div>
           </div>
         </div>
