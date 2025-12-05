@@ -407,6 +407,7 @@ export default function DashboardPage() {
                           defaultValue="all"
                           className="flex items-center gap-4"
                           onValueChange={setSearchVehicleType}
+                          value={searchVehicleType}
                         >
                           <Label htmlFor="r-all" className="flex items-center space-x-2 rtl:space-x-reverse border-2 border-transparent rounded-full p-2 px-4 cursor-pointer transition-all has-[:checked]:border-accent has-[:checked]:bg-black has-[:checked]:text-white">
                             <RadioGroupItem value="all" id="r-all" />
