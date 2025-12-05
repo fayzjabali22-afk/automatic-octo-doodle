@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/app-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { useUser, useFirestore, useCollection, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, addDocumentNonBlocking, useDoc } from '@/firebase';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,7 +21,6 @@ import { CancellationDialog } from '@/components/booking/cancellation-dialog';
 import { ChatDialog } from '@/components/chat/chat-dialog';
 import { SmartResubmissionDialog } from '@/components/booking/smart-resubmission-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useDoc } from '@/firebase/firestore/use-doc';
 import { doc } from 'firebase/firestore';
 
 // --- STRATEGIC MOCK DATA FOR THE FULL LIFECYCLE ---
@@ -138,7 +137,7 @@ const PaymentPass = ({ trip, booking, onPayNow }: { trip: Trip, booking: Booking
     </Card>
 );
 
-const HeroTicket = ({ trip, booking, onCancelBooking, onMessageCarrier }: { trip: Trip, booking: Booking, onCancelBooking?: (trip: Trip, booking: Booking) => void, onMessageCarrier?: (booking: Booking, trip: Trip) => void }) => {
+const HeroTicket = ({ trip, booking, onCancelBooking, onMessageCarrier, toast }: { trip: Trip, booking: Booking, onCancelBooking?: (trip: Trip, booking: Booking) => void, onMessageCarrier?: (booking: Booking, trip: Trip) => void, toast: (options: any) => void }) => {
     // MOCK CARRIER DATA
     const carrierProfile: UserProfile = {
         id: 'carrier3',
@@ -365,6 +364,7 @@ export default function HistoryPage() {
                         trip={item.trip} 
                         booking={item.booking}
                         onMessageCarrier={handleMessageCarrier}
+                        toast={toast}
                     />
                 )) : <div className="text-center py-16 text-muted-foreground">لا توجد لديك تذاكر نشطة.</div>}
             </TabsContent>
