@@ -42,7 +42,7 @@ const mockActiveTrips: Trip[] = [
         status: 'Planned',
         price: 80,
         currency: 'JOD',
-        availableSeats: 3,
+        availableSeats: 2, // Note: availableSeats is now 2 because 2 seats are booked.
         vehicleType: 'GMC Yukon 2023',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -58,7 +58,7 @@ const mockActiveTrips: Trip[] = [
         status: 'In-Transit',
         price: 120,
         currency: 'SAR',
-        availableSeats: 1,
+        availableSeats: 0, // Note: availableSeats is 0 because 1 seat is booked for a 1-seater.
         vehicleType: 'Toyota Coaster 2022',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
