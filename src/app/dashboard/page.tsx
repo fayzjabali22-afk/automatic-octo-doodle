@@ -47,6 +47,7 @@ import { RequestDialog } from '@/components/requests/request-dialog';
 import { logEvent } from '@/lib/analytics';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Form, FormControl, FormField } from '@/components/ui/form';
 
 
 // --- MOCK DATA ---
@@ -529,7 +530,10 @@ export default function DashboardPage() {
                         <p className="text-sm mt-2 mb-6">
                            هل ترغب بتحويل بحثك إلى طلب يراه الناقلون؟
                         </p>
-                        <Button onClick={handleRequestAction}>
+                        <Button
+                            onClick={handleRequestAction}
+                            className="bg-accent text-accent-foreground hover:bg-accent/90 border border-white/50"
+                        >
                             <Send className="ml-2 h-4 w-4" />
                             {searchMode === 'all-carriers' ? 'إرسال الطلب إلى السوق العام' : `إرسال طلب مباشر إلى ${selectedCarrier?.name || 'الناقل'}`}
                         </Button>
@@ -554,7 +558,10 @@ export default function DashboardPage() {
                             <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
                             <p className="text-lg font-bold">لا توجد رحلات مجدولة لهذا الناقل حالياً.</p>
                              <div className="mt-8 text-center">
-                                <Button onClick={handleRequestAction} variant="secondary">
+                                <Button
+                                    onClick={handleRequestAction}
+                                    className="bg-accent text-accent-foreground hover:bg-accent/90 border border-white/50"
+                                >
                                     <Send className="ml-2 h-4 w-4" />
                                     لم تجد ما تبحث عنه؟ أرسل طلباً خاصاً إلى {selectedCarrier.name}
                                 </Button>
