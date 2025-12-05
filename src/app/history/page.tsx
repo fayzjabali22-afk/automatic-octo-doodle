@@ -1,22 +1,15 @@
 'use client';
 
 import { AppLayout } from '@/components/app-layout';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, writeBatch, arrayUnion, increment, serverTimestamp } from 'firebase/firestore'; 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Offer, Booking } from '@/lib/data';
-import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck } from 'lucide-react';
+import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Archive, Ticket, ListFilter } from 'lucide-react';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
 import { format, addHours, isFuture } from 'date-fns';
@@ -27,605 +20,283 @@ import { RateTripDialog } from '@/components/trip-closure/rate-trip-dialog';
 import { CancellationDialog } from '@/components/booking/cancellation-dialog';
 import { ChatDialog } from '@/components/chat/chat-dialog';
 import { SmartResubmissionDialog } from '@/components/booking/smart-resubmission-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-// --- MOCK DATA ---
-const mockAwaitingTrips: Trip[] = [
-    {
-        id: 'trip_req_1',
-        userId: 'user1',
-        origin: 'amman',
-        destination: 'riyadh',
-        departureDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-        passengers: 2,
-        passengersDetails: [{ name: 'Ahmad Al-Masri', type: 'adult' }, { name: 'Reem Al-Masri', type: 'child' }],
-        status: 'Awaiting-Offers',
-        requestType: 'General', // General request
-        createdAt: new Date().toISOString(),
-    },
-    {
-        id: 'trip_req_direct_1',
-        userId: 'user1',
-        origin: 'damascus',
-        destination: 'jeddah',
-        departureDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(),
-        passengers: 1,
-        passengersDetails: [{ name: 'Nour Halabi', type: 'adult' }],
-        status: 'Awaiting-Offers', // Still awaiting offers, but it's a direct request
-        requestType: 'Direct', // Direct request
-        targetCarrierId: 'carrier_special',
-        createdAt: new Date().toISOString(),
-    }
-];
+// --- STRATEGIC MOCK DATA FOR THE FULL LIFECYCLE ---
+// 1. Awaiting Offers (General Request) -> Will show Radar
+const mockAwaitingGeneral: Trip = {
+    id: 'trip_req_1', userId: 'user1', origin: 'amman', destination: 'riyadh',
+    departureDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    passengers: 2, status: 'Awaiting-Offers', requestType: 'General', createdAt: new Date().toISOString(),
+};
 
-// Relevant scheduled trips for the smart resubmission dialog
-const mockRelevantScheduledTrips: Trip[] = [
-     // Perfect Match
-    {
-        id: 'scheduled_match_1',
-        userId: 'carrier_smart',
-        carrierId: 'carrier_smart',
-        carrierName: 'الناقل الذكي',
-        origin: 'amman',
-        destination: 'riyadh',
-        departureDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-        price: 75,
-        currency: 'JOD',
-        availableSeats: 3,
-        status: 'Planned',
-    },
-    // Nearby Date Match
-    {
-        id: 'scheduled_nearby_1',
-        userId: 'carrier_flexible',
-        carrierId: 'carrier_flexible',
-        carrierName: 'المرن للنقل',
-        origin: 'amman',
-        destination: 'riyadh',
-        departureDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(), // One day after
-        price: 70,
-        currency: 'JOD',
-        availableSeats: 4,
-        status: 'Planned',
-    }
-]
+// 2. Awaiting Offers (Direct Request) -> Will show Hourglass
+const mockAwaitingDirect: Trip = {
+    id: 'trip_req_direct_1', userId: 'user1', origin: 'damascus', destination: 'jeddah',
+    departureDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(),
+    passengers: 1, status: 'Awaiting-Offers', requestType: 'Direct', targetCarrierId: 'carrier_special', createdAt: new Date().toISOString(),
+};
 
-const mockPendingConfirmationTrips: { trip: Trip, booking: Booking }[] = [
-    {
-        trip: {
-            id: 'trip_pending_1',
-            userId: 'user1',
-            carrierId: 'carrier2',
-            carrierName: 'الناقل السريع',
-            origin: 'damascus',
-            destination: 'amman',
-            departureDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'Pending-Carrier-Confirmation', // This status is on the trip, but booking is what matters
-        },
-        booking: {
-            id: 'booking_pending_1',
-            tripId: 'trip_pending_1',
-            userId: 'user1',
-            carrierId: 'carrier2',
-            seats: 1,
-            passengersDetails: [{ name: 'Fayez Al-Harbi', type: 'adult' }],
-            status: 'Pending-Carrier-Confirmation',
-            totalPrice: 40,
-            currency: 'JOD',
-            createdAt: new Date().toISOString(),
-        }
-    }
-];
+// 3. Pending Carrier Confirmation -> Will show Hourglass
+const mockPendingConfirmation: { trip: Trip, booking: Booking } = {
+    trip: { id: 'trip_pending_1', userId: 'user1', carrierId: 'carrier2', carrierName: 'الناقل السريع', origin: 'damascus', destination: 'amman', departureDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), status: 'Pending-Carrier-Confirmation' },
+    booking: { id: 'booking_pending_1', tripId: 'trip_pending_1', userId: 'user1', carrierId: 'carrier2', seats: 1, passengersDetails: [{ name: 'Fayez Al-Harbi', type: 'adult' }], status: 'Pending-Carrier-Confirmation', totalPrice: 40, currency: 'JOD', createdAt: new Date().toISOString() }
+};
 
-// NEW MOCK SCENARIO: PENDING PAYMENT
-const mockPendingPaymentTrips: { trip: Trip, booking: Booking }[] = [
-    {
-        trip: {
-            id: 'trip_payment_1',
-            userId: 'carrier_payment',
-            carrierId: 'carrier_payment',
-            carrierName: 'النقل الذهبي',
-            origin: 'jeddah',
-            destination: 'cairo',
-            departureDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'Pending-Payment', // IMPORTANT: Status is now on the trip/request itself
-            price: 150,
-            currency: 'SAR',
-            depositPercentage: 25, // Carrier requires 25% deposit
-        },
-        booking: {
-            id: 'booking_payment_1',
-            tripId: 'trip_payment_1',
-            userId: 'user1',
-            carrierId: 'carrier_payment',
-            seats: 2,
-            passengersDetails: [{ name: 'Jasser Mohamed', type: 'adult' }, { name: 'Reem Mohamed', type: 'adult' }],
-            status: 'Pending-Payment', // THE KEY STATUS
-            totalPrice: 300,
-            currency: 'SAR',
-            createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(), // 12 hours ago
-        }
-    }
-];
+// 4. Pending Payment -> Will show Invoice
+const mockPendingPayment: { trip: Trip, booking: Booking } = {
+    trip: { id: 'trip_payment_1', userId: 'carrier_payment', carrierId: 'carrier_payment', carrierName: 'النقل الذهبي', origin: 'jeddah', destination: 'cairo', departureDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(), status: 'Pending-Payment', price: 150, currency: 'SAR', depositPercentage: 25 },
+    booking: { id: 'booking_payment_1', tripId: 'trip_payment_1', userId: 'user1', carrierId: 'carrier_payment', seats: 2, passengersDetails: [{ name: 'Jasser Mohamed', type: 'adult' }, { name: 'Reem Mohamed', type: 'adult' }], status: 'Pending-Payment', totalPrice: 300, currency: 'SAR', createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString() }
+};
 
+// 5. Confirmed Ticket -> Will show Golden Ticket
+const mockConfirmed: { trip: Trip, booking: Booking } = {
+    trip: { id: 'trip_confirmed_1', userId: 'user1', carrierId: 'carrier3', carrierName: 'راحة الطريق', origin: 'cairo', destination: 'jeddah', departureDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), status: 'Planned' },
+    booking: { id: 'booking_confirmed_1', tripId: 'trip_confirmed_1', userId: 'user1', carrierId: 'carrier3', seats: 2, passengersDetails: [{ name: 'Hassan', type: 'adult' }, { name: 'Ali', type: 'child' }], status: 'Confirmed', totalPrice: 180, currency: 'USD', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() }
+};
 
-const mockConfirmedTrips: { trip: Trip, booking: Booking }[] = [
-    {
-        trip: {
-            id: 'trip_confirmed_1',
-            userId: 'user1',
-            carrierId: 'carrier3',
-            carrierName: 'راحة الطريق',
-            origin: 'cairo',
-            destination: 'jeddah',
-            departureDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'Planned',
-        },
-        booking: {
-            id: 'booking_confirmed_1',
-            tripId: 'trip_confirmed_1',
-            userId: 'user1',
-            carrierId: 'carrier3',
-            seats: 2,
-            passengersDetails: [{ name: 'Hassan', type: 'adult' }, { name: 'Ali', type: 'child' }],
-            status: 'Confirmed',
-            totalPrice: 180,
-            currency: 'USD',
-            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        }
-    },
-    {
-        trip: {
-            id: 'trip_completed_1',
-            userId: 'user1',
-            carrierId: 'carrier4',
-            carrierName: 'ملوك الطريق',
-            origin: 'riyadh',
-            destination: 'amman',
-            departureDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'Completed',
-            durationHours: 8,
-        },
-        booking: {
-            id: 'booking_completed_1',
-            tripId: 'trip_completed_1',
-            userId: 'user1',
-            carrierId: 'carrier4',
-            seats: 1,
-            passengersDetails: [{ name: 'Sara', type: 'adult' }],
-            status: 'Completed',
-            totalPrice: 70,
-            currency: 'JOD',
-            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        }
-    },
-];
+// 6. Archived (Completed) Trip
+const mockArchivedCompleted: { trip: Trip, booking: Booking } = {
+    trip: { id: 'trip_completed_1', userId: 'user1', carrierId: 'carrier4', carrierName: 'ملوك الطريق', origin: 'riyadh', destination: 'amman', departureDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), status: 'Completed', durationHours: 8 },
+    booking: { id: 'booking_completed_1', tripId: 'trip_completed_1', userId: 'user1', carrierId: 'carrier4', seats: 1, passengersDetails: [{ name: 'Sara', type: 'adult' }], status: 'Completed', totalPrice: 70, currency: 'JOD', createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
+};
 
-// --- Helper Functions & Data ---
+// Helper data
 const cities: { [key: string]: string } = {
-    damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص',
-    amman: 'عمّان', irbid: 'إربد', zarqa: 'الزرقاء',
-    riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام',
-    cairo: 'القاهرة', alexandria: 'الاسكندرية', giza: 'الجيزة',
-    dubai: 'دبي', kuwait: 'الكويت'
+    damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص', amman: 'عمّان', irbid: 'إربد', zarqa: 'الزرقاء',
+    riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', cairo: 'القاهرة', alexandria: 'الاسكندرية', giza: 'الجيزة',
+};
+const getCityName = (key: string) => cities[key] || key;
+
+// --- MORPHING CARD COMPONENTS ---
+
+const RequestTrackerCard = ({ trip, onAcceptOffer, isProcessing }: { trip: Trip, onAcceptOffer: (trip: Trip, offer: Offer) => void, isProcessing: boolean }) => (
+    <Card className="border-primary border-2">
+        <CardHeader>
+            <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center gap-2 text-base"><Radar className="h-5 w-5 text-primary animate-pulse" /> طلب بانتظار العروض</CardTitle>
+                <Badge variant="outline">طلب عام</Badge>
+            </div>
+            <CardDescription>رحلة من {getCityName(trip.origin)} إلى {getCityName(trip.destination)} بتاريخ {format(new Date(trip.departureDate), 'd MMMM', { locale: arSA })}</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <TripOffers trip={trip} onAcceptOffer={onAcceptOffer} isProcessing={isProcessing} />
+        </CardContent>
+    </Card>
+);
+
+const WaitingCard = ({ trip }: { trip: Trip }) => (
+    <Card>
+        <CardHeader>
+             <div className="flex justify-between items-center">
+                 <CardTitle className="flex items-center gap-2 text-base"><Hourglass className="h-5 w-5 text-yellow-500 animate-spin" /> قيد المراجعة</CardTitle>
+                 <Badge variant="secondary">{trip.requestType === 'Direct' ? 'طلب مباشر' : 'بانتظار التأكيد'}</Badge>
+            </div>
+            <CardDescription>رحلة من {getCityName(trip.origin)} إلى {getCityName(trip.destination)}</CardDescription>
+        </CardHeader>
+        <CardContent className="text-center text-muted-foreground py-8">
+            <p className="font-bold">تم إرسال طلبك للناقل</p>
+            <p className="text-sm mt-1">سيتم إعلامك فور تحديث حالة طلبك.</p>
+        </CardContent>
+    </Card>
+);
+
+const PaymentPass = ({ trip, booking, onPayNow }: { trip: Trip, booking: Booking, onPayNow: (trip: Trip, booking: Booking) => void }) => (
+    <Card className="border-destructive border-2">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive text-base"><CreditCard className="h-5 w-5" /> مطلوب إتمام الدفع</CardTitle>
+            <CardDescription>وافق الناقل على طلبك! يرجى دفع العربون لتأكيد حجزك.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="p-4 bg-muted/50 rounded-lg border border-dashed text-center">
+                 <div className="text-sm text-muted-foreground">العربون المطلوب لتأكيد الحجز</div>
+                 <div className="text-3xl font-bold text-destructive">{(booking.totalPrice * ((trip.depositPercentage || 20) / 100)).toFixed(2)} {booking.currency}</div>
+            </div>
+        </CardContent>
+        <CardFooter>
+            <Button className="w-full" onClick={() => onPayNow(trip, booking)}>
+                <CreditCard className="ml-2 h-4 w-4" />
+                اذهب إلى الدفع
+            </Button>
+        </CardFooter>
+    </Card>
+);
+
+const HeroTicket = ({ trip, booking, onCancelBooking, onMessageCarrier }: { trip: Trip, booking: Booking, onCancelBooking?: (trip: Trip, booking: Booking) => void, onMessageCarrier?: (booking: Booking, trip: Trip) => void }) => {
+    // Financial details
+    const depositAmount = (booking.totalPrice * ((trip.depositPercentage || 20) / 100));
+    const remainingAmount = booking.totalPrice - depositAmount;
+
+    return (
+        <Card className="bg-gradient-to-br from-card to-muted/50 shadow-lg border-accent">
+            <CardHeader className="text-center">
+                <Badge variant="default" className="mx-auto w-fit">تذكرة مؤكدة</Badge>
+                <CardTitle className="pt-2">{getCityName(trip.origin)} - {getCityName(trip.destination)}</CardTitle>
+                <CardDescription>الناقل: {trip.carrierName}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="grid grid-cols-2 gap-4 text-sm text-center">
+                    <div className="p-2 bg-background rounded-md">
+                        <div className="font-bold">التاريخ</div>
+                        <div>{format(new Date(trip.departureDate), 'd MMM yyyy', { locale: arSA })}</div>
+                    </div>
+                     <div className="p-2 bg-background rounded-md">
+                        <div className="font-bold">الوقت</div>
+                        <div>{format(new Date(trip.departureDate), 'h:mm a', { locale: arSA })}</div>
+                    </div>
+                </div>
+                 <div className="p-3 bg-background rounded-lg border border-dashed">
+                    <div className="text-xs font-bold mb-2">التفاصيل المالية:</div>
+                    <div className="space-y-1 text-xs">
+                        <div className="flex justify-between"><span>السعر الإجمالي:</span> <span className="font-bold">{booking.totalPrice.toFixed(2)} {booking.currency}</span></div>
+                        <div className="flex justify-between"><span>العربون المدفوع:</span> <span className="font-bold text-green-500">{depositAmount.toFixed(2)} {booking.currency}</span></div>
+                        <div className="flex justify-between"><span>المبلغ المتبقي:</span> <span className="font-bold">{remainingAmount.toFixed(2)} {booking.currency}</span></div>
+                    </div>
+                 </div>
+            </CardContent>
+            <CardFooter className="grid grid-cols-2 gap-2 p-2">
+                 <Button variant="outline" size="sm" onClick={() => onMessageCarrier?.(booking, trip)}><MessageSquare className="ml-2 h-4 w-4" />مراسلة الناقل</Button>
+                 <Button variant="outline" size="sm" disabled><AlertCircle className="ml-2 h-4 w-4" />تعديل الطلب</Button>
+            </CardFooter>
+        </Card>
+    )
 };
 
-const statusMap: Record<string, string> = {
-  'Awaiting-Offers': 'بانتظار العروض',
-  'Pending-Carrier-Confirmation': 'بانتظار تأكيد الناقل',
-  'Pending-Payment': 'بانتظار الدفع',
-  'Planned': 'مؤكدة',
-  'Completed': 'مكتملة',
-  'Cancelled': 'ملغاة',
-};
 
-const statusVariantMap: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  'Awaiting-Offers': 'outline',
-  'Pending-Carrier-Confirmation': 'secondary',
-  'Pending-Payment': 'destructive',
-  'Planned': 'default',
-  'Completed': 'default',
-  'Cancelled': 'destructive',
-};
+const ArchivedCard = ({ trip, booking }: { trip: Trip, booking: Booking }) => (
+    <Card className="bg-card/50">
+        <CardHeader>
+            <div className="flex justify-between items-center">
+                <CardTitle className="text-sm">{getCityName(trip.origin)} - {getCityName(trip.destination)}</CardTitle>
+                <Badge variant={booking.status === 'Completed' ? 'default' : 'destructive'} className="bg-opacity-70">
+                    {booking.status === 'Completed' ? <CheckCircle className="ml-1 h-3 w-3" /> : <CalendarX className="ml-1 h-3 w-3" />}
+                    {booking.status === 'Completed' ? 'مكتملة' : 'ملغاة'}
+                </Badge>
+            </div>
+            <CardDescription className="text-xs">تاريخ الرحلة: {format(new Date(trip.departureDate), 'd MMM yyyy', { locale: arSA })}</CardDescription>
+        </CardHeader>
+    </Card>
+);
 
-const safeDateFormat = (dateInput: any, formatStr: string = 'PPP'): string => {
-  if (!dateInput) return 'N/A';
-  try {
-    const dateObj = typeof dateInput.toDate === 'function' ? dateInput.toDate() : new Date(dateInput);
-    return format(dateObj, formatStr, { locale: arSA });
-  } catch {
-    return 'تاريخ غير صالح';
-  }
-};
-
-const isSameDay = (date1: string, date2: string) => {
-    try {
-        const d1 = new Date(date1).toDateString();
-        const d2 = new Date(date2).toDateString();
-        return d1 === d2;
-    } catch {
-        return false;
-    }
-}
-
-
+// --- MAIN PAGE COMPONENT ---
 export default function HistoryPage() {
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
-  const router = useRouter();
   const { toast } = useToast();
-
-  const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
+  // Dialog states
   const [isBookingPaymentOpen, setIsBookingPaymentOpen] = useState(false);
   const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<{ trip: Trip, booking: Booking } | null>(null);
-  const [isProcessingBooking, setIsProcessingBooking] = useState(false);
-
-  // Rating Dialog State
-  const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
-  const [selectedTripForRating, setSelectedTripForRating] = useState<Trip | null>(null);
-
-  // Cancellation Dialog State
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const [selectedBookingForCancellation, setSelectedBookingForCancellation] = useState<{trip: Trip, booking: Booking} | null>(null);
-  const [isCancelling, setIsCancelling] = useState(false);
-
-  // Chat Dialog State
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedChatInfo, setSelectedChatInfo] = useState<{bookingId: string, otherPartyName: string} | null>(null);
-
-  // Smart Resubmission State
-  const [isResubmissionDialogOpen, setIsResubmissionDialogOpen] = useState(false);
-  const [selectedTripForResubmission, setSelectedTripForResubmission] = useState<Trip | null>(null);
   
+  // --- MOCK DATA SIMULATION ---
+  const allTripsAndBookings = useMemo(() => {
+    // This combines all mock data into a format that can be filtered
+    return [
+        { trip: mockAwaitingGeneral, booking: null, status: mockAwaitingGeneral.status },
+        { trip: mockAwaitingDirect, booking: null, status: mockAwaitingDirect.status },
+        { ...mockPendingConfirmation, status: mockPendingConfirmation.booking.status },
+        { ...mockPendingPayment, status: mockPendingPayment.booking.status },
+        { ...mockConfirmed, status: mockConfirmed.booking.status },
+        { ...mockArchivedCompleted, status: mockArchivedCompleted.booking.status },
+    ];
+  }, []);
 
-  // --- USE MOCK DATA ---
-  const awaitingTrips = mockAwaitingTrips;
-  const pendingConfirmationTrips = mockPendingConfirmationTrips;
-  const pendingPaymentTrips = mockPendingPaymentTrips;
-  const confirmedTrips = mockConfirmedTrips;
-  const totalLoading = false;
-  // --- END MOCK DATA ---
+  const { processingItems, ticketItems, archiveItems } = useMemo(() => {
+      const processing: any[] = [];
+      const tickets: any[] = [];
+      const archive: any[] = [];
 
-  const hasAwaitingTrips = awaitingTrips && awaitingTrips.length > 0;
-  const hasPendingConfirmationTrips = pendingConfirmationTrips && pendingConfirmationTrips.length > 0;
-  const hasPendingPaymentTrips = pendingPaymentTrips && pendingPaymentTrips.length > 0;
-  const hasConfirmedTrips = confirmedTrips && confirmedTrips.length > 0;
+      allTripsAndBookings.forEach(item => {
+          const status = item.status;
+          if (status === 'Completed' || status === 'Cancelled') {
+              archive.push(item);
+          } else if (status === 'Confirmed') {
+              tickets.push(item);
+          } else {
+              processing.push(item);
+          }
+      });
+      return { processingItems: processing, ticketItems: tickets, archiveItems: archive };
+  }, [allTripsAndBookings]);
 
-  const noHistoryAtAll = !totalLoading && !hasAwaitingTrips && !hasPendingConfirmationTrips && !hasPendingPaymentTrips && !hasConfirmedTrips;
-
-  useEffect(() => {
-    if (!totalLoading) {
-        if (hasPendingPaymentTrips) setOpenAccordion('pending-payment');
-        else if (hasAwaitingTrips) setOpenAccordion('awaiting');
-        else if (hasPendingConfirmationTrips) setOpenAccordion('pending');
-        else if (hasConfirmedTrips) setOpenAccordion('confirmed');
-        else setOpenAccordion(undefined);
-    }
-  }, [totalLoading, hasAwaitingTrips, hasPendingConfirmationTrips, hasPendingPaymentTrips, hasConfirmedTrips]);
-
-  const handleAcceptOffer = async (trip: Trip, offer: Offer) => {
-    if (!firestore || !user) {
-        toast({ title: 'يجب تسجيل الدخول أولاً', variant: 'destructive'});
-        return;
-    }
-    
-    // Start background processing
-    setIsProcessingBooking(true);
-    
-    try {
-        const batch = writeBatch(firestore);
-
-        // 1. Create a new Booking document
-        const bookingRef = doc(collection(firestore, 'bookings'));
-        const bookingData = {
-            id: bookingRef.id,
-            tripId: trip.id,
-            userId: user.uid,
-            carrierId: offer.carrierId,
-            seats: trip.passengers || 1,
-            passengersDetails: trip.passengersDetails || [],
-            status: 'Pending-Carrier-Confirmation',
-            totalPrice: offer.price,
-            currency: offer.currency,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-        };
-        batch.set(bookingRef, bookingData);
-
-        // 2. Update the Trip (request) to link the accepted offer
-        const tripRef = doc(firestore, 'trips', trip.id);
-        batch.update(tripRef, { 
-            acceptedOfferId: offer.id,
-            status: 'Pending-Carrier-Confirmation' 
-        });
-
-        // 3. Update the Offer status
-        const offerRef = doc(firestore, 'trips', trip.id, 'offers', offer.id);
-        batch.update(offerRef, { status: 'Accepted' });
-
-        await batch.commit();
-
-        toast({ 
-            title: 'تم إرسال طلب التأكيد للناقل!',
-            description: 'سيتم إعلامك بالنتيجة قريباً. يمكنك المتابعة من هذا القسم.',
-        });
-        setOpenAccordion('pending'); // Switch view to pending confirmation
-
-    } catch (e) {
-        console.error("Error accepting offer:", e);
-        toast({ title: 'فشل قبول العرض', variant: 'destructive' });
-    } finally {
-        setIsProcessingBooking(false);
-    }
-  };
 
   const handlePayNow = (trip: Trip, booking: Booking) => {
     setSelectedBookingForPayment({ trip, booking });
     setIsBookingPaymentOpen(true);
   }
-  
-  const handleOpenRatingDialog = (trip: Trip) => {
-      setSelectedTripForRating(trip);
-      setIsRatingDialogOpen(true);
-  }
 
-  const handleOpenCancelDialog = (trip: Trip, booking: Booking) => {
-      setSelectedBookingForCancellation({ trip, booking });
-      setIsCancelDialogOpen(true);
-  }
-
-  const handleOpenChatDialog = (booking: Booking, trip: Trip) => {
+  const handleMessageCarrier = (booking: Booking, trip: Trip) => {
       setSelectedChatInfo({
           bookingId: booking.id,
           otherPartyName: trip.carrierName || "الناقل"
       });
       setIsChatOpen(true);
-  }
-
-  const handleOpenResubmissionDialog = (trip: Trip) => {
-    setSelectedTripForResubmission(trip);
-    setIsResubmissionDialogOpen(true);
-  }
-
-  const handleConfirmCancellation = async () => {
-      if (!firestore || !user || !selectedBookingForCancellation) return;
-      
-      setIsCancelling(true);
-      
-      // SIMULATION
-      setTimeout(() => {
-        toast({ 
-            title: 'محاكاة: تم إلغاء الحجز بنجاح', 
-            description: 'بقرار من المسافر دون اي مسؤولية على موقع سفريات الوسيط الاكتروني تم الغاء الرحلة منقبل المسافر وعلية كامل المسؤولية' 
-        });
-        setIsCancelling(false);
-        setIsCancelDialogOpen(false);
-      }, 1000);
   };
-
-
-  const handleConfirmBookingPayment = async () => {
-      if (!firestore || !user || !selectedBookingForPayment) return;
-      setIsProcessingBooking(true);
-      
-      // SIMULATION
-      setTimeout(() => {
-        const title = 'محاكاة: تم تأكيد الدفع!';
-        const description = 'تم تأكيد حجزك، نتمنى لك رحلة سعيدة.';
-        toast({ title, description });
-        setIsProcessingBooking(false);
-        setIsBookingPaymentOpen(false);
-        setSelectedBookingForPayment(null);
-      }, 1500);
-  };
-
-
-  const renderSkeleton = () => (
-    <div className="space-y-4" role="status" aria-label="جار التحميل">
-      {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
-    </div>
-  );
   
-  if (totalLoading) return <AppLayout>{renderSkeleton()}</AppLayout>;
+  const handleConfirmBookingPayment = () => {
+    toast({ title: 'محاكاة: تم تأكيد الدفع بنجاح!', description: 'تم نقل حجزك إلى تذاكري النشطة.' });
+    setIsBookingPaymentOpen(false);
+  }
+
+  const handleAcceptOffer = () => {
+    toast({ title: 'محاكاة: تم قبول العرض!', description: 'طلبك الآن بانتظار موافقة الناقل النهائية.' });
+  }
 
   return (
     <AppLayout>
       <div className="bg-background/80 p-2 md:p-8 rounded-lg space-y-8">
-        {/* Header */}
         <Card className="bg-card/90 border-border/50">
-           <CardHeader className="p-4 md:p-6 flex flex-row justify-between items-center">
-            <div>
+           <CardHeader>
               <CardTitle>إدارة الحجز والرحلات</CardTitle>
               <CardDescription>تابع طلباتك، عروضك، وحجوزاتك من هنا.</CardDescription>
-            </div>
           </CardHeader>
         </Card>
 
-        {/* Empty State */}
-        {noHistoryAtAll && (
-          <div className="text-center py-16 border-2 border-dashed rounded-lg bg-card/50">
-            <CalendarX className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" aria-hidden="true" />
-            <h3 className="text-xl font-bold">لا يوجد سجل رحلات</h3>
-            <p className="text-muted-foreground mt-2 mb-6">يبدو أنك لم تقم بإنشاء أي طلبات بعد.</p>
-            <Button onClick={() => router.push('/dashboard')}>
-              <PlusCircle className="ml-2 h-4 w-4" aria-hidden="true" />
-              إنشاء طلب رحلة جديد
-            </Button>
-          </div>
-        )}
+         <Tabs defaultValue="processing" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="processing"><ListFilter className="ml-2 h-4 w-4" />قيد المعالجة ({processingItems.length})</TabsTrigger>
+                <TabsTrigger value="tickets"><Ticket className="ml-2 h-4 w-4" />تذاكري النشطة ({ticketItems.length})</TabsTrigger>
+                <TabsTrigger value="archive"><Archive className="ml-2 h-4 w-4" />الأرشيف ({archiveItems.length})</TabsTrigger>
+            </TabsList>
 
-        {/* Accordion Sections */}
-        <Accordion type="single" collapsible className="space-y-6" value={openAccordion} onValueChange={setOpenAccordion}>
-          {/* Awaiting Offers */}
-          {hasAwaitingTrips && (
-            <AccordionItem value="awaiting" className="border-none">
-              <Card>
-                <AccordionTrigger className="p-6 text-lg hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <PackageOpen className="h-6 w-6 text-primary" aria-hidden="true" />
-                    <CardTitle>طلبات بانتظار العروض ({awaitingTrips.length})</CardTitle>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  {awaitingTrips.map(trip => (
-                    <div key={trip.id}>
-                        <CardContent className="border-t pt-6 space-y-4">
-                            <div>
-                                <div className="mb-4">
-                                    <div className="flex items-center justify-between">
-                                        <CardTitle className="text-md">طلب رحلة: {cities[trip.origin] || trip.origin} إلى {cities[trip.destination] || trip.destination}</CardTitle>
-                                        {trip.requestType === 'Direct' && (
-                                            <Badge variant="secondary" className="flex items-center gap-1">
-                                                <UserCheck className="h-3 w-3" />
-                                                بانتظار رد الناقل
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    <CardDescription className="text-xs">
-                                    تاريخ الطلب: {safeDateFormat(trip.departureDate)} | عدد الركاب: {trip.passengers || 'غير محدد'}
-                                    </CardDescription>
-                                </div>
-                                {trip.requestType !== 'Direct' && (
-                                    <TripOffers trip={trip} onAcceptOffer={handleAcceptOffer} isProcessing={isProcessingBooking} />
-                                )}
-                                {trip.requestType === 'Direct' && (
-                                     <div className="text-center text-muted-foreground py-8 border-2 border-dashed rounded-lg bg-background/50">
-                                        <p className="font-bold">تم إرسال طلبك للناقل المحدد</p>
-                                        <p className="text-sm mt-1">سيتم إعلامك فور موافقته وتحديده للسعر.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </CardContent>
-                         {trip.requestType !== 'Direct' && (<CardFooter className="bg-muted/30 p-2 border-t">
-                            <Button variant="outline" className="w-full" onClick={() => handleOpenResubmissionDialog(trip)}>
-                               <Radar className="ml-2 h-4 w-4" />
-                               خيارات إعادة النشر الذكية
-                               <Badge variant="destructive" className="mr-2">جديد</Badge>
-                            </Button>
-                        </CardFooter>)}
-                    </div>
-                  ))}
-                </AccordionContent>
-              </Card>
-            </AccordionItem>
-          )}
+            <TabsContent value="processing" className="mt-6 space-y-4">
+                {processingItems.length > 0 ? processingItems.map(item => {
+                    const key = item.trip.id + (item.booking?.id || '');
+                    if (item.status === 'Awaiting-Offers') {
+                        if (item.trip.requestType === 'Direct') {
+                            return <WaitingCard key={key} trip={item.trip} />;
+                        }
+                        return <RequestTrackerCard key={key} trip={item.trip} onAcceptOffer={handleAcceptOffer} isProcessing={false}/>;
+                    }
+                    if (item.status === 'Pending-Carrier-Confirmation') {
+                        return <WaitingCard key={key} trip={item.trip} />;
+                    }
+                    if (item.status === 'Pending-Payment') {
+                        return <PaymentPass key={key} trip={item.trip} booking={item.booking} onPayNow={handlePayNow} />;
+                    }
+                    return null;
+                }) : <div className="text-center py-16 text-muted-foreground">لا توجد طلبات قيد المعالجة حالياً.</div>}
+            </TabsContent>
 
-           {/* Pending Payment */}
-          {hasPendingPaymentTrips && (
-             <AccordionItem value="pending-payment" className="border-none">
-              <Card className="border-2 border-destructive/50">
-                <AccordionTrigger className="p-6 text-lg hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-6 w-6 text-destructive" aria-hidden="true" />
-                    <CardTitle className="text-destructive">حجوزات بانتظار الدفع ({pendingPaymentTrips.length})</CardTitle>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <CardContent className="space-y-6 pt-6">
-                    {pendingPaymentTrips.map(({trip, booking}) => (
-                      <Card key={booking.id} className="bg-background/50">
-                        <CardHeader>
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-base font-bold">رحلة {cities[trip.origin] || trip.origin} إلى {cities[trip.destination] || trip.destination}</CardTitle>
-                            <Badge variant={statusVariantMap[booking.status] || 'outline'}>{statusMap[booking.status] || booking.status}</Badge>
-                          </div>
-                          <CardDescription>الناقل: {trip.carrierName}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center justify-center text-center space-y-2 p-6">
-                            <AlertCircle className="h-8 w-8 text-destructive" aria-hidden="true" />
-                            <p className="font-bold">مطلوب إتمام الدفع</p>
-                            <p className="text-sm text-muted-foreground">
-                              وافق الناقل على طلبك! يرجى دفع العربون لتأكيد حجزك.
-                            </p>
-                        </CardContent>
-                        <CardFooter>
-                           <Button className="w-full" onClick={() => handlePayNow(trip, booking)}>
-                                <CreditCard className="ml-2 h-4 w-4" />
-                                اذهب إلى الدفع
-                            </Button>
-                        </CardFooter>
-                      </Card>
-                    ))}
-                  </CardContent>
-                </AccordionContent>
-              </Card>
-            </AccordionItem>
-          )}
-          
-          {/* Pending Confirmation */}
-          {hasPendingConfirmationTrips && (
-             <AccordionItem value="pending" className="border-none">
-              <Card>
-                <AccordionTrigger className="p-6 text-lg hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <Hourglass className="h-6 w-6 text-yellow-500" aria-hidden="true" />
-                    <CardTitle>حجوزات بانتظار التأكيد ({pendingConfirmationTrips.length})</CardTitle>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <CardContent className="space-y-6 pt-6">
-                    {pendingConfirmationTrips.map(({trip, booking}) => (
-                      <Card key={booking.id} className="bg-background/50 border-yellow-500/50">
-                        <CardHeader>
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-base font-bold">رحلة {cities[trip.origin] || trip.origin} إلى {cities[trip.destination] || trip.destination}</CardTitle>
-                            <Badge variant={statusVariantMap[booking.status] || 'outline'}>{statusMap[booking.status] || booking.status}</Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center justify-center text-center space-y-2 p-6">
-                            <AlertCircle className="h-8 w-8 text-yellow-500" aria-hidden="true" />
-                            <p className="font-bold">بانتظار موافقة الناقل</p>
-                            <p className="text-sm text-muted-foreground">
-                              تم إرسال طلبك للناقل. سيتم إعلامك فور تأكيد الحجز.
-                            </p>
-                          </CardContent>
-                      </Card>
-                    ))}
-                  </CardContent>
-                </AccordionContent>
-              </Card>
-            </AccordionItem>
-          )}
-
-          {/* Confirmed & Past Trips */}
-          {hasConfirmedTrips && (
-            <AccordionItem value="confirmed" className="border-none">
-              <Card>
-                <AccordionTrigger className="p-6 text-lg hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-6 w-6 text-green-500" aria-hidden="true" />
-                    <CardTitle>رحلاتي المؤكدة والسابقة ({confirmedTrips.length})</CardTitle>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 p-6">
-                    {confirmedTrips.map(({trip, booking}) => {
-                      const canCancel = booking.status === 'Confirmed' && isFuture(new Date(trip.departureDate));
-                      // A trip is considered ready for closure a few hours after its estimated arrival.
-                      const closureTime = trip.departureDate && trip.durationHours ? addHours(new Date(trip.departureDate), trip.durationHours + 4) : null;
-                      const isClosureDue = closureTime ? !isFuture(closureTime) && booking.status === 'Confirmed' : false;
-
-                      return (
-                         <ScheduledTripCard
-                            key={booking.id}
-                            trip={trip}
-                            booking={booking}
-                            onBookNow={() => {}}
-                            onClosureAction={isClosureDue ? () => handleOpenRatingDialog(trip) : undefined}
-                            onCancelBooking={canCancel ? () => handleOpenCancelDialog(trip, booking) : undefined}
-                            onMessageCarrier={() => handleOpenChatDialog(booking, trip)}
-                            context="history"
-                          />
-                      )
-                    })}
-                  </div>
-                </AccordionContent>
-              </Card>
-            </AccordionItem>
-          )}
-        </Accordion>
+            <TabsContent value="tickets" className="mt-6 space-y-4">
+                {ticketItems.length > 0 ? ticketItems.map(item => (
+                    <HeroTicket 
+                        key={item.booking.id} 
+                        trip={item.trip} 
+                        booking={item.booking}
+                        onMessageCarrier={handleMessageCarrier}
+                    />
+                )) : <div className="text-center py-16 text-muted-foreground">لا توجد لديك تذاكر نشطة.</div>}
+            </TabsContent>
+            
+            <TabsContent value="archive" className="mt-6 space-y-4">
+                 {archiveItems.length > 0 ? archiveItems.map(item => (
+                    <ArchivedCard key={item.booking.id} trip={item.trip} booking={item.booking} />
+                 )) : <div className="text-center py-16 text-muted-foreground">الأرشيف فارغ.</div>}
+            </TabsContent>
+        </Tabs>
       </div>
 
-      {/* --- Dialogs --- */}
+       {/* --- Dialogs --- */}
       {selectedBookingForPayment && (
           <BookingPaymentDialog
             isOpen={isBookingPaymentOpen}
@@ -633,32 +304,9 @@ export default function HistoryPage() {
             trip={selectedBookingForPayment.trip}
             booking={selectedBookingForPayment.booking}
             onConfirm={handleConfirmBookingPayment}
-            isProcessing={isProcessingBooking}
+            isProcessing={false}
           />
       )}
-      
-      {selectedTripForRating && (
-        <RateTripDialog 
-            isOpen={isRatingDialogOpen}
-            onOpenChange={setIsRatingDialogOpen}
-            trip={selectedTripForRating}
-            onConfirm={() => {
-                // Here you might want to refresh data or optimistically update UI
-                setIsRatingDialogOpen(false);
-                setSelectedTripForRating(null);
-            }}
-        />
-      )}
-      
-      {selectedBookingForCancellation && (
-        <CancellationDialog
-            isOpen={isCancelDialogOpen}
-            onOpenChange={setIsCancelDialogOpen}
-            isCancelling={isCancelling}
-            onConfirm={handleConfirmCancellation}
-        />
-      )}
-
       {selectedChatInfo && (
           <ChatDialog
               isOpen={isChatOpen}
@@ -666,16 +314,6 @@ export default function HistoryPage() {
               bookingId={selectedChatInfo.bookingId}
               otherPartyName={selectedChatInfo.otherPartyName}
           />
-      )}
-
-      {selectedTripForResubmission && (
-        <SmartResubmissionDialog
-          isOpen={isResubmissionDialogOpen}
-          onOpenChange={setIsResubmissionDialogOpen}
-          tripRequest={selectedTripForResubmission}
-          // Passing mock scheduled trips for demonstration
-          allScheduledTrips={mockRelevantScheduledTrips}
-        />
       )}
     </AppLayout>
   );
