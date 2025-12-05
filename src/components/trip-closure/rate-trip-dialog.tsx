@@ -91,7 +91,8 @@ export function RateTripDialog({ isOpen, onOpenChange, trip, onConfirm }: RateTr
     if (!firestore || !trip) return;
     setIsSubmitting(true);
     
-    try {
+    // SIMULATION of backend logic
+    setTimeout(() => {
         const ratingsArray = [
             data.vehicleQuality, 
             data.vehicleCleanliness, 
@@ -100,33 +101,27 @@ export function RateTripDialog({ isOpen, onOpenChange, trip, onConfirm }: RateTr
             data.specificationCredibility
         ];
         const averageRating = ratingsArray.reduce((acc, curr) => acc + curr, 0) / ratingsArray.length;
-
-        const ratingData = {
+        
+        console.log("SIMULATING RATING SUBMISSION", {
             tripId: trip.id,
             carrierId: trip.carrierId,
-            userId: trip.userId,
             ratingValue: averageRating,
             details: data,
-            comment: data.comment || '',
-            createdAt: new Date().toISOString(),
-        };
-
-        await addDocumentNonBlocking(collection(firestore, 'ratings'), ratingData);
-        await updateDocumentNonBlocking(doc(firestore, 'trips', trip.id), { status: 'Completed' });
-
-        toast({
-            title: 'تم إرسال تقييمك بنجاح!',
-            description: `التقييم النهائي: ${averageRating.toFixed(2)} من 5`,
+            comment: data.comment,
         });
         
-        onOpenChange(false); // Close this dialog
-        onConfirm(); // Trigger parent dialog closure/cleanup
+        console.log("SIMULATING TRIP STATUS UPDATE to Completed for trip:", trip.id);
 
-    } catch (e) {
-        toast({ variant: 'destructive', title: 'فشل إرسال التقييم' });
-    } finally {
+        toast({
+            title: 'محاكاة: تم إغلاق الرحلة بنجاح!',
+            description: `شكراً لتقييمك. تم أرشفة الرحلة.`,
+        });
+        
         setIsSubmitting(false);
-    }
+        onOpenChange(false);
+        onConfirm();
+
+    }, 1500);
   };
   
   return (
@@ -182,7 +177,7 @@ export function RateTripDialog({ isOpen, onOpenChange, trip, onConfirm }: RateTr
                 {isSubmitting ? (
                     <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جاري الإرسال...</>
                 ) : (
-                    <><Send className="ml-2 h-4 w-4" /> إرسال التقييم النهائي</>
+                    <><Send className="ml-2 h-4 w-4" /> إرسال التقييم وإغلاق الرحلة</>
                 )}
               </Button>
             </DialogFooter>

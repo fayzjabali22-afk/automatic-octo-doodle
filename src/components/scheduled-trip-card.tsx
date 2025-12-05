@@ -226,7 +226,7 @@ export function ScheduledTripCard({
                 حجز الآن
             </Button>
           )}
-          {context === 'history' && onClosureAction && (
+          {context === 'history' && onClosureAction && trip && (
             <Button size="sm" variant="default" className="w-full bg-accent hover:bg-accent/90" onClick={() => onClosureAction(trip)}>
                 <Flag className="ml-2 h-4 w-4"/>
                 إجراءات إغلاق الرحلة

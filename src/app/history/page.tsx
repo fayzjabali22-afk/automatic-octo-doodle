@@ -600,8 +600,9 @@ export default function HistoryPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 p-6">
                     {confirmedTrips.map(({trip, booking}) => {
                       const canCancel = booking.status === 'Confirmed' && isFuture(new Date(trip.departureDate));
+                      // A trip is considered ready for closure a few hours after its estimated arrival.
                       const closureTime = trip.departureDate && trip.durationHours ? addHours(new Date(trip.departureDate), trip.durationHours + 4) : null;
-                      const isClosureDue = closureTime ? new Date() > closureTime : false;
+                      const isClosureDue = closureTime ? !isFuture(closureTime) && booking.status === 'Confirmed' : false;
 
                       return (
                          <ScheduledTripCard
@@ -641,7 +642,11 @@ export default function HistoryPage() {
             isOpen={isRatingDialogOpen}
             onOpenChange={setIsRatingDialogOpen}
             trip={selectedTripForRating}
-            onConfirm={() => setSelectedTripForRating(null)}
+            onConfirm={() => {
+                // Here you might want to refresh data or optimistically update UI
+                setIsRatingDialogOpen(false);
+                setSelectedTripForRating(null);
+            }}
         />
       )}
       
