@@ -8,8 +8,8 @@ import { useUser, useFirestore, useCollection, addDocumentNonBlocking } from '@/
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Trip, Offer, Booking } from '@/lib/data';
-import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Archive, Ticket, ListFilter } from 'lucide-react';
+import type { Trip, Offer, Booking, UserProfile } from '@/lib/data';
+import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Archive, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, Edit } from 'lucide-react';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
 import { format, addHours, isFuture } from 'date-fns';
@@ -21,6 +21,8 @@ import { CancellationDialog } from '@/components/booking/cancellation-dialog';
 import { ChatDialog } from '@/components/chat/chat-dialog';
 import { SmartResubmissionDialog } from '@/components/booking/smart-resubmission-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { doc } from 'firebase/firestore';
 
 // --- STRATEGIC MOCK DATA FOR THE FULL LIFECYCLE ---
 // 1. Awaiting Offers (General Request) -> Will show Radar
@@ -51,8 +53,21 @@ const mockPendingPayment: { trip: Trip, booking: Booking } = {
 
 // 5. Confirmed Ticket -> Will show Golden Ticket
 const mockConfirmed: { trip: Trip, booking: Booking } = {
-    trip: { id: 'trip_confirmed_1', userId: 'user1', carrierId: 'carrier3', carrierName: 'راحة الطريق', origin: 'cairo', destination: 'jeddah', departureDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), status: 'Planned' },
-    booking: { id: 'booking_confirmed_1', tripId: 'trip_confirmed_1', userId: 'user1', carrierId: 'carrier3', seats: 2, passengersDetails: [{ name: 'Hassan', type: 'adult' }, { name: 'Ali', type: 'child' }], status: 'Confirmed', totalPrice: 180, currency: 'USD', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() }
+    trip: { 
+        id: 'trip_confirmed_1', 
+        userId: 'user1', 
+        carrierId: 'carrier3', 
+        carrierName: 'راحة الطريق', 
+        origin: 'cairo', 
+        destination: 'jeddah', 
+        departureDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), 
+        status: 'Planned', 
+        meetingPoint: "مطار القاهرة الدولي - صالة 3",
+        meetingPointLink: "https://maps.app.goo.gl/12345",
+        conditions: "حقيبة واحدة لكل راكب. ممنوع التدخين.",
+        vehicleType: "GMC Yukon 2024"
+    },
+    booking: { id: 'booking_confirmed_1', tripId: 'trip_confirmed_1', userId: 'user1', carrierId: 'carrier3', seats: 2, passengersDetails: [{ name: 'حسن علي', type: 'adult' }, { name: 'علي حسن', type: 'child' }], status: 'Confirmed', totalPrice: 180, currency: 'USD', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString() }
 };
 
 // 6. Archived (Completed) Trip
@@ -95,7 +110,7 @@ const WaitingCard = ({ trip }: { trip: Trip }) => (
             <CardDescription>رحلة من {getCityName(trip.origin)} إلى {getCityName(trip.destination)}</CardDescription>
         </CardHeader>
         <CardContent className="text-center text-muted-foreground py-8">
-            <p className="font-bold">تم إرسال طلبك للناقل</p>
+            <p className="font-bold">{trip.requestType === 'Direct' ? 'تم إرسال طلبك المباشر للناقل' : 'تم إرسال طلبك للناقل'}</p>
             <p className="text-sm mt-1">سيتم إعلامك فور تحديث حالة طلبك.</p>
         </CardContent>
     </Card>
@@ -123,6 +138,14 @@ const PaymentPass = ({ trip, booking, onPayNow }: { trip: Trip, booking: Booking
 );
 
 const HeroTicket = ({ trip, booking, onCancelBooking, onMessageCarrier }: { trip: Trip, booking: Booking, onCancelBooking?: (trip: Trip, booking: Booking) => void, onMessageCarrier?: (booking: Booking, trip: Trip) => void }) => {
+    const firestore = useFirestore();
+    const carrierProfileRef = useMemo(() => {
+        if (!firestore || !trip.carrierId) return null;
+        return doc(firestore, 'users', trip.carrierId);
+    }, [firestore, trip.carrierId]);
+
+    const { data: carrierProfile } = useDoc<UserProfile>(carrierProfileRef);
+    
     // Financial details
     const depositAmount = (booking.totalPrice * ((trip.depositPercentage || 20) / 100));
     const remainingAmount = booking.totalPrice - depositAmount;
@@ -130,33 +153,65 @@ const HeroTicket = ({ trip, booking, onCancelBooking, onMessageCarrier }: { trip
     return (
         <Card className="bg-gradient-to-br from-card to-muted/50 shadow-lg border-accent">
             <CardHeader className="text-center">
-                <Badge variant="default" className="mx-auto w-fit">تذكرة مؤكدة</Badge>
+                <Badge variant="default" className="mx-auto w-fit bg-accent text-accent-foreground">تذكرة مؤكدة</Badge>
                 <CardTitle className="pt-2">{getCityName(trip.origin)} - {getCityName(trip.destination)}</CardTitle>
-                <CardDescription>الناقل: {trip.carrierName}</CardDescription>
+                <CardDescription>الناقل: {carrierProfile?.firstName || trip.carrierName}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                 <div className="grid grid-cols-2 gap-4 text-sm text-center">
-                    <div className="p-2 bg-background rounded-md">
-                        <div className="font-bold">التاريخ</div>
-                        <div>{format(new Date(trip.departureDate), 'd MMM yyyy', { locale: arSA })}</div>
+            <CardContent className="space-y-4 text-sm">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-background rounded-md">
+                        <div className="font-bold text-xs text-muted-foreground">التاريخ والوقت</div>
+                        <div>{format(new Date(trip.departureDate), 'd MMM yyyy, h:mm a', { locale: arSA })}</div>
                     </div>
-                     <div className="p-2 bg-background rounded-md">
-                        <div className="font-bold">الوقت</div>
-                        <div>{format(new Date(trip.departureDate), 'h:mm a', { locale: arSA })}</div>
+                     <div className="p-3 bg-background rounded-md">
+                        <div className="font-bold text-xs text-muted-foreground">بيانات الناقل</div>
+                        <div className="flex items-center gap-2"><Phone className="h-3 w-3" /> {carrierProfile?.phoneNumber || 'غير متوفر'}</div>
                     </div>
                 </div>
-                 <div className="p-3 bg-background rounded-lg border border-dashed">
-                    <div className="text-xs font-bold mb-2">التفاصيل المالية:</div>
+
+                <div className="p-3 bg-background rounded-lg border space-y-2">
+                    <p className="font-bold text-xs flex items-center gap-1"><MapPin className="h-4 w-4 text-primary"/> نقطة الانطلاق</p>
+                    <p>{trip.meetingPoint}</p>
+                    {trip.meetingPointLink && (
+                        <a href={trip.meetingPointLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 text-xs flex items-center gap-1 hover:underline">
+                            <LinkIcon className="h-3 w-3" />
+                            عرض على الخريطة
+                        </a>
+                    )}
+                </div>
+
+                 <div className="p-3 bg-background rounded-lg border space-y-2">
+                    <p className="font-bold text-xs flex items-center gap-1"><Car className="h-4 w-4 text-primary"/> تفاصيل المركبة</p>
+                    <p>نوع المركبة: {trip.vehicleType || 'غير محدد'}</p>
+                </div>
+                
+                 <div className="p-3 bg-background rounded-lg border space-y-2">
+                    <p className="font-bold text-xs flex items-center gap-1"><Users className="h-4 w-4 text-primary"/> الركاب</p>
+                    <ul className="list-disc pr-4 text-xs">
+                        {booking.passengersDetails.map((p, i) => <li key={i}>{p.name} ({p.type === 'adult' ? 'بالغ' : 'طفل'})</li>)}
+                    </ul>
+                </div>
+                
+                 <div className="p-3 bg-background rounded-lg border space-y-2">
+                    <p className="font-bold text-xs flex items-center gap-1"><CreditCard className="h-4 w-4 text-primary"/> التفاصيل المالية</p>
                     <div className="space-y-1 text-xs">
+                        <div className="flex justify-between"><span>تاريخ الحجز:</span> <span className="font-bold">{format(new Date(booking.updatedAt || booking.createdAt!), 'd MMM yyyy', { locale: arSA })}</span></div>
                         <div className="flex justify-between"><span>السعر الإجمالي:</span> <span className="font-bold">{booking.totalPrice.toFixed(2)} {booking.currency}</span></div>
                         <div className="flex justify-between"><span>العربون المدفوع:</span> <span className="font-bold text-green-500">{depositAmount.toFixed(2)} {booking.currency}</span></div>
                         <div className="flex justify-between"><span>المبلغ المتبقي:</span> <span className="font-bold">{remainingAmount.toFixed(2)} {booking.currency}</span></div>
                     </div>
                  </div>
+
+                 {trip.conditions && (
+                    <div className="p-3 bg-background rounded-lg border space-y-2">
+                        <p className="font-bold text-xs flex items-center gap-1"><ListFilter className="h-4 w-4 text-primary"/> شروط الناقل</p>
+                        <p className="text-xs whitespace-pre-wrap">{trip.conditions}</p>
+                    </div>
+                 )}
             </CardContent>
             <CardFooter className="grid grid-cols-2 gap-2 p-2">
                  <Button variant="outline" size="sm" onClick={() => onMessageCarrier?.(booking, trip)}><MessageSquare className="ml-2 h-4 w-4" />مراسلة الناقل</Button>
-                 <Button variant="outline" size="sm" disabled><AlertCircle className="ml-2 h-4 w-4" />تعديل الطلب</Button>
+                 <Button variant="outline" size="sm" disabled><Edit className="ml-2 h-4 w-4" />تعديل الطلب</Button>
             </CardFooter>
         </Card>
     )
