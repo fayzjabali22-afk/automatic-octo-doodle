@@ -9,7 +9,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Offer, Booking, UserProfile } from '@/lib/data';
-import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, Edit, XCircle } from 'lucide-react';
+import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, Edit, XCircle, Send, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +24,8 @@ import { SmartResubmissionDialog } from '@/components/booking/smart-resubmission
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { doc } from 'firebase/firestore';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 
 // --- STRATEGIC MOCK DATA FOR THE FULL LIFECYCLE ---
@@ -93,6 +95,8 @@ const mockTripRiyadh: Trip = {
     vehicleType: 'Toyota Hiace 2024',
      userId: 'carrier_mock_2'
 };
+
+const processingTrips = [mockTripBaghdad, mockTripRiyadh];
 
 
 // Helper data
@@ -282,6 +286,39 @@ const HeroTicket = ({ trip, booking, onCancelBooking, onMessageCarrier, toast }:
 };
 
 
+const BookingPassengersScreen = ({ trip, onCancel, onConfirm }: { trip: Trip, onCancel: () => void, onConfirm: (passengers: any[]) => void }) => {
+    // This is a placeholder component.
+    const [passengers, setPassengers] = useState([{ name: '', type: 'adult' }]);
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handleConfirm = () => {
+        setIsProcessing(true);
+        setTimeout(() => {
+            onConfirm(passengers);
+            setIsProcessing(false);
+        }, 1500);
+    }
+    
+    return (
+        <div className="p-4 space-y-4 bg-background rounded-b-lg">
+            <h3 className="font-bold text-lg">إدخال بيانات الركاب</h3>
+            <div className="space-y-2">
+                <Label htmlFor="passenger1">اسم الراكب 1</Label>
+                <Input id="passenger1" placeholder="الاسم الكامل كما في الهوية" />
+            </div>
+             <p className="text-xs text-muted-foreground">محاكاة: أدخل بيانات الركاب هنا.</p>
+            <div className="flex justify-end gap-2 pt-4">
+                <Button variant="ghost" onClick={onCancel} disabled={isProcessing}>إلغاء</Button>
+                <Button onClick={handleConfirm} disabled={isProcessing}>
+                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4" />}
+                    تأكيد الحجز
+                </Button>
+            </div>
+        </div>
+    )
+};
+
+
 // --- MAIN PAGE COMPONENT ---
 export default function HistoryPage() {
   const { toast } = useToast();
@@ -291,31 +328,30 @@ export default function HistoryPage() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedChatInfo, setSelectedChatInfo] = useState<{bookingId: string, otherPartyName: string} | null>(null);
   
+  // State for dynamic view switching inside accordion
+  const [bookingState, setBookingState] = useState<{ tripId: string | null, view: 'details' | 'booking' }>({ tripId: null, view: 'details' });
+  
+  
   // --- MOCK DATA SIMULATION ---
   const allTripsAndBookings = useMemo(() => {
     // This combines all mock data into a format that can be filtered
     return [
-        { ...mockPendingConfirmation, status: mockPendingConfirmation.booking.status },
-        { ...mockPendingPayment, status: mockPendingPayment.booking.status },
+        // { ...mockPendingConfirmation, status: mockPendingConfirmation.booking.status },
+        // { ...mockPendingPayment, status: mockPendingPayment.booking.status },
         { ...mockConfirmed, status: mockConfirmed.booking.status },
     ];
   }, []);
 
-  const { processingItems, ticketItems } = useMemo(() => {
-      const processing: any[] = [];
+  const { ticketItems } = useMemo(() => {
       const tickets: any[] = [];
 
       allTripsAndBookings.forEach(item => {
           const status = item.status;
-          if (status === 'Completed' || status === 'Cancelled') {
-              // Archive items are no longer displayed on this page
-          } else if (status === 'Confirmed') {
+          if (status === 'Confirmed') {
               tickets.push(item);
-          } else {
-             // processing.push(item);
           }
       });
-      return { processingItems: processing, ticketItems: tickets };
+      return { ticketItems: tickets };
   }, [allTripsAndBookings]);
 
 
@@ -337,12 +373,22 @@ export default function HistoryPage() {
     setIsBookingPaymentOpen(false);
   }
   
-  const handleBookNow = () => {
-    toast({
-        title: "تم توجيهك للحجز",
-        description: "سيتم تنفيذ هذه الميزة لاحقاً.",
-    })
+  const handleBookNow = (trip: Trip) => {
+    setBookingState({ tripId: trip.id, view: 'booking' });
   }
+  
+  const handleCancelBookingFlow = () => {
+    setBookingState({ tripId: null, view: 'details' });
+  }
+
+  const handleConfirmBookingFlow = (passengers: any[]) => {
+      toast({
+        title: "محاكاة: تم إرسال طلب الحجز",
+        description: "سيتم إعلامك عند موافقة الناقل.",
+      });
+      setBookingState({ tripId: null, view: 'details' });
+  }
+
 
   return (
     <AppLayout>
@@ -356,49 +402,34 @@ export default function HistoryPage() {
 
          <Tabs defaultValue="processing" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="processing"><ListFilter className="ml-2 h-4 w-4" />قيد المعالجة ({processingItems.length + 2})</TabsTrigger>
+                <TabsTrigger value="processing"><ListFilter className="ml-2 h-4 w-4" />قيد المعالجة</TabsTrigger>
                 <TabsTrigger value="tickets"><Ticket className="ml-2 h-4 w-4" />تذاكري النشطة ({ticketItems.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="processing" className="mt-6 space-y-4">
-                <Accordion type="single" collapsible className="w-full space-y-4">
-                    <AccordionItem value="item-1" className="border-none">
-                       <Card className="border-accent">
-                         <AccordionTrigger className="p-4 text-md hover:no-underline font-bold flex justify-between w-full">
-                            <span>عمان - بغداد</span>
-                            <span className="text-base text-muted-foreground font-semibold">السعر المعروض: 25 دينار</span>
-                         </AccordionTrigger>
-                         <AccordionContent className="p-0">
-                           <ScheduledTripCard trip={mockTripBaghdad} onBookNow={handleBookNow} context="dashboard" />
-                         </AccordionContent>
-                       </Card>
-                    </AccordionItem>
-                    <AccordionItem value="item-2" className="border-none">
-                         <Card className="border-accent">
+                <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-1">
+                    {processingTrips.map(trip => (
+                       <AccordionItem key={trip.id} value={trip.id} className="border-none">
+                           <Card className="border-accent">
                              <AccordionTrigger className="p-4 text-md hover:no-underline font-bold flex justify-between w-full">
-                                <span>عمان - الرياض</span>
-                                <span className="text-base text-muted-foreground font-semibold">السعر المعروض: 40 دينار</span>
+                                <span className="text-right">{getCityName(trip.origin)} - {getCityName(trip.destination)}</span>
+                                <span className="text-base text-muted-foreground font-semibold text-left">السعر المعروض: {trip.price} {trip.currency}</span>
                              </AccordionTrigger>
                              <AccordionContent className="p-0">
-                               <ScheduledTripCard trip={mockTripRiyadh} onBookNow={handleBookNow} context="dashboard" />
+                                {bookingState.tripId === trip.id && bookingState.view === 'booking' ? (
+                                    <BookingPassengersScreen 
+                                        trip={trip}
+                                        onCancel={handleCancelBookingFlow}
+                                        onConfirm={handleConfirmBookingFlow}
+                                    />
+                                ) : (
+                                    <ScheduledTripCard trip={trip} onBookNow={() => handleBookNow(trip)} context="dashboard" />
+                                )}
                              </AccordionContent>
-                        </Card>
-                    </AccordionItem>
+                           </Card>
+                        </AccordionItem>
+                    ))}
                 </Accordion>
-
-                {processingItems.length > 0 ? processingItems.map(item => {
-                    const key = item.trip.id + (item.booking?.id || '');
-                    if (item.status === 'Awaiting-Offers') {
-                       return <RequestTrackerCard key={key} trip={item.trip} />;
-                    }
-                    if (item.status === 'Pending-Carrier-Confirmation') {
-                        return <WaitingCard key={key} trip={item.trip} />;
-                    }
-                    if (item.status === 'Pending-Payment') {
-                        return <PaymentPass key={key} trip={item.trip} booking={item.booking} onPayNow={handlePayNow} />;
-                    }
-                    return null;
-                }) : null /* Hiding the "no items" message for now */}
             </TabsContent>
 
             <TabsContent value="tickets" className="mt-6 space-y-4">
