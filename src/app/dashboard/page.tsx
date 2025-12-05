@@ -35,7 +35,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils"
-import { format, isFuture } from "date-fns"
+import { format } from "date-fns"
 import { useCollection, useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { AuthRedirectDialog } from '@/components/auth-redirect-dialog';
@@ -48,6 +48,7 @@ import { logEvent } from '@/lib/analytics';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Form, FormControl, FormField } from '@/components/ui/form';
+import { isFuture } from 'date-fns';
 
 
 // --- MOCK DATA ---
@@ -402,21 +403,21 @@ export default function DashboardPage() {
 
                   {searchMode === 'all-carriers' && (
                     <div className='grid gap-4'>
-                        <RadioGroup
+                      <RadioGroup
                           value={searchVehicleType}
                           onValueChange={setSearchVehicleType}
                           className="grid grid-cols-3 gap-2 pt-1"
                         >
-                            <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-black has-[:checked]:text-white transition-all">
-                                <RadioGroupItem value="any" className="sr-only" /><span>المتوفر</span>
-                            </Label>
-                             <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-black has-[:checked]:text-white transition-all">
-                                <RadioGroupItem value="small" className="sr-only" /><span>مركبة صغيرة</span>
-                            </Label>
-                             <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-black has-[:checked]:text-white transition-all">
-                                <RadioGroupItem value="bus" className="sr-only" /><span>حافلة</span>
-                            </Label>
-                        </RadioGroup>
+                          <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-black has-[:checked]:text-white transition-all">
+                            <RadioGroupItem value="any" className="sr-only" /><span>المتوفر</span>
+                          </Label>
+                          <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-black has-[:checked]:text-white transition-all">
+                            <RadioGroupItem value="small" className="sr-only" /><span>مركبة صغيرة</span>
+                          </Label>
+                          <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-black has-[:checked]:text-white transition-all">
+                            <RadioGroupItem value="bus" className="sr-only" /><span>حافلة</span>
+                          </Label>
+                      </RadioGroup>
                        <div className="border-t border-blue-500/30 my-2"></div>
                     </div>
                   )}
@@ -532,7 +533,7 @@ export default function DashboardPage() {
                         </p>
                         <Button
                             onClick={handleRequestAction}
-                            className="bg-accent text-accent-foreground hover:bg-accent/90 border border-white/50"
+                            className="bg-accent text-black hover:bg-accent/90 border border-white/50"
                         >
                             <Send className="ml-2 h-4 w-4" />
                             {searchMode === 'all-carriers' ? 'إرسال الطلب إلى السوق العام' : `إرسال طلب مباشر إلى ${selectedCarrier?.name || 'الناقل'}`}
@@ -560,7 +561,7 @@ export default function DashboardPage() {
                              <div className="mt-8 text-center">
                                 <Button
                                     onClick={handleRequestAction}
-                                    className="bg-accent text-accent-foreground hover:bg-accent/90 border border-white/50"
+                                    className="bg-accent text-black hover:bg-accent/90 border border-white/50"
                                 >
                                     <Send className="ml-2 h-4 w-4" />
                                     لم تجد ما تبحث عنه؟ أرسل طلباً خاصاً إلى {selectedCarrier.name}
