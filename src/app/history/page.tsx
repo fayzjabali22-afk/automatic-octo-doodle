@@ -85,20 +85,40 @@ const getCityName = (key: string) => cities[key] || key;
 
 // --- MORPHING CARD COMPONENTS ---
 
-const RequestTrackerCard = ({ trip, onAcceptOffer, isProcessing }: { trip: Trip, onAcceptOffer: (trip: Trip, offer: Offer) => void, isProcessing: boolean }) => (
-    <Card className="border-primary border-2">
-        <CardHeader>
-            <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center gap-2 text-base"><Radar className="h-5 w-5 text-primary animate-pulse" /> طلب بانتظار العروض</CardTitle>
-                <Badge variant="outline">طلب عام</Badge>
-            </div>
-            <CardDescription>رحلة من {getCityName(trip.origin)} إلى {getCityName(trip.destination)} بتاريخ {format(new Date(trip.departureDate), 'd MMMM', { locale: arSA })}</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <TripOffers trip={trip} onAcceptOffer={onAcceptOffer} isProcessing={isProcessing} />
-        </CardContent>
-    </Card>
-);
+const RequestTrackerCard = ({ trip }: { trip: Trip }) => {
+    const [isOffersOpen, setIsOffersOpen] = useState(false);
+
+    return (
+        <>
+            <Card className="border-primary border-2">
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="flex items-center gap-2 text-base"><Radar className="h-5 w-5 text-primary animate-pulse" /> طلب بانتظار العروض</CardTitle>
+                        <Badge variant="outline">{trip.requestType === 'Direct' ? 'طلب مباشر' : 'طلب عام'}</Badge>
+                    </div>
+                    <CardDescription>رحلة من {getCityName(trip.origin)} إلى {getCityName(trip.destination)} بتاريخ {format(new Date(trip.departureDate), 'd MMMM', { locale: arSA })}</CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                    <p className="text-sm text-muted-foreground mb-4">سيتم إعلامك فور وصول عروض من الناقلين. يمكنك أيضاً استعراض العروض الحالية.</p>
+                     <Button className="w-full" onClick={() => setIsOffersOpen(true)}>
+                        استعراض العروض (3)
+                    </Button>
+                </CardContent>
+            </Card>
+            <Dialog open={isOffersOpen} onOpenChange={setIsOffersOpen}>
+                <DialogContent className="sm:max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>العروض المقدمة لطلبك</DialogTitle>
+                        <DialogDescription>
+                            قارن بين العروض واختر الأنسب لك.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <TripOffers trip={trip} onAcceptOffer={() => {}} isProcessing={false} />
+                </DialogContent>
+            </Dialog>
+        </>
+    );
+};
 
 const WaitingCard = ({ trip }: { trip: Trip }) => (
     <Card>
@@ -256,10 +276,10 @@ export default function HistoryPage() {
   const allTripsAndBookings = useMemo(() => {
     // This combines all mock data into a format that can be filtered
     return [
-        { trip: mockAwaitingGeneral, booking: null, status: mockAwaitingGeneral.status },
-        { trip: mockAwaitingDirect, booking: null, status: mockAwaitingDirect.status },
-        { ...mockPendingConfirmation, status: mockPendingConfirmation.booking.status },
-        { ...mockPendingPayment, status: mockPendingPayment.booking.status },
+        // { trip: mockAwaitingGeneral, booking: null, status: mockAwaitingGeneral.status },
+        // { trip: mockAwaitingDirect, booking: null, status: mockAwaitingDirect.status },
+        // { ...mockPendingConfirmation, status: mockPendingConfirmation.booking.status },
+        // { ...mockPendingPayment, status: mockPendingPayment.booking.status },
         { ...mockConfirmed, status: mockConfirmed.booking.status },
     ];
   }, []);
@@ -300,10 +320,6 @@ export default function HistoryPage() {
     setIsBookingPaymentOpen(false);
   }
 
-  const handleAcceptOffer = () => {
-    toast({ title: 'محاكاة: تم قبول العرض!', description: 'طلبك الآن بانتظار موافقة الناقل النهائية.' });
-  }
-
   return (
     <AppLayout>
       <div className="bg-background/80 p-2 md:p-8 rounded-lg space-y-8">
@@ -324,10 +340,7 @@ export default function HistoryPage() {
                 {processingItems.length > 0 ? processingItems.map(item => {
                     const key = item.trip.id + (item.booking?.id || '');
                     if (item.status === 'Awaiting-Offers') {
-                        if (item.trip.requestType === 'Direct') {
-                            return <WaitingCard key={key} trip={item.trip} />;
-                        }
-                        return <RequestTrackerCard key={key} trip={item.trip} onAcceptOffer={handleAcceptOffer} isProcessing={false}/>;
+                       return <RequestTrackerCard key={key} trip={item.trip} />;
                     }
                     if (item.status === 'Pending-Carrier-Confirmation') {
                         return <WaitingCard key={key} trip={item.trip} />;
@@ -376,3 +389,5 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
+
+    
