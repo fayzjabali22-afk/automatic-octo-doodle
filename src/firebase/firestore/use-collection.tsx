@@ -85,18 +85,24 @@ export function useCollection<T = any>(
             setIsLoading(false);
           },
           (err: FirestoreError) => {
-            const path = (targetRefOrQuery as InternalQuery)?._query?.path?.canonicalString() || '[unknown path]';
-            const contextualError = new FirestorePermissionError({
-              operation: 'list',
-              path: path,
-            });
-
-            setError(contextualError);
+            // DEV-MODE: Temporarily disable contextual errors to prevent crashes.
+            console.error("Firestore Permission Error (useCollection):", err);
+            setError(err); 
             setData(null);
             setIsLoading(false);
             
-            // trigger global error propagation
-            errorEmitter.emit('permission-error', contextualError);
+            // const path = (targetRefOrQuery as InternalQuery)?._query?.path?.canonicalString() || '[unknown path]';
+            // const contextualError = new FirestorePermissionError({
+            //   operation: 'list',
+            //   path: path,
+            // });
+
+            // setError(contextualError);
+            // setData(null);
+            // setIsLoading(false);
+            
+            // // trigger global error propagation
+            // errorEmitter.emit('permission-error', contextualError);
           }
         );
     }
