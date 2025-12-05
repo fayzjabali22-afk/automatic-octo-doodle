@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, addDocumentNonBlocking, useDoc } from '@/firebase';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Offer, Booking, UserProfile } from '@/lib/data';
 import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, Edit, XCircle, Send, Loader2 } from 'lucide-react';
@@ -108,188 +108,15 @@ const getCityName = (key: string) => cities[key] || key;
 
 // --- MORPHING CARD COMPONENTS ---
 
-const RequestTrackerCard = ({ trip }: { trip: Trip }) => {
-    const [isOffersOpen, setIsOffersOpen] = useState(false);
-
-    return (
-        <>
-            <Card className="border-primary border-2">
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="flex items-center gap-2 text-base"><Radar className="h-5 w-5 text-primary animate-pulse" /> طلب بانتظار العروض</CardTitle>
-                        <Badge variant="outline">{trip.requestType === 'Direct' ? 'طلب مباشر' : 'طلب عام'}</Badge>
-                    </div>
-                    <CardDescription>رحلة من {getCityName(trip.origin)} إلى {getCityName(trip.destination)} بتاريخ {format(new Date(trip.departureDate), 'd MMMM', { locale: arSA })}</CardDescription>
-                </CardHeader>
-                <CardContent className="text-center">
-                     <p className="text-sm text-muted-foreground mb-4">لديك 3 عروض جديدة. استعرضها الآن واختر الأنسب لك.</p>
-                     <Button className="w-full" onClick={() => setIsOffersOpen(true)}>
-                        استعراض ومقارنة العروض
-                    </Button>
-                </CardContent>
-            </Card>
-            <Dialog open={isOffersOpen} onOpenChange={setIsOffersOpen}>
-                <DialogContent className="sm:max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>العروض المقدمة لطلبك</DialogTitle>
-                        <DialogDescription>
-                            قارن بين العروض واختر الأنسب لك.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <TripOffers trip={trip} onAcceptOffer={() => {}} isProcessing={false} />
-                </DialogContent>
-            </Dialog>
-        </>
-    );
-};
-
-const WaitingCard = ({ trip }: { trip: Trip }) => (
-    <Card>
-        <CardHeader>
-             <div className="flex justify-between items-center">
-                 <CardTitle className="flex items-center gap-2 text-base"><Hourglass className="h-5 w-5 text-yellow-500 animate-spin" /> قيد المراجعة</CardTitle>
-                 <Badge variant="secondary">{trip.requestType === 'Direct' ? 'طلب مباشر' : 'بانتظار التأكيد'}</Badge>
-            </div>
-            <CardDescription>رحلة من {getCityName(trip.origin)} إلى {getCityName(trip.destination)}</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center text-muted-foreground py-8">
-            <p className="font-bold">{trip.requestType === 'Direct' ? 'تم إرسال طلبك المباشر للناقل' : 'تم إرسال طلبك للناقل'}</p>
-            <p className="text-sm mt-1">سيتم إعلامك فور تحديث حالة طلبك.</p>
-        </CardContent>
-    </Card>
-);
-
-const PaymentPass = ({ trip, booking, onPayNow }: { trip: Trip, booking: Booking, onPayNow: (trip: Trip, booking: Booking) => void }) => (
-    <Card className="border-destructive border-2">
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive text-base"><CreditCard className="h-5 w-5" /> مطلوب إتمام الدفع</CardTitle>
-            <CardDescription>وافق الناقل على طلبك! يرجى دفع العربون لتأكيد حجزك.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="p-4 bg-muted/50 rounded-lg border border-dashed text-center">
-                 <div className="text-sm text-muted-foreground">العربون المطلوب لتأكيد الحجز</div>
-                 <div className="text-3xl font-bold text-destructive">{(booking.totalPrice * ((trip.depositPercentage || 20) / 100)).toFixed(2)} {booking.currency}</div>
-            </div>
-        </CardContent>
-        <CardFooter>
-            <Button className="w-full" onClick={() => onPayNow(trip, booking)}>
-                <CreditCard className="ml-2 h-4 w-4" />
-                اذهب إلى الدفع
-            </Button>
-        </CardFooter>
-    </Card>
-);
-
-const HeroTicket = ({ trip, booking, onCancelBooking, onMessageCarrier, toast }: { trip: Trip, booking: Booking, onCancelBooking?: (trip: Trip, booking: Booking) => void, onMessageCarrier?: (booking: Booking, trip: Trip) => void, toast: (options: any) => void }) => {
-    // MOCK CARRIER DATA
-    const carrierProfile: UserProfile = {
-        id: 'carrier3',
-        firstName: 'فوزي',
-        lastName: 'الناقل',
-        email: 'carrier@safar.com',
-        phoneNumber: '+962791234567'
-    };
-    
-    // Financial details
-    const depositAmount = (booking.totalPrice * ((trip.depositPercentage || 20) / 100));
-    const remainingAmount = booking.totalPrice - depositAmount;
-
-    return (
-        <Card className="bg-gradient-to-br from-card to-muted/50 shadow-lg border-accent">
-            <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div>
-                        <Badge variant="default" className="w-fit bg-accent text-accent-foreground mb-2">تذكرة مؤكدة</Badge>
-                        <CardTitle className="pt-1">{getCityName(trip.origin)} - {getCityName(trip.destination)}</CardTitle>
-                    </div>
-                    <Button size="icon" variant="outline" className="rounded-full h-12 w-12" onClick={() => onMessageCarrier?.(booking, trip)}>
-                        <MessageSquare className="h-6 w-6" />
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-                <div className="p-3 bg-background rounded-lg border space-y-2">
-                    <p className="font-bold text-xs flex items-center gap-1"><UserCheck className="h-4 w-4 text-primary"/> بيانات الناقل</p>
-                    <div className="flex justify-between items-center text-xs">
-                        <span>اسم الناقل:</span>
-                        <span className="font-bold">{carrierProfile?.firstName || trip.carrierName}</span>
-                    </div>
-                     <div className="flex justify-between items-center text-xs">
-                        <span>رقم الهاتف:</span>
-                        {carrierProfile?.phoneNumber ? (
-                           <a href={`tel:${carrierProfile.phoneNumber}`} className="font-bold hover:underline">{carrierProfile.phoneNumber}</a>
-                        ) : <span className="font-bold">غير متوفر</span>}
-                    </div>
-                </div>
-
-                 <div className="p-3 bg-background rounded-lg border space-y-2">
-                    <p className="font-bold text-xs flex items-center gap-1"><MapPin className="h-4 w-4 text-primary"/> نقطة وتوقيت الانطلاق</p>
-                    <div className="text-xs">
-                         <div className="flex justify-between"><span>التاريخ:</span> <span className="font-bold">{format(new Date(trip.departureDate), 'd MMM yyyy', { locale: arSA })}</span></div>
-                         <div className="flex justify-between"><span>الوقت:</span> <span className="font-bold">{format(new Date(trip.departureDate), 'h:mm a', { locale: arSA })}</span></div>
-                         <div className="flex justify-between mt-1 pt-1 border-t"><span>المكان:</span> <span className="font-bold">{trip.meetingPoint}</span></div>
-                    </div>
-                    {trip.meetingPointLink && (
-                        <a href={trip.meetingPointLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 text-xs flex items-center gap-1 hover:underline">
-                            <LinkIcon className="h-3 w-3" />
-                            عرض على الخريطة
-                        </a>
-                    )}
-                </div>
-
-                 <div className="p-3 bg-background rounded-lg border space-y-2">
-                    <p className="font-bold text-xs flex items-center gap-1"><Car className="h-4 w-4 text-primary"/> تفاصيل المركبة</p>
-                     <div className="flex justify-between items-center text-xs">
-                        <span>نوع المركبة:</span>
-                        <span className="font-bold">{trip.vehicleType || 'غير محدد'}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                        <span>رقم اللوحة:</span>
-                        <span className="font-bold">{trip.vehiclePlateNumber || 'غير محدد'}</span>
-                    </div>
-                </div>
-                
-                 <div className="p-3 bg-background rounded-lg border space-y-2">
-                    <p className="font-bold text-xs flex items-center gap-1"><Users className="h-4 w-4 text-primary"/> الركاب</p>
-                    <ul className="list-disc pr-4 text-xs">
-                        {booking.passengersDetails.map((p, i) => <li key={i}>{p.name} ({p.type === 'adult' ? 'بالغ' : 'طفل'})</li>)}
-                    </ul>
-                </div>
-                
-                 <div className="p-3 bg-background rounded-lg border space-y-2">
-                    <p className="font-bold text-xs flex items-center gap-1"><CreditCard className="h-4 w-4 text-primary"/> التفاصيل المالية</p>
-                    <div className="space-y-1 text-xs">
-                        <div className="flex justify-between"><span>تاريخ الدفع:</span> <span className="font-bold">{format(new Date(booking.updatedAt || booking.createdAt!), 'd MMM yyyy', { locale: arSA })}</span></div>
-                        <div className="flex justify-between"><span>السعر الإجمالي:</span> <span className="font-bold">{booking.totalPrice.toFixed(2)} {booking.currency}</span></div>
-                        <div className="flex justify-between"><span>العربون المدفوع:</span> <span className="font-bold text-green-500">{depositAmount.toFixed(2)} {booking.currency}</span></div>
-                        <div className="flex justify-between"><span>المبلغ المتبقي:</span> <span className="font-bold">{remainingAmount.toFixed(2)} {booking.currency}</span></div>
-                    </div>
-                 </div>
-
-                 {trip.conditions && (
-                    <div className="p-3 bg-background rounded-lg border space-y-2">
-                        <p className="font-bold text-xs flex items-center gap-1"><ListFilter className="h-4 w-4 text-primary"/> شروط الناقل</p>
-                        <p className="text-xs whitespace-pre-wrap">{trip.conditions}</p>
-                    </div>
-                 )}
-            </CardContent>
-            <CardFooter className="grid grid-cols-2 gap-2 p-2">
-                 <Button variant="outline" size="sm" onClick={() => toast({title: "قيد الإنشاء"})} disabled>
-                    <Edit className="ml-2 h-4 w-4" />تعديل الطلب
-                 </Button>
-                 <Button variant="destructive" size="sm" onClick={() => toast({title: "سيتم تنفيذ هذا لاحقاً"})}>
-                    <XCircle className="ml-2 h-4 w-4" />إغلاق الرحلة
-                 </Button>
-            </CardFooter>
-        </Card>
-    )
-};
-
-
-const BookingPassengersScreen = ({ trip, onCancel, onConfirm }: { trip: Trip, onCancel: () => void, onConfirm: (passengers: any[]) => void }) => {
+const BookingPassengersScreen = ({ trip, seatCount, onCancel, onConfirm }: { trip: Trip, seatCount: number, onCancel: () => void, onConfirm: (passengers: any[]) => void }) => {
     // This is a placeholder component.
-    const [passengers, setPassengers] = useState([{ name: '', type: 'adult' }]);
+    const [passengers, setPassengers] = useState(() => Array.from({ length: seatCount }, () => ({ name: '', type: 'adult' })));
     const [isProcessing, setIsProcessing] = useState(false);
+
+    useEffect(() => {
+        setPassengers(Array.from({ length: seatCount }, () => ({ name: '', type: 'adult' })));
+    }, [seatCount]);
+
 
     const handleConfirm = () => {
         setIsProcessing(true);
@@ -301,12 +128,13 @@ const BookingPassengersScreen = ({ trip, onCancel, onConfirm }: { trip: Trip, on
     
     return (
         <div className="p-4 space-y-4 bg-background rounded-b-lg">
-            <h3 className="font-bold text-lg">إدخال بيانات الركاب</h3>
-            <div className="space-y-2">
-                <Label htmlFor="passenger1">اسم الراكب 1</Label>
-                <Input id="passenger1" placeholder="الاسم الكامل كما في الهوية" />
-            </div>
-             <p className="text-xs text-muted-foreground">محاكاة: أدخل بيانات الركاب هنا.</p>
+            <h3 className="font-bold text-lg">إدخال بيانات الركاب ({seatCount})</h3>
+            {passengers.map((p, index) => (
+                 <div key={index} className="space-y-2">
+                    <Label htmlFor={`passenger-${index}`}>اسم الراكب {index + 1}</Label>
+                    <Input id={`passenger-${index}`} placeholder="الاسم الكامل كما في الهوية" />
+                </div>
+            ))}
             <div className="flex justify-end gap-2 pt-4">
                 <Button variant="ghost" onClick={onCancel} disabled={isProcessing}>إلغاء</Button>
                 <Button onClick={handleConfirm} disabled={isProcessing}>
@@ -322,6 +150,9 @@ const BookingPassengersScreen = ({ trip, onCancel, onConfirm }: { trip: Trip, on
 // --- MAIN PAGE COMPONENT ---
 export default function HistoryPage() {
   const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   // Dialog states
   const [isBookingPaymentOpen, setIsBookingPaymentOpen] = useState(false);
   const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<{ trip: Trip, booking: Booking } | null>(null);
@@ -330,14 +161,17 @@ export default function HistoryPage() {
   
   // State for dynamic view switching inside accordion
   const [bookingState, setBookingState] = useState<{ tripId: string | null, view: 'details' | 'booking' }>({ tripId: null, view: 'details' });
-  
-  
+  const [seatCount, setSeatCount] = useState(1);
+
+  useEffect(() => {
+    const seats = searchParams.get('seats');
+    setSeatCount(seats ? parseInt(seats, 10) : 1);
+  }, [searchParams]);
+
   // --- MOCK DATA SIMULATION ---
   const allTripsAndBookings = useMemo(() => {
     // This combines all mock data into a format that can be filtered
     return [
-        // { ...mockPendingConfirmation, status: mockPendingConfirmation.booking.status },
-        // { ...mockPendingPayment, status: mockPendingPayment.booking.status },
         { ...mockConfirmed, status: mockConfirmed.booking.status },
     ];
   }, []);
@@ -419,6 +253,7 @@ export default function HistoryPage() {
                                 {bookingState.tripId === trip.id && bookingState.view === 'booking' ? (
                                     <BookingPassengersScreen 
                                         trip={trip}
+                                        seatCount={seatCount}
                                         onCancel={handleCancelBookingFlow}
                                         onConfirm={handleConfirmBookingFlow}
                                     />
@@ -438,8 +273,6 @@ export default function HistoryPage() {
                         key={item.booking.id} 
                         trip={item.trip} 
                         booking={item.booking}
-                        onMessageCarrier={handleMessageCarrier}
-                        toast={toast}
                     />
                 )) : <div className="text-center py-16 text-muted-foreground">لا توجد لديك تذاكر نشطة.</div>}
             </TabsContent>
@@ -469,3 +302,98 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
+
+const HeroTicket = ({ trip, booking }: { trip: Trip, booking: Booking}) => {
+    // MOCK CARRIER DATA
+    const carrierProfile: UserProfile = {
+        id: 'carrier3',
+        firstName: 'فوزي',
+        lastName: 'الناقل',
+        email: 'carrier@safar.com',
+        phoneNumber: '+962791234567'
+    };
+    
+    const depositAmount = (booking.totalPrice * ((trip.depositPercentage || 20) / 100));
+    const remainingAmount = booking.totalPrice - depositAmount;
+
+    return (
+        <Card className="bg-gradient-to-br from-card to-muted/50 shadow-lg border-accent">
+            <CardHeader>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <Badge variant="default" className="w-fit bg-accent text-accent-foreground mb-2">تذكرة مؤكدة</Badge>
+                        <CardTitle className="pt-1">{getCityName(trip.origin)} - {getCityName(trip.destination)}</CardTitle>
+                    </div>
+                    {/* Placeholder for future message button */}
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+                 <div className="p-3 bg-background rounded-lg border space-y-2">
+                    <p className="font-bold text-xs flex items-center gap-1"><UserCheck className="h-4 w-4 text-primary"/> بيانات الناقل</p>
+                    <div className="flex justify-between items-center text-xs">
+                        <span>اسم الناقل:</span>
+                        <span className="font-bold">{carrierProfile?.firstName || trip.carrierName}</span>
+                    </div>
+                     <div className="flex justify-between items-center text-xs">
+                        <span>رقم الهاتف:</span>
+                        {carrierProfile?.phoneNumber ? (
+                           <a href={`tel:${carrierProfile.phoneNumber}`} className="font-bold hover:underline">{carrierProfile.phoneNumber}</a>
+                        ) : <span className="font-bold">غير متوفر</span>}
+                    </div>
+                </div>
+
+                 <div className="p-3 bg-background rounded-lg border space-y-2">
+                    <p className="font-bold text-xs flex items-center gap-1"><MapPin className="h-4 w-4 text-primary"/> نقطة وتوقيت الانطلاق</p>
+                    <div className="text-xs">
+                         <div className="flex justify-between"><span>التاريخ:</span> <span className="font-bold">{format(new Date(trip.departureDate), 'd MMM yyyy', { locale: arSA })}</span></div>
+                         <div className="flex justify-between"><span>الوقت:</span> <span className="font-bold">{format(new Date(trip.departureDate), 'h:mm a', { locale: arSA })}</span></div>
+                         <div className="flex justify-between mt-1 pt-1 border-t"><span>المكان:</span> <span className="font-bold">{trip.meetingPoint}</span></div>
+                    </div>
+                    {trip.meetingPointLink && (
+                        <a href={trip.meetingPointLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 text-xs flex items-center gap-1 hover:underline">
+                            <LinkIcon className="h-3 w-3" />
+                            عرض على الخريطة
+                        </a>
+                    )}
+                </div>
+
+                 <div className="p-3 bg-background rounded-lg border space-y-2">
+                    <p className="font-bold text-xs flex items-center gap-1"><Car className="h-4 w-4 text-primary"/> تفاصيل المركبة</p>
+                     <div className="flex justify-between items-center text-xs">
+                        <span>نوع المركبة:</span>
+                        <span className="font-bold">{trip.vehicleType || 'غير محدد'}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                        <span>رقم اللوحة:</span>
+                        <span className="font-bold">{trip.vehiclePlateNumber || 'غير محدد'}</span>
+                    </div>
+                </div>
+                
+                 <div className="p-3 bg-background rounded-lg border space-y-2">
+                    <p className="font-bold text-xs flex items-center gap-1"><Users className="h-4 w-4 text-primary"/> الركاب</p>
+                    <ul className="list-disc pr-4 text-xs">
+                        {booking.passengersDetails.map((p, i) => <li key={i}>{p.name} ({p.type === 'adult' ? 'بالغ' : 'طفل'})</li>)}
+                    </ul>
+                </div>
+                
+                 <div className="p-3 bg-background rounded-lg border space-y-2">
+                    <p className="font-bold text-xs flex items-center gap-1"><CreditCard className="h-4 w-4 text-primary"/> التفاصيل المالية</p>
+                    <div className="space-y-1 text-xs">
+                        <div className="flex justify-between"><span>تاريخ الدفع:</span> <span className="font-bold">{format(new Date(booking.updatedAt || booking.createdAt!), 'd MMM yyyy', { locale: arSA })}</span></div>
+                        <div className="flex justify-between"><span>السعر الإجمالي:</span> <span className="font-bold">{booking.totalPrice.toFixed(2)} {booking.currency}</span></div>
+                        <div className="flex justify-between"><span>العربون المدفوع:</span> <span className="font-bold text-green-500">{depositAmount.toFixed(2)} {booking.currency}</span></div>
+                        <div className="flex justify-between"><span>المبلغ المتبقي:</span> <span className="font-bold">{remainingAmount.toFixed(2)} {booking.currency}</span></div>
+                    </div>
+                 </div>
+
+                 {trip.conditions && (
+                    <div className="p-3 bg-background rounded-lg border space-y-2">
+                        <p className="font-bold text-xs flex items-center gap-1"><ListFilter className="h-4 w-4 text-primary"/> شروط الناقل</p>
+                        <p className="text-xs whitespace-pre-wrap">{trip.conditions}</p>
+                    </div>
+                 )}
+            </CardContent>
+            {/* Footer can be added later if needed */}
+        </Card>
+    )
+};

@@ -275,8 +275,12 @@ export default function DashboardPage() {
             setIsAuthRedirectOpen(true);
             return;
         }
-        setSelectedTripForBooking(trip);
-        setIsBookingDialogOpen(true);
+        
+        // Pass the seat count to the history page via query params
+        router.push(`/history?seats=${searchSeats}`);
+
+        // Note: The actual booking dialog is now handled inside the history page
+        // to simplify state management. This just navigates.
     };
 
     const handleConfirmBooking = (passengers: PassengerDetails[]) => {
@@ -616,5 +620,3 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
-
-    
