@@ -160,7 +160,7 @@ export default function DashboardPage() {
   const [searchSeats, setSearchSeats] = useState(1);
   const [selectedCarrier, setSelectedCarrier] = useState<CarrierProfile | null>(null);
   const [searchVehicleType, setSearchVehicleType] = useState('all');
-  const [searchMode, setSearchMode] = useState<'specific-carrier' | 'all-carriers'>('all-carriers');
+  const [searchMode, setSearchMode] = useState<'all-carriers' | 'specific-carrier'>('all-carriers');
 
   const [openAccordion, setOpenAccordion] = useState<string[]>([]);
   
@@ -347,10 +347,10 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 gap-4">
 
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                     <Button variant={searchMode === 'all-carriers' ? 'outline' : 'default'} onClick={() => setSearchMode('specific-carrier')} className="w-full text-xs sm:text-sm">
+                     <Button variant={searchMode === 'specific-carrier' ? 'default' : 'outline'} onClick={() => setSearchMode('specific-carrier')} className="w-full text-xs sm:text-sm">
                         <UserSearch className="ml-2 h-4 w-4" /> ناقل محدد
                      </Button>
-                     <Button variant={searchMode === 'specific-carrier' ? 'outline' : 'default'} onClick={() => setSearchMode('all-carriers')} className="w-full text-xs sm:text-sm">
+                     <Button variant={searchMode === 'all-carriers' ? 'default' : 'outline'} onClick={() => setSearchMode('all-carriers')} className="w-full text-xs sm:text-sm">
                         <Globe className="ml-2 h-4 w-4" /> كل الناقلين
                      </Button>
                   </div>
