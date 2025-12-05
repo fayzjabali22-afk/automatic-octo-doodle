@@ -9,7 +9,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Offer, Booking, UserProfile } from '@/lib/data';
-import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, Edit, XCircle, Send, Loader2 } from 'lucide-react';
+import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, Edit, XCircle, Send, Loader2, ArrowRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
@@ -33,11 +33,11 @@ import { Input } from '@/components/ui/input';
 
 // 2. Awaiting Offers (Direct Request) -> Will show Hourglass - REMOVED FOR NOW
 
-// 3. Pending Carrier Confirmation -> Will show Hourglass
-const mockPendingConfirmation: { trip: Trip, booking: Booking } = {
-    trip: { id: 'trip_pending_1', userId: 'user1', carrierId: 'carrier2', carrierName: 'الناقل السريع', origin: 'damascus', destination: 'amman', departureDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), status: 'Pending-Carrier-Confirmation' },
-    booking: { id: 'booking_pending_1', tripId: 'trip_pending_1', userId: 'user1', carrierId: 'carrier2', seats: 1, passengersDetails: [{ name: 'Fayez Al-Harbi', type: 'adult' }], status: 'Pending-Carrier-Confirmation', totalPrice: 40, currency: 'JOD', createdAt: new Date().toISOString() }
-};
+// 3. Pending Carrier Confirmation -> Will be handled by state now
+// const mockPendingConfirmation: { trip: Trip, booking: Booking } = {
+//     trip: { id: 'trip_pending_1', userId: 'user1', carrierId: 'carrier2', carrierName: 'الناقل السريع', origin: 'damascus', destination: 'amman', departureDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), status: 'Pending-Carrier-Confirmation' },
+//     booking: { id: 'booking_pending_1', tripId: 'trip_pending_1', userId: 'user1', carrierId: 'carrier2', seats: 1, passengersDetails: [{ name: 'Fayez Al-Harbi', type: 'adult' }], status: 'Pending-Carrier-Confirmation', totalPrice: 40, currency: 'JOD', createdAt: new Date().toISOString() }
+// };
 
 // 4. Pending Payment -> Will show Invoice
 const mockPendingPayment: { trip: Trip, booking: Booking } = {
@@ -102,7 +102,7 @@ const processingTrips = [mockTripBaghdad, mockTripRiyadh];
 // Helper data
 const cities: { [key: string]: string } = {
     damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص', amman: 'عمّان', irbid: 'إربد', zarqa: 'الزرقاء',
-    riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', cairo: 'القاهرة', alexandria: 'الاسكندرية', giza: 'الجيزة',
+    riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', cairo: 'القاهرة', alexandria: 'الاسكندرية', giza: 'الجيزة', baghdad: 'بغداد'
 };
 const getCityName = (key: string) => cities[key] || key;
 
@@ -146,6 +146,31 @@ const BookingPassengersScreen = ({ trip, seatCount, onCancel, onConfirm }: { tri
     )
 };
 
+const PendingConfirmationCard = ({ booking, trip }: { booking: Booking, trip: Trip }) => {
+    return (
+        <Card className="border-yellow-500 border-2 bg-yellow-500/5">
+            <CardHeader>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle className="text-lg">{getCityName(trip.origin)} - {getCityName(trip.destination)}</CardTitle>
+                        <CardDescription>مع الناقل: {trip.carrierName}</CardDescription>
+                    </div>
+                     <Badge variant="outline" className="flex items-center gap-2 bg-yellow-100 text-yellow-800 border-yellow-300">
+                        <Hourglass className="h-4 w-4 animate-spin" />
+                        بانتظار موافقة الناقل
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div className="text-sm space-y-1">
+                    <p><strong>عدد المقاعد:</strong> {booking.seats}</p>
+                    <p><strong>السعر الإجمالي:</strong> {booking.totalPrice.toFixed(2)} {booking.currency}</p>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
 
 // --- MAIN PAGE COMPONENT ---
 export default function HistoryPage() {
@@ -162,6 +187,10 @@ export default function HistoryPage() {
   // State for dynamic view switching inside accordion
   const [bookingState, setBookingState] = useState<{ tripId: string | null, view: 'details' | 'booking' }>({ tripId: null, view: 'details' });
   const [seatCount, setSeatCount] = useState(1);
+  
+  // --- STATE FOR MOCK BOOKING LIFECYCLE ---
+  const [pendingConfirmationBookings, setPendingConfirmationBookings] = useState<{booking: Booking, trip: Trip}[]>([]);
+
 
   useEffect(() => {
     const seats = searchParams.get('seats');
@@ -170,7 +199,6 @@ export default function HistoryPage() {
 
   // --- MOCK DATA SIMULATION ---
   const allTripsAndBookings = useMemo(() => {
-    // This combines all mock data into a format that can be filtered
     return [
         { ...mockConfirmed, status: mockConfirmed.booking.status },
     ];
@@ -178,7 +206,6 @@ export default function HistoryPage() {
 
   const { ticketItems } = useMemo(() => {
       const tickets: any[] = [];
-
       allTripsAndBookings.forEach(item => {
           const status = item.status;
           if (status === 'Confirmed') {
@@ -216,10 +243,30 @@ export default function HistoryPage() {
   }
 
   const handleConfirmBookingFlow = (passengers: any[]) => {
+      // ** LIVE SIMULATION LOGIC **
+      const currentTrip = processingTrips.find(t => t.id === bookingState.tripId);
+      if (!currentTrip) return;
+
+      const newBooking: Booking = {
+        id: `booking_mock_${Date.now()}`,
+        tripId: currentTrip.id,
+        userId: 'current_user_mock',
+        carrierId: currentTrip.carrierId!,
+        seats: seatCount,
+        passengersDetails: passengers,
+        status: 'Pending-Carrier-Confirmation',
+        totalPrice: (currentTrip.price || 0) * seatCount,
+        currency: 'JOD',
+        createdAt: new Date().toISOString(),
+      };
+      
+      setPendingConfirmationBookings(prev => [...prev, { booking: newBooking, trip: currentTrip }]);
+      
       toast({
-        title: "محاكاة: تم إرسال طلب الحجز",
-        description: "سيتم إعلامك عند موافقة الناقل.",
+        title: "محاكاة: تم إرسال طلب الحجز للناقل",
+        description: "سيظهر طلبك في الأعلى بانتظار موافقة الناقل.",
       });
+      
       setBookingState({ tripId: null, view: 'details' });
   }
 
@@ -240,31 +287,46 @@ export default function HistoryPage() {
                 <TabsTrigger value="tickets"><Ticket className="ml-2 h-4 w-4" />تذاكري النشطة ({ticketItems.length})</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="processing" className="mt-6 space-y-4">
-                <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-1">
-                    {processingTrips.map(trip => (
-                       <AccordionItem key={trip.id} value={trip.id} className="border-none">
-                           <Card className="border-accent">
-                             <AccordionTrigger className="p-4 text-md hover:no-underline font-bold flex justify-between w-full">
-                                <span className="text-right">{getCityName(trip.origin)} - {getCityName(trip.destination)}</span>
-                                <span className="text-base text-muted-foreground font-semibold text-left">السعر المعروض: {trip.price} {trip.currency}</span>
-                             </AccordionTrigger>
-                             <AccordionContent className="p-0">
-                                {bookingState.tripId === trip.id && bookingState.view === 'booking' ? (
-                                    <BookingPassengersScreen 
-                                        trip={trip}
-                                        seatCount={seatCount}
-                                        onCancel={handleCancelBookingFlow}
-                                        onConfirm={handleConfirmBookingFlow}
-                                    />
-                                ) : (
-                                    <ScheduledTripCard trip={trip} onBookNow={() => handleBookNow(trip)} context="dashboard" />
-                                )}
-                             </AccordionContent>
-                           </Card>
-                        </AccordionItem>
-                    ))}
-                </Accordion>
+            <TabsContent value="processing" className="mt-6 space-y-6">
+                {/* Section for bookings awaiting carrier confirmation */}
+                {pendingConfirmationBookings.length > 0 && (
+                    <div className="space-y-4">
+                        <h3 className="font-bold text-lg">طلبات بانتظار الموافقة</h3>
+                        {pendingConfirmationBookings.map(item => (
+                            <PendingConfirmationCard key={item.booking.id} booking={item.booking} trip={item.trip} />
+                        ))}
+                    </div>
+                )}
+
+
+                {/* Section for browsing and booking available trips */}
+                <div className="space-y-4">
+                     <h3 className="font-bold text-lg">رحلات مجدولة متاحة للحجز</h3>
+                     <Accordion type="single" collapsible className="w-full space-y-4">
+                        {processingTrips.map(trip => (
+                           <AccordionItem key={trip.id} value={trip.id} className="border-none">
+                               <Card className="border-accent">
+                                 <AccordionTrigger className="p-4 text-md hover:no-underline font-bold flex justify-between w-full">
+                                    <span className="text-right">{getCityName(trip.origin)} <ArrowRight className="inline h-4 w-4"/> {getCityName(trip.destination)}</span>
+                                    <span className="text-base text-muted-foreground font-semibold text-left">السعر المعروض: {trip.price} {trip.currency}</span>
+                                 </AccordionTrigger>
+                                 <AccordionContent className="p-0">
+                                    {bookingState.tripId === trip.id && bookingState.view === 'booking' ? (
+                                        <BookingPassengersScreen 
+                                            trip={trip}
+                                            seatCount={seatCount}
+                                            onCancel={handleCancelBookingFlow}
+                                            onConfirm={handleConfirmBookingFlow}
+                                        />
+                                    ) : (
+                                        <ScheduledTripCard trip={trip} onBookNow={() => handleBookNow(trip)} context="dashboard" />
+                                    )}
+                                 </AccordionContent>
+                               </Card>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+                </div>
             </TabsContent>
 
             <TabsContent value="tickets" className="mt-6 space-y-4">
