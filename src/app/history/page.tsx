@@ -166,7 +166,12 @@ const HeroTicket = ({ trip, booking, onCancelBooking, onMessageCarrier }: { trip
                     </div>
                      <div className="p-3 bg-background rounded-md">
                         <div className="font-bold text-xs text-muted-foreground">بيانات الناقل</div>
-                        <div className="flex items-center gap-2"><Phone className="h-3 w-3" /> {carrierProfile?.phoneNumber || 'غير متوفر'}</div>
+                         <div className="flex items-center gap-2">
+                             <Phone className="h-3 w-3" />
+                             {carrierProfile?.phoneNumber ? (
+                                <a href={`tel:${carrierProfile.phoneNumber}`} className="hover:underline">{carrierProfile.phoneNumber}</a>
+                             ) : 'غير متوفر'}
+                         </div>
                     </div>
                 </div>
 
@@ -375,5 +380,3 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
-
-    
