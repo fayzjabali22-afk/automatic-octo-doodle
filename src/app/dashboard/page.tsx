@@ -408,13 +408,13 @@ export default function DashboardPage() {
                           onValueChange={setSearchVehicleType}
                           className="grid grid-cols-3 gap-2 pt-1"
                         >
-                          <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-black has-[:checked]:text-white transition-all">
+                          <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-primary-foreground transition-all">
                             <RadioGroupItem value="any" className="sr-only" /><span>المتوفر</span>
                           </Label>
-                          <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-black has-[:checked]:text-white transition-all">
+                          <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-primary-foreground transition-all">
                             <RadioGroupItem value="small" className="sr-only" /><span>مركبة صغيرة</span>
                           </Label>
-                          <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-black has-[:checked]:text-white transition-all">
+                          <Label className="border rounded-md p-2 text-center text-sm font-semibold cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-primary-foreground transition-all">
                             <RadioGroupItem value="bus" className="sr-only" /><span>حافلة</span>
                           </Label>
                       </RadioGroup>
@@ -573,7 +573,10 @@ export default function DashboardPage() {
                 )}
                  {searchMode === 'all-carriers' && !tripDisplayResult.showNoResultsMessage && (
                     <div className="mt-8 text-center">
-                        <Button onClick={handleRequestAction} variant="secondary">
+                        <Button
+                            onClick={handleRequestAction}
+                            className="bg-accent text-black hover:bg-accent/90 border border-white/50"
+                        >
                             <Send className="ml-2 h-4 w-4" />
                             لم تجد ما تبحث عنه؟ أرسل طلباً إلى السوق العام
                         </Button>
@@ -613,3 +616,5 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
+
+    
