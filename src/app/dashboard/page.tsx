@@ -35,7 +35,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils"
-import { format } from "date-fns"
+import { format, isFuture } from "date-fns"
 import { useCollection, useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { AuthRedirectDialog } from '@/components/auth-redirect-dialog';
@@ -65,6 +65,7 @@ const mockScheduledTrips: Trip[] = [
         availableSeats: 3,
         depositPercentage: 15,
         vehicleType: 'GMC Yukon 2023',
+        vehicleCategory: 'small',
         vehicleImageUrls: ['https://i.postimg.cc/kXqJ80b4/gmc-yukon.jpg']
     },
     {
@@ -81,6 +82,7 @@ const mockScheduledTrips: Trip[] = [
         availableSeats: 4,
         depositPercentage: 10,
         vehicleType: 'Hyundai Staria 2024',
+        vehicleCategory: 'small',
         vehicleImageUrls: ['https://i.postimg.cc/tJ095xJc/hyundai-staria.jpg']
     },
     {
@@ -97,13 +99,32 @@ const mockScheduledTrips: Trip[] = [
         availableSeats: 2,
         depositPercentage: 20,
         vehicleType: 'GMC Yukon 2023',
+        vehicleCategory: 'small',
         vehicleImageUrls: ['https://i.postimg.cc/kXqJ80b4/gmc-yukon.jpg']
+    },
+     {
+        id: 'mock_scheduled_4',
+        userId: 'carrier_user_3',
+        carrierId: 'carrier_user_3',
+        carrierName: 'ملوك الطريق',
+        origin: 'amman',
+        destination: 'riyadh',
+        departureDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'Planned',
+        price: 120,
+        currency: 'JOD',
+        availableSeats: 1,
+        depositPercentage: 20,
+        vehicleType: 'باص مرسيدس 50 راكب',
+        vehicleCategory: 'bus',
+        vehicleImageUrls: ['https://i.postimg.cc/NMyT3T3R/mercedes-bus.jpg']
     },
 ];
 
 const mockCarriers: CarrierProfile[] = [
     { id: "carrier_user_1", name: "النقل السريع", contactEmail: "a@b.c" },
     { id: "carrier_user_2", name: "راحة الطريق", contactEmail: "d@e.f" },
+    { id: "carrier_user_3", name: "ملوك الطريق", contactEmail: "g@h.i" },
 ];
 
 // Mock data for countries and cities
@@ -195,12 +216,16 @@ export default function DashboardPage() {
       if (!selectedCarrier) {
         return { filtered: {}, alternatives: {}, hasFilteredResults: false, hasAlternativeResults: false, showNoResultsMessage: false };
       }
-      baseTrips = baseTrips.filter(trip => trip.carrierId === selectedCarrier.id);
+      baseTrips = baseTrips.filter(trip => trip.carrierId === selectedCarrier.id && isFuture(new Date(trip.departureDate)));
       isSearching = true; // In this mode, we are always "searching" the carrier's schedule
     } else { // 'all-carriers' mode
+      baseTrips = baseTrips.filter(trip => isFuture(new Date(trip.departureDate)));
+       if (searchVehicleType !== 'all') {
+        baseTrips = baseTrips.filter(trip => (trip.vehicleCategory || 'small') === searchVehicleType);
+      }
       isSearching = !!(searchOriginCity || searchDestinationCity || date);
       if (!isSearching) {
-         return { filtered: {}, alternatives: {}, hasFilteredResults: false, hasAlternativeResults: false, showNoResultsMessage: false };
+         return { filtered: groupTrips(baseTrips), alternatives: {}, hasFilteredResults: baseTrips.length > 0, hasAlternativeResults: false, showNoResultsMessage: false };
       }
     }
 
@@ -209,17 +234,15 @@ export default function DashboardPage() {
     if (searchDestinationCity) filteredTrips = filteredTrips.filter(trip => trip.destination === searchDestinationCity);
     if (searchSeats > 0) filteredTrips = filteredTrips.filter(trip => (trip.availableSeats || 0) >= searchSeats);
     if (date) filteredTrips = filteredTrips.filter(trip => new Date(trip.departureDate).toDateString() === date.toDateString());
-    if (searchMode === 'all-carriers' && searchVehicleType !== 'all') {
-      filteredTrips = filteredTrips.filter(trip => (trip.vehicleCategory || 'small') === searchVehicleType);
-    }
     
     const groupedFiltered = groupTrips(filteredTrips);
     const hasFilteredResults = filteredTrips.length > 0;
 
     let alternativeTrips: Trip[] = [];
-    // ** OPPORTUNITY ALGORITHM: Show alternatives if a filter is applied and it returns no results **
     if (isSearching && !hasFilteredResults) {
-      alternativeTrips = baseTrips.filter(trip => !filteredTrips.includes(trip));
+      alternativeTrips = baseTrips.filter(trip => 
+        !filteredTrips.some(filteredTrip => filteredTrip.id === trip.id)
+      );
     }
     
     const groupedAlternatives = groupTrips(alternativeTrips);
@@ -521,7 +544,9 @@ export default function DashboardPage() {
                   <div className="space-y-8">
                       {tripDisplayResult.hasFilteredResults && (
                         <div>
-                          <h2 className="text-2xl font-bold mb-4">الرحلات المطابقة لبحثك</h2>
+                          <h2 className="text-2xl font-bold mb-4">
+                            {searchMode === 'specific-carrier' && selectedCarrier ? `جدول رحلات ${selectedCarrier.name}` : 'الرحلات المطابقة لبحثك'}
+                          </h2>
                           {renderTripGroup(tripDisplayResult.filtered)}
                         </div>
                       )}
@@ -573,6 +598,7 @@ export default function DashboardPage() {
             passengers: searchSeats,
             requestType: searchMode === 'specific-carrier' ? 'Direct' : 'General',
             targetCarrierId: selectedCarrier?.id,
+            preferredVehicle: searchVehicleType as 'any' | 'small' | 'bus',
         }}
         onSuccess={handleRequestSent}
       />
