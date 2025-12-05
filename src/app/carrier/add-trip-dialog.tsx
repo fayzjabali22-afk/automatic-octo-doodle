@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { collection, serverTimestamp } from 'firebase/firestore';
-import { Loader2, CalendarIcon, Send, Clock, PlaneTakeoff, PlaneLanding, Settings, ListChecks, MapPin } from 'lucide-react';
+import { Loader2, CalendarIcon, Send, Clock, PlaneTakeoff, PlaneLanding, Settings, ListChecks, MapPin, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from "date-fns";
 import { Label } from '@/components/ui/label';
@@ -179,7 +179,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>تأسيس رحلة مجدولة جديدة</DialogTitle>
           <DialogDescription>
@@ -187,10 +187,10 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             
-            <Card className="bg-secondary/50 border-accent/20">
-              <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Card className="bg-muted/30 border-accent/20">
+              <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className='space-y-2'>
                       <Label className='flex items-center gap-2 font-bold text-accent'><PlaneTakeoff className='h-4 w-4' /> من</Label>
                        <Select onValueChange={setOriginCountry}>
@@ -251,7 +251,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                 <AccordionTrigger className="p-4 font-semibold text-sm hover:no-underline">
                     <div className='flex items-center gap-2'>
                         <Settings className='h-4 w-4'/>
-                        بقية التفاصيل
+                        التفاصيل التشغيلية
                     </div>
                 </AccordionTrigger>
                 <AccordionContent className="p-4 pt-0 space-y-4">
@@ -286,101 +286,98 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                      )}/>
                   </div>
                   
-                   <div className="grid grid-cols-1 gap-4">
-                     <FormField control={form.control} name="meetingPoint" render={({ field }) => (<FormItem><FormLabel className='flex items-center gap-1'><MapPin className="h-4 w-4"/>نقطة التجمع (العنوان)</FormLabel><FormControl><Input className="bg-card" placeholder="مثال: العبدلي - بجانب جت" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <FormField control={form.control} name="meetingPoint" render={({ field }) => (<FormItem><FormLabel className='flex items-center gap-1'><MapPin className="h-4 w-4"/>نقطة التجمع</FormLabel><FormControl><Input className="bg-card" placeholder="مثال: العبدلي - بجانب جت" {...field} /></FormControl><FormMessage /></FormItem>)} />
                      <FormField control={form.control} name="meetingPointLink" render={({ field }) => (<FormItem><FormLabel>رابط الموقع (اختياري)</FormLabel><FormControl><Input className="bg-card" dir="ltr" placeholder="https://maps.app.goo.gl/..." {...field} /></FormControl><FormMessage /></FormItem>)} />
                    </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FormField control={form.control} name="price" render={({ field }) => (
-                          <FormItem>
-                              <FormLabel>سعر المقعد</FormLabel>
-                              <FormControl><Input className="bg-card" type="number" placeholder="e.g., 50" {...field} /></FormControl>
-                              <FormMessage />
-                          </FormItem>
-                      )}/>
-                       <FormField control={form.control} name="currency" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>العملة (نص)</FormLabel>
-                             <FormControl><Input className="bg-card" placeholder="د.أ، SAR، USD..." {...field} maxLength={10} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}/>
-                  </div>
+                  
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FormField control={form.control} name="availableSeats" render={({ field }) => (
+                        <FormField control={form.control} name="availableSeats" render={({ field }) => (
                           <FormItem>
                               <FormLabel>عدد المقاعد المتاحة</FormLabel>
                               <FormControl><Input className="bg-card" type="number" placeholder="e.g., 4" {...field} /></FormControl>
                               <FormMessage />
                           </FormItem>
-                      )}/>
-                        <FormField
-                            control={form.control}
-                            name="durationHours"
-                            render={({ field }) => (
+                        )}/>
+                        <FormField control={form.control} name="durationHours" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="flex items-center gap-1">
-                                <Clock className="h-4 w-4 text-muted-foreground"/>
-                                مدة الرحلة (بالساعات)
-                                </FormLabel>
-                                <FormControl>
-                                <Input className="bg-card" type="number" placeholder="e.g., 8" {...field} />
-                                </FormControl>
+                                <FormLabel className="flex items-center gap-1"><Clock className="h-4 w-4 text-muted-foreground"/>مدة الرحلة (ساعة)</FormLabel>
+                                <FormControl><Input className="bg-card" type="number" placeholder="e.g., 8" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
-                            )}
-                        />
+                        )}/>
                    </div>
-
-                  <FormField
-                      control={form.control}
-                      name="depositPercentage"
-                      render={({ field }) => (
-                          <FormItem>
-                            <div className="flex justify-between items-center mb-2">
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+            
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="financials" className="border rounded-lg bg-muted/30">
+                 <AccordionTrigger className="p-4 font-semibold text-sm hover:no-underline">
+                    <div className='flex items-center gap-2'>
+                        <Wallet className='h-4 w-4'/>
+                        التفاصيل المالية
+                    </div>
+                </AccordionTrigger>
+                 <AccordionContent className="p-4 pt-0 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <FormField control={form.control} name="price" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>سعر المقعد</FormLabel>
+                                <FormControl><Input className="bg-card" type="number" placeholder="e.g., 50" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="currency" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>العملة</FormLabel>
+                                <FormControl><Input className="bg-card" placeholder="د.أ، SAR..." {...field} maxLength={10} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="depositPercentage" render={({ field }) => (
+                            <FormItem>
                                 <FormLabel>نسبة العربون</FormLabel>
-                                <span className="text-sm font-bold text-primary">قيمة العربون: {depositAmount} {form.watch('currency')}</span>
+                                <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={String(field.value)}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="اختر نسبة" /></SelectTrigger></FormControl>
+                                    <SelectContent>{[0, 5, 10, 15, 20, 25].map(p => <SelectItem key={p} value={String(p)}>{p}%</SelectItem>)}</SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                    </div>
+                    <div className="p-2 bg-background/50 border rounded-md text-center text-sm font-bold text-primary">
+                        قيمة العربون للمقعد الواحد: {depositAmount} {form.watch('currency')}
+                    </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+            
+             <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="conditions" className="border rounded-lg bg-muted/30">
+                 <AccordionTrigger className="p-4 font-semibold text-sm hover:no-underline">
+                    <div className='flex items-center gap-2'>
+                        <ListChecks className='h-4 w-4'/>
+                        الشروط والأحكام (اختياري)
+                    </div>
+                </AccordionTrigger>
+                 <AccordionContent className="p-4 pt-0">
+                     <FormField control={form.control} name="conditions" render={({ field }) => (
+                        <FormItem>
+                            <FormControl>
+                                <Textarea
+                                    placeholder="مثال: ممنوع التدخين، حقيبة واحدة فقط لكل راكب..."
+                                    className="resize-none bg-card"
+                                    {...field}
+                                    maxLength={200}
+                                />
+                            </FormControl>
+                            <div className="text-xs text-muted-foreground text-left pt-1">
+                                {conditionsValue?.length || 0}/200
                             </div>
-                            <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={String(field.value)}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="اختر نسبة العربون" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {[0, 5, 10, 15, 20, 25].map(p => <SelectItem key={p} value={String(p)}>{p}%</SelectItem>)}
-                                </SelectContent>
-                            </Select>
                             <FormMessage />
-                          </FormItem>
-                      )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="conditions"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1">
-                            <ListChecks className="h-4 w-4 text-muted-foreground" />
-                            شروط الرحلة (اختياري)
-                        </FormLabel>
-                        <FormControl>
-                            <Textarea
-                                placeholder="مثال: ممنوع التدخين، حقيبة واحدة فقط لكل راكب..."
-                                className="resize-none bg-card"
-                                {...field}
-                                maxLength={200}
-                            />
-                        </FormControl>
-                        <div className="text-xs text-muted-foreground text-left">
-                            {conditionsValue?.length || 0}/200
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        </FormItem>
+                     )}/>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

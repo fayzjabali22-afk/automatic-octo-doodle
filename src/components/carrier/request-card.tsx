@@ -53,15 +53,17 @@ export function RequestCard({ tripRequest, onOffer, isMock = false }: RequestCar
         )}>
             <div className="flex-1 mb-4 sm:mb-0">
                 
-                {isDirectRequest && (
-                    <Badge variant="default" className="mb-2">
-                        <UserCheck className="ml-1 h-3 w-3" />
-                        موجه لك خصيصاً
-                    </Badge>
-                )}
-                {isMock && !isDirectRequest && (
-                     <Badge variant="destructive" className="mb-2">محاكاة</Badge>
-                )}
+                <div className="flex items-center gap-2">
+                    {isDirectRequest && (
+                        <Badge variant="default" className="mb-2">
+                            <UserCheck className="ml-1 h-3 w-3" />
+                            موجه لك خصيصاً
+                        </Badge>
+                    )}
+                    {isMock && (
+                        <Badge variant="destructive" className="mb-2">محاكاة</Badge>
+                    )}
+                </div>
                 
                 {/* Destination */}
                 <div className="flex items-center gap-2 font-bold text-lg text-foreground">

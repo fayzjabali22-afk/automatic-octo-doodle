@@ -28,6 +28,7 @@ import type { Trip } from '@/lib/data';
 import { Loader2, Send, Sparkles, ListChecks } from 'lucide-react';
 import React from 'react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 const offerFormSchema = z.object({
   price: z.coerce.number().positive('يجب أن يكون السعر رقماً موجباً'),
@@ -52,6 +53,7 @@ interface OfferDialogProps {
 export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggestingPrice, onSuggestPrice }: OfferDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { profile } = useUserProfile();
 
   const form = useForm<OfferFormValues>({
     resolver: zodResolver(offerFormSchema),
@@ -81,6 +83,12 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
         form.setValue('price', suggestion.price);
     }
   }, [suggestion, form]);
+
+  useEffect(() => {
+    if (profile?.vehicleType) {
+        form.setValue('vehicleType', profile.vehicleType);
+    }
+  }, [profile, form, isOpen]);
 
   const onSubmit = async (data: OfferFormValues) => {
     setIsSubmitting(true);
@@ -127,9 +135,9 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
                     name="currency"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>العملة (نص)</FormLabel>
+                        <FormLabel>العملة</FormLabel>
                         <FormControl>
-                           <Input placeholder="د.أ، SAR، USD..." {...field} maxLength={10} />
+                           <Input placeholder="د.أ، SAR..." {...field} maxLength={10} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
