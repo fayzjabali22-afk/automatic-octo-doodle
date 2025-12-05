@@ -408,18 +408,18 @@ export default function DashboardPage() {
                           className="flex items-center gap-4"
                           onValueChange={setSearchVehicleType}
                         >
-                          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                          <Label htmlFor="r-all" className="flex items-center space-x-2 rtl:space-x-reverse border-2 border-transparent rounded-full p-2 px-4 cursor-pointer transition-all has-[:checked]:border-accent has-[:checked]:bg-accent/10">
                             <RadioGroupItem value="all" id="r-all" />
-                            <Label htmlFor="r-all" className="mr-2">المتوفر</Label>
-                          </div>
-                          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                            <span>المتوفر</span>
+                          </Label>
+                          <Label htmlFor="r-small" className="flex items-center space-x-2 rtl:space-x-reverse border-2 border-transparent rounded-full p-2 px-4 cursor-pointer transition-all has-[:checked]:border-accent has-[:checked]:bg-accent/10">
                             <RadioGroupItem value="small" id="r-small" />
-                            <Label htmlFor="r-small" className="mr-2">مركبة صغيرة</Label>
-                          </div>
-                          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                            <span>مركبة صغيرة</span>
+                          </Label>
+                          <Label htmlFor="r-bus" className="flex items-center space-x-2 rtl:space-x-reverse border-2 border-transparent rounded-full p-2 px-4 cursor-pointer transition-all has-[:checked]:border-accent has-[:checked]:bg-accent/10">
                             <RadioGroupItem value="bus" id="r-bus" />
-                            <Label htmlFor="r-bus" className="mr-2">حافلة</Label>
-                          </div>
+                            <span>حافلة</span>
+                          </Label>
                         </RadioGroup>
                       </div>
                        <div className="border-t border-blue-500/30 my-2"></div>
