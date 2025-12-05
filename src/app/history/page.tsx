@@ -9,7 +9,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Offer, Booking, UserProfile } from '@/lib/data';
-import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Archive, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, Edit, XCircle } from 'lucide-react';
+import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, Edit, XCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
@@ -323,19 +323,15 @@ export default function HistoryPage() {
             </TabsList>
 
             <TabsContent value="processing" className="mt-6 space-y-4">
-                {/* DUMMY ACCORDIONS FOR SURGERY */}
                 <Accordion type="single" collapsible className="w-full space-y-4">
                     <AccordionItem value="item-1" className="border-none">
                        <Card className="border-accent">
-                         <AccordionTrigger className="p-4 text-md hover:no-underline font-bold">
-                            <div className="flex items-center gap-2">
-                                <span>عمان - بغداد</span>
-                                <Badge variant="outline">بانتظار العروض</Badge>
-                            </div>
+                         <AccordionTrigger className="p-4 text-md hover:no-underline font-bold flex justify-between w-full">
+                            <span>عمان - بغداد</span>
+                            <span className="text-base text-muted-foreground font-semibold">السعر المعروض: 25 دينار</span>
                          </AccordionTrigger>
                          <AccordionContent className="p-4 pt-0">
                             <div className="text-sm text-muted-foreground space-y-2">
-                                <p>السعر المستهدف: 25 دينار</p>
                                 <p>نسبة العربون المقترحة: 15%</p>
                                 <Button size="sm" className="mt-2 w-full">استعراض العروض (0)</Button>
                             </div>
@@ -344,15 +340,12 @@ export default function HistoryPage() {
                     </AccordionItem>
                     <AccordionItem value="item-2" className="border-none">
                          <Card className="border-accent">
-                             <AccordionTrigger className="p-4 text-md hover:no-underline font-bold">
-                                <div className="flex items-center gap-2">
-                                    <span>عمان - الرياض</span>
-                                    <Badge variant="outline">بانتظار العروض</Badge>
-                                </div>
+                             <AccordionTrigger className="p-4 text-md hover:no-underline font-bold flex justify-between w-full">
+                                <span>عمان - الرياض</span>
+                                <span className="text-base text-muted-foreground font-semibold">السعر المعروض: 40 دينار</span>
                              </AccordionTrigger>
                              <AccordionContent className="p-4 pt-0">
                                 <div className="text-sm text-muted-foreground space-y-2">
-                                    <p>السعر المستهدف: 40 دينار</p>
                                     <p>نسبة العربون المقترحة: 25%</p>
                                     <Button size="sm" className="mt-2 w-full">استعراض العروض (0)</Button>
                                 </div>
