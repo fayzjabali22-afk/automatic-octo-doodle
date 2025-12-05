@@ -65,7 +65,8 @@ const mockConfirmed: { trip: Trip, booking: Booking } = {
         meetingPoint: "مطار القاهرة الدولي - صالة 3",
         meetingPointLink: "https://maps.app.goo.gl/12345",
         conditions: "حقيبة واحدة لكل راكب. ممنوع التدخين.",
-        vehicleType: "GMC Yukon 2024"
+        vehicleType: "GMC Yukon 2024",
+        vehiclePlateNumber: "123-ABC"
     },
     booking: { id: 'booking_confirmed_1', tripId: 'trip_confirmed_1', userId: 'user1', carrierId: 'carrier3', seats: 2, passengersDetails: [{ name: 'حسن علي', type: 'adult' }, { name: 'علي حسن', type: 'child' }], status: 'Confirmed', totalPrice: 180, currency: 'USD', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString() }
 };
@@ -183,6 +184,7 @@ const HeroTicket = ({ trip, booking, onCancelBooking, onMessageCarrier }: { trip
                  <div className="p-3 bg-background rounded-lg border space-y-2">
                     <p className="font-bold text-xs flex items-center gap-1"><Car className="h-4 w-4 text-primary"/> تفاصيل المركبة</p>
                     <p>نوع المركبة: {trip.vehicleType || 'غير محدد'}</p>
+                    <p>رقم اللوحة: {trip.vehiclePlateNumber || 'غير محدد'}</p>
                 </div>
                 
                  <div className="p-3 bg-background rounded-lg border space-y-2">
@@ -373,3 +375,5 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
+
+    

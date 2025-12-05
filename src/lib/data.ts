@@ -13,6 +13,7 @@ export type UserProfile = {
   vehicleType?: string;
   vehicleModel?: string;
   vehicleYear?: string;
+  vehiclePlateNumber?: string;
   vehicleCapacity?: number;
   vehicleImageUrls?: string[]; // UPDATED: Array for vehicle images
   primaryRoute?: {
@@ -37,6 +38,7 @@ export type CarrierProfile = {
   averageRating?: number;
   photoURL?: string;
   vehicleType?: string;
+  vehiclePlateNumber?: string;
   vehicleCategory?: 'small' | 'bus';
   vehicleCapacity?: number;
   vehicleImageUrls?: string[]; // UPDATED: Array for vehicle images
@@ -56,7 +58,7 @@ export type Trip = {
   departureDate: string;
   arrivalDate?: string;
   estimatedDurationHours?: number;
-  status: 'Planned' | 'In-Transit' | 'Completed' | 'Cancelled' | 'Awaiting-Offers' | 'Pending-Carrier-Confirmation';
+  status: 'Planned' | 'In-Transit' | 'Completed' | 'Cancelled' | 'Awaiting-Offers' | 'Pending-Carrier-Confirmation' | 'Pending-Payment';
   cargoDetails?: string;
   passengers?: number;
   passengersDetails?: { name: string; type: 'adult' | 'child' }[]; // For trip requests
@@ -71,6 +73,7 @@ export type Trip = {
   durationHours?: number; // Added field for trip duration
   conditions?: string; // Carrier's conditions for the trip
   vehicleType?: string; // Denormalized from CarrierProfile
+  vehiclePlateNumber?: string; // Denormalized from CarrierProfile
   vehicleImageUrls?: string[]; // Denormalized for quick access
   meetingPoint?: string; // Precise meeting point address
   meetingPointLink?: string; // Optional Google Maps link for the meeting point
@@ -160,3 +163,5 @@ export type Message = {
   content: string;
   timestamp: string;
 };
+
+    

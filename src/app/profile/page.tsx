@@ -54,6 +54,7 @@ const profileFormSchema = z.object({
   vehicleType: z.string().optional(),
   vehicleModel: z.string().optional(),
   vehicleYear: z.string().optional(),
+  vehiclePlateNumber: z.string().optional(),
   vehicleCapacity: z.coerce.number().int().optional(),
   vehicleImageUrls: z.array(z.string().url('الرجاء إدخال رابط صورة صالح').or(z.literal(''))).max(2).optional(),
   primaryRoute: z.object({
@@ -92,6 +93,7 @@ export default function ProfilePage() {
       vehicleType: '',
       vehicleModel: '',
       vehicleYear: '',
+      vehiclePlateNumber: '',
       vehicleCapacity: 0,
       vehicleImageUrls: ['', ''],
       primaryRoute: { origin: '', destination: '' },
@@ -111,6 +113,7 @@ export default function ProfilePage() {
         vehicleType: profile.vehicleType || '',
         vehicleModel: profile.vehicleModel || '',
         vehicleYear: profile.vehicleYear || '',
+        vehiclePlateNumber: profile.vehiclePlateNumber || '',
         vehicleCapacity: profile.vehicleCapacity || 0,
         vehicleImageUrls: profile.vehicleImageUrls && profile.vehicleImageUrls.length > 0 ? (profile.vehicleImageUrls.length > 1 ? profile.vehicleImageUrls : [profile.vehicleImageUrls[0], '']) : ['', ''],
         primaryRoute: profile.primaryRoute || { origin: '', destination: '' },
@@ -151,6 +154,7 @@ export default function ProfilePage() {
       delete dataToSave.vehicleType;
       delete dataToSave.vehicleModel;
       delete dataToSave.vehicleYear;
+      delete dataToSave.vehiclePlateNumber;
       delete dataToSave.vehicleCapacity;
       delete dataToSave.vehicleImageUrls;
       delete dataToSave.primaryRoute;
@@ -296,10 +300,11 @@ export default function ProfilePage() {
                     <CardDescription>إدارة بيانات مركبتك ومعلومات استقبال الدفعات.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <FormField control={form.control} name="vehicleType" render={({ field }) => (<FormItem><FormLabel>نوع المركبة</FormLabel><FormControl><Input placeholder="e.g., GMC Yukon" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="vehicleModel" render={({ field }) => (<FormItem><FormLabel>موديل المركبة</FormLabel><FormControl><Input placeholder="e.g., Suburban" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="vehicleYear" render={({ field }) => (<FormItem><FormLabel>سنة الصنع</FormLabel><FormControl><Input placeholder="e.g., 2024" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="vehiclePlateNumber" render={({ field }) => (<FormItem><FormLabel>رقم لوحة المركبة</FormLabel><FormControl><Input placeholder="e.g., 1-12345" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       <FormField control={form.control} name="vehicleCapacity" render={({ field }) => (<FormItem><FormLabel>سعة الركاب</FormLabel><FormControl><Input type="number" placeholder="e.g., 4" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
                     <Separator />
@@ -371,3 +376,5 @@ export default function ProfilePage() {
     </>
   );
 }
+
+    
