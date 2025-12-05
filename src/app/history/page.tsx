@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Offer, Booking, UserProfile } from '@/lib/data';
 import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Archive, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, Edit, XCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
 import { format, addHours, isFuture } from 'date-fns';
@@ -22,21 +23,13 @@ import { ChatDialog } from '@/components/chat/chat-dialog';
 import { SmartResubmissionDialog } from '@/components/booking/smart-resubmission-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { doc } from 'firebase/firestore';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 
 // --- STRATEGIC MOCK DATA FOR THE FULL LIFECYCLE ---
-// 1. Awaiting Offers (General Request) -> Will show Radar
-const mockAwaitingGeneral: Trip = {
-    id: 'trip_req_1', userId: 'user1', origin: 'amman', destination: 'riyadh',
-    departureDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    passengers: 2, status: 'Awaiting-Offers', requestType: 'General', createdAt: new Date().toISOString(),
-};
+// 1. Awaiting Offers (General Request) -> Will show Radar - REMOVED FOR NOW
 
-// 2. Awaiting Offers (Direct Request) -> Will show Hourglass
-const mockAwaitingDirect: Trip = {
-    id: 'trip_req_direct_1', userId: 'user1', origin: 'damascus', destination: 'jeddah',
-    departureDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(),
-    passengers: 1, status: 'Awaiting-Offers', requestType: 'Direct', targetCarrierId: 'carrier_special', createdAt: new Date().toISOString(),
-};
+// 2. Awaiting Offers (Direct Request) -> Will show Hourglass - REMOVED FOR NOW
 
 // 3. Pending Carrier Confirmation -> Will show Hourglass
 const mockPendingConfirmation: { trip: Trip, booking: Booking } = {
@@ -70,11 +63,6 @@ const mockConfirmed: { trip: Trip, booking: Booking } = {
     booking: { id: 'booking_confirmed_1', tripId: 'trip_confirmed_1', userId: 'user1', carrierId: 'carrier3', seats: 2, passengersDetails: [{ name: 'حسن علي', type: 'adult' }, { name: 'علي حسن', type: 'child' }], status: 'Confirmed', totalPrice: 180, currency: 'USD', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString() }
 };
 
-// 6. Archived (Completed) Trip
-const mockArchivedCompleted: { trip: Trip, booking: Booking } = {
-    trip: { id: 'trip_completed_1', userId: 'user1', carrierId: 'carrier4', carrierName: 'ملوك الطريق', origin: 'riyadh', destination: 'amman', departureDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), status: 'Completed', durationHours: 8 },
-    booking: { id: 'booking_completed_1', tripId: 'trip_completed_1', userId: 'user1', carrierId: 'carrier4', seats: 1, passengersDetails: [{ name: 'Sara', type: 'adult' }], status: 'Completed', totalPrice: 70, currency: 'JOD', createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
-};
 
 // Helper data
 const cities: { [key: string]: string } = {
@@ -99,9 +87,9 @@ const RequestTrackerCard = ({ trip }: { trip: Trip }) => {
                     <CardDescription>رحلة من {getCityName(trip.origin)} إلى {getCityName(trip.destination)} بتاريخ {format(new Date(trip.departureDate), 'd MMMM', { locale: arSA })}</CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
-                    <p className="text-sm text-muted-foreground mb-4">سيتم إعلامك فور وصول عروض من الناقلين. يمكنك أيضاً استعراض العروض الحالية.</p>
+                     <p className="text-sm text-muted-foreground mb-4">لديك 3 عروض جديدة. استعرضها الآن واختر الأنسب لك.</p>
                      <Button className="w-full" onClick={() => setIsOffersOpen(true)}>
-                        استعراض العروض (3)
+                        استعراض ومقارنة العروض
                     </Button>
                 </CardContent>
             </Card>
@@ -251,7 +239,7 @@ const HeroTicket = ({ trip, booking, onCancelBooking, onMessageCarrier, toast }:
                  )}
             </CardContent>
             <CardFooter className="grid grid-cols-2 gap-2 p-2">
-                 <Button variant="outline" size="sm" onClick={() => toast({title: "قيد الإنشاء"})}>
+                 <Button variant="outline" size="sm" onClick={() => toast({title: "قيد الإنشاء"})} disabled>
                     <Edit className="ml-2 h-4 w-4" />تعديل الطلب
                  </Button>
                  <Button variant="destructive" size="sm" onClick={() => toast({title: "سيتم تنفيذ هذا لاحقاً"})}>
@@ -276,10 +264,8 @@ export default function HistoryPage() {
   const allTripsAndBookings = useMemo(() => {
     // This combines all mock data into a format that can be filtered
     return [
-        // { trip: mockAwaitingGeneral, booking: null, status: mockAwaitingGeneral.status },
-        // { trip: mockAwaitingDirect, booking: null, status: mockAwaitingDirect.status },
-        // { ...mockPendingConfirmation, status: mockPendingConfirmation.booking.status },
-        // { ...mockPendingPayment, status: mockPendingPayment.booking.status },
+        { ...mockPendingConfirmation, status: mockPendingConfirmation.booking.status },
+        { ...mockPendingPayment, status: mockPendingPayment.booking.status },
         { ...mockConfirmed, status: mockConfirmed.booking.status },
     ];
   }, []);
@@ -337,6 +323,44 @@ export default function HistoryPage() {
             </TabsList>
 
             <TabsContent value="processing" className="mt-6 space-y-4">
+                {/* DUMMY ACCORDIONS FOR SURGERY */}
+                <Accordion type="single" collapsible className="w-full space-y-4">
+                    <AccordionItem value="item-1" className="border-none">
+                       <Card className="border-accent">
+                         <AccordionTrigger className="p-4 text-md hover:no-underline font-bold">
+                            <div className="flex items-center gap-2">
+                                <span>عمان - بغداد</span>
+                                <Badge variant="outline">بانتظار العروض</Badge>
+                            </div>
+                         </AccordionTrigger>
+                         <AccordionContent className="p-4 pt-0">
+                            <div className="text-sm text-muted-foreground space-y-2">
+                                <p>السعر المستهدف: 25 دينار</p>
+                                <p>نسبة العربون المقترحة: 15%</p>
+                                <Button size="sm" className="mt-2 w-full">استعراض العروض (0)</Button>
+                            </div>
+                         </AccordionContent>
+                       </Card>
+                    </AccordionItem>
+                    <AccordionItem value="item-2" className="border-none">
+                         <Card className="border-accent">
+                             <AccordionTrigger className="p-4 text-md hover:no-underline font-bold">
+                                <div className="flex items-center gap-2">
+                                    <span>عمان - الرياض</span>
+                                    <Badge variant="outline">بانتظار العروض</Badge>
+                                </div>
+                             </AccordionTrigger>
+                             <AccordionContent className="p-4 pt-0">
+                                <div className="text-sm text-muted-foreground space-y-2">
+                                    <p>السعر المستهدف: 40 دينار</p>
+                                    <p>نسبة العربون المقترحة: 25%</p>
+                                    <Button size="sm" className="mt-2 w-full">استعراض العروض (0)</Button>
+                                </div>
+                             </AccordionContent>
+                        </Card>
+                    </AccordionItem>
+                </Accordion>
+
                 {processingItems.length > 0 ? processingItems.map(item => {
                     const key = item.trip.id + (item.booking?.id || '');
                     if (item.status === 'Awaiting-Offers') {
@@ -349,7 +373,7 @@ export default function HistoryPage() {
                         return <PaymentPass key={key} trip={item.trip} booking={item.booking} onPayNow={handlePayNow} />;
                     }
                     return null;
-                }) : <div className="text-center py-16 text-muted-foreground">لا توجد طلبات قيد المعالجة حالياً.</div>}
+                }) : null /* Hiding the "no items" message for now */}
             </TabsContent>
 
             <TabsContent value="tickets" className="mt-6 space-y-4">
@@ -389,5 +413,3 @@ export default function HistoryPage() {
     </AppLayout>
   );
 }
-
-    
