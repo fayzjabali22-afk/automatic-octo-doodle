@@ -10,7 +10,7 @@ service cloud.firestore {
 
     // All collections are readable/writable if the custom isSignedIn function returns true.
     match /{document=**} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
   }
 }
