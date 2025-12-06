@@ -40,6 +40,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { Logo } from './logo';
 
 const menuItems = [
   {
@@ -269,7 +270,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <SheetTitle className="sr-only">القائمة الرئيسية</SheetTitle>
                   <nav className="grid gap-6 text-lg font-medium p-6">
                     <div className="mb-4 flex items-center justify-center">
-                      <span className="text-xl font-bold">Safar Carrier</span>
+                      <span className="text-xl font-bold">safaryat</span>
                     </div>
                     {mobileMenuItems.map((item) => {
                       const isLinkActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -293,14 +294,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {/* Logo */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <Link href="/">
-                <Image
-                src="https://i.postimg.cc/rzXN6mS5/lwjw-sfryat.png"
-                alt="Safar Carrier Logo"
-                width={120}
-                height={90}
-                priority
-                className="object-contain"
-                />
+                <Logo />
             </Link>
           </div>
 

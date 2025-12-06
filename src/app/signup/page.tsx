@@ -111,18 +111,20 @@ export default function SignupPage() {
             <Card className="mx-auto max-w-sm text-center">
                 <CardHeader>
                     <MailCheck className="mx-auto h-16 w-16 text-green-500" />
-                    <CardTitle className="text-2xl mt-4">Success!</CardTitle>
+                    <CardTitle className="text-2xl mt-4">خطوة أخيرة!</CardTitle>
                     <CardDescription className="pt-2">
-                        We've sent a verification and legal acknowledgment link to your email.
+                        لقد أرسلنا رابط تفعيل وإقرار بالشروط إلى بريدك الإلكتروني.
                         <br/>
                         <span className="font-bold text-foreground">{userEmail}</span>
+                        <br/><br/>
+                        <p className='text-red-500'>ملاحظة: بالضغط على الرابط، أنت تقر بموافقتك على شروط وأحكام منصة safaryat.net كوسيط.</p>
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <p className="text-xs text-muted-foreground">
-                        If you don't see the email, please check your spam folder.
+                        إذا لم تجد البريد، الرجاء التحقق من مجلد الرسائل غير المرغوب فيها.
                     </p>
-                    <Button onClick={() => router.push('/login')} className="mt-4">Back to Login</Button>
+                    <Button onClick={() => router.push('/login')} className="mt-4">العودة لتسجيل الدخول</Button>
                 </CardContent>
             </Card>
         </div>
