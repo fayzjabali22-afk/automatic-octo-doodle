@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from '@/components/app-layout';
@@ -19,6 +20,7 @@ import { OfferDecisionRoom } from '@/components/offer-decision-room';
 import { TripClosureDialog } from '@/components/trip-closure/trip-closure-dialog';
 import { RateTripDialog } from '@/components/trip-closure/rate-trip-dialog';
 import { CancellationDialog } from '@/components/booking/cancellation-dialog';
+import { ChatDialog } from '@/components/chat/chat-dialog';
 
 const cities: { [key: string]: string } = {
     damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص', amman: 'عمّان', irbid: 'إربد', zarqa: 'الزرقاء',
@@ -93,6 +95,9 @@ export default function HistoryPage() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [itemToCancel, setItemToCancel] = useState<{ trip: Trip, booking: Booking } | null>(null);
 
+  // State for chat
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [selectedTripForChat, setSelectedTripForChat] = useState<Trip | null>(null);
 
   // --- QUERIES FOR ALL ACTIVE STATES ---
   const confirmedQuery = useMemo(() => {
@@ -185,6 +190,11 @@ export default function HistoryPage() {
         setItemToCancel({ trip, booking });
         setIsCancellationDialogOpen(true);
     };
+    
+    const handleOpenChatDialog = (trip: Trip) => {
+        setSelectedTripForChat(trip);
+        setIsChatOpen(true);
+    }
 
     const handleConfirmCancellation = async () => {
         if (!firestore || !itemToCancel) return;
@@ -242,7 +252,7 @@ export default function HistoryPage() {
   const renderContent = () => {
     // Priority 1: Show the confirmed ticket ("the masterpiece") exclusively if it exists.
     if (confirmedBooking && confirmedTrip) {
-        return <HeroTicket key={confirmedBooking.id} trip={confirmedTrip} booking={confirmedBooking} onClosureAction={handleOpenClosureDialog} onCancelBooking={handleOpenCancellationDialog} />;
+        return <HeroTicket key={confirmedBooking.id} trip={confirmedTrip} booking={confirmedBooking} onClosureAction={handleOpenClosureDialog} onCancelBooking={handleOpenCancellationDialog} onMessageCarrier={handleOpenChatDialog} />;
     }
     
     // Priority 2: Show the offer decision room if a request has been clicked.
@@ -324,6 +334,11 @@ export default function HistoryPage() {
             isCancelling={isCancelling}
             onConfirm={handleConfirmCancellation}
         />
+        <ChatDialog 
+            isOpen={isChatOpen}
+            onOpenChange={setIsChatOpen}
+            trip={selectedTripForChat}
+        />
     </AppLayout>
   );
 }
@@ -339,7 +354,7 @@ function PendingBookingWrapper({ booking }: { booking: Booking }) {
 }
 
 
-const HeroTicket = ({ trip, booking, onClosureAction, onCancelBooking }: { trip: Trip, booking: Booking, onClosureAction: (trip: Trip) => void, onCancelBooking: (trip: Trip, booking: Booking) => void }) => {
+const HeroTicket = ({ trip, booking, onClosureAction, onCancelBooking, onMessageCarrier }: { trip: Trip, booking: Booking, onClosureAction: (trip: Trip) => void, onCancelBooking: (trip: Trip, booking: Booking) => void, onMessageCarrier: (trip: Trip) => void }) => {
     const firestore = useFirestore();
     const carrierProfileRef = useMemo(() => {
         if (!firestore || !trip.carrierId) return null;
@@ -443,15 +458,20 @@ const HeroTicket = ({ trip, booking, onClosureAction, onCancelBooking }: { trip:
                     </div>
                  )}
             </CardContent>
-             <CardFooter className="flex-col sm:flex-row gap-2">
+             <CardFooter className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button variant="outline" onClick={() => onMessageCarrier(trip)}>
+                    <MessageSquare className="ml-2 h-4 w-4" />
+                    دردشة الرحلة الجماعية
+                </Button>
+
                 {isClosureReady && onClosureAction && (
-                    <Button variant="default" onClick={() => onClosureAction(trip)} className="flex-1">
+                    <Button variant="default" onClick={() => onClosureAction(trip)} className="sm:col-span-2">
                         <Flag className="ml-2 h-4 w-4" />
                         إجراءات إغلاق الرحلة
                     </Button>
                 )}
                  {canCancel && onCancelBooking && (
-                    <Button variant="destructive" onClick={() => onCancelBooking(trip, booking)} className="flex-1">
+                    <Button variant="destructive" onClick={() => onCancelBooking(trip, booking)}>
                         <Ban className="ml-2 h-4 w-4" />
                         إلغاء الحجز
                     </Button>
@@ -460,3 +480,5 @@ const HeroTicket = ({ trip, booking, onClosureAction, onCancelBooking }: { trip:
         </Card>
     )
 };
+
+    

@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -377,7 +378,7 @@
             },
             "type": {
                 "type": "string",
-                "enum": ["new_offer", "booking_confirmed", "trip_update", "payment_reminder", "rating_request", "new_booking_request"],
+                "enum": ["new_offer", "booking_confirmed", "trip_update", "payment_reminder", "rating_request", "new_booking_request", "group_chat_message"],
                 "description": "The type of the notification."
             },
             "isRead": {
@@ -426,15 +427,22 @@
     "Chat": {
       "title": "Chat",
       "type": "object",
-      "description": "Represents a chat channel between a user and a carrier for a specific trip.",
+      "description": "Represents a chat channel. Can be a 1-on-1 chat or a group chat for a trip.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the chat channel." },
-        "tripId": { "type": "string", "description": "ID of the associated trip." },
+        "id": { "type": "string", "description": "Unique identifier for the chat channel. For group chats, this will be the tripId." },
+        "tripId": { "type": "string", "description": "ID of the associated trip. This is mandatory for group chats." },
+        "isGroupChat": { "type": "boolean", "description": "If true, this is a group chat for all passengers on a trip." },
         "participants": { "type": "array", "items": { "type": "string" }, "description": "An array of user IDs participating in the chat." },
         "lastMessage": { "type": "string", "description": "The content of the last message for display purposes." },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "The timestamp of the last message." }
+        "lastMessageSenderId": { "type": "string", "description": "The user ID of the last message sender."},
+        "lastMessageTimestamp": { "type": "string", "format": "date-time", "description": "The timestamp of the last message." },
+        "unreadCounts": {
+            "type": "object",
+            "description": "An object where keys are user IDs and values are the number of unread messages for that user.",
+            "additionalProperties": { "type": "number" }
+        }
       },
-      "required": ["id", "tripId", "participants", "updatedAt"]
+      "required": ["id", "participants"]
     },
     "Message": {
       "title": "Message",
@@ -442,12 +450,12 @@
       "description": "Represents a single message within a chat.",
       "properties": {
         "id": { "type": "string", "description": "Unique identifier for the message." },
-        "chatId": { "type": "string", "description": "ID of the chat channel this message belongs to." },
         "senderId": { "type": "string", "description": "The user ID of the message sender." },
+        "senderName": { "type": "string", "description": "Denormalized name of the sender for quick display." },
         "content": { "type": "string", "description": "The text content of the message." },
         "timestamp": { "type": "string", "format": "date-time", "description": "The timestamp when the message was sent." }
       },
-      "required": ["id", "chatId", "senderId", "content", "timestamp"]
+      "required": ["id", "senderId", "content", "timestamp"]
     }
   },
   "auth": {
@@ -566,7 +574,7 @@
         "definition": {
           "entityName": "Chat",
           "schema": { "$ref": "#/backend/entities/Chat" },
-          "description": "Stores chat channel metadata."
+          "description": "Stores chat channel metadata. The chatId can be a bookingId for 1-on-1 chats or a tripId for group chats."
         }
       },
       {
@@ -580,3 +588,5 @@
     ]
   }
 }
+
+    

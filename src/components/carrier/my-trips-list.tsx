@@ -1,10 +1,11 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useCollection, useUser, updateDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, orderBy, doc, writeBatch } from 'firebase/firestore';
-import { Trip } from '@/lib/data';
+import { Trip, Chat } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CalendarX, ArrowRight, Calendar, Users, CircleDollarSign, CheckCircle, Clock, XCircle, MoreVertical, Pencil, Ban, Ship, List, AlertTriangle, UsersRound, PlayCircle, StopCircle } from 'lucide-react';
+import { CalendarX, ArrowRight, Calendar, Users, CircleDollarSign, CheckCircle, Clock, XCircle, MoreVertical, Pencil, Ban, Ship, List, AlertTriangle, UsersRound, PlayCircle, StopCircle, MessageSquare } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import {
@@ -28,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { ChatDialog } from '../chat/chat-dialog';
 
 
 const cities: { [key: string]: string } = {
@@ -54,7 +56,7 @@ const statusMap: Record<string, { text: string; icon: React.ElementType; classNa
   'Cancelled': { text: 'ملغاة', icon: XCircle, className: 'bg-red-100 text-red-800' },
 };
 
-function TripListItem({ trip, onEdit, onManagePassengers, onInitiateTransfer, onUpdateStatus }: { trip: Trip, onEdit: (trip: Trip) => void, onManagePassengers: (trip: Trip) => void, onInitiateTransfer: (trip: Trip) => void, onUpdateStatus: (trip: Trip, newStatus: Trip['status']) => void }) {
+function TripListItem({ trip, onEdit, onManagePassengers, onInitiateTransfer, onUpdateStatus, onOpenChat, unreadCount }: { trip: Trip, onEdit: (trip: Trip) => void, onManagePassengers: (trip: Trip) => void, onInitiateTransfer: (trip: Trip) => void, onUpdateStatus: (trip: Trip, newStatus: Trip['status']) => void, onOpenChat: (trip: Trip) => void, unreadCount: number }) {
     const statusInfo = statusMap[trip.status] || { text: trip.status, icon: CircleDollarSign, className: 'bg-gray-100 text-gray-800' };
     const [formattedDate, setFormattedDate] = useState('');
 
@@ -87,11 +89,19 @@ function TripListItem({ trip, onEdit, onManagePassengers, onInitiateTransfer, on
                     <span>{trip.price} {trip.currency}</span>
                 </div>
             </div>
-             <div className="flex items-center gap-4 mt-3 sm:mt-0 sm:ml-4 rtl:sm:mr-4">
+             <div className="flex items-center gap-2 mt-3 sm:mt-0 sm:ml-4 rtl:sm:mr-4">
                 <Badge className={cn("py-1 px-3 text-xs", statusInfo.className)}>
                     <statusInfo.icon className="ml-1 h-3 w-3" />
                     {statusInfo.text}
                 </Badge>
+                <Button variant="outline" size="icon" className="h-8 w-8 relative" onClick={() => onOpenChat(trip)}>
+                    <MessageSquare className="h-4 w-4" />
+                    {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                            {unreadCount}
+                        </span>
+                    )}
+                </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -146,14 +156,13 @@ export function MyTripsList() {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isPassengersDialogOpen, setIsPassengersDialogOpen] = useState(false);
     const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(false);
     const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
     const [tripToUpdate, setTripToUpdate] = useState<{trip: Trip, newStatus: Trip['status']} | null>(null);
     const { toast } = useToast();
 
     const tripsQuery = useMemo(() => {
         if (!firestore || !user) return null;
-        // The orderBy was removed from here to avoid needing a composite index.
-        // Sorting will be handled client-side in the next useMemo.
         return query(
             collection(firestore, 'trips'),
             where('carrierId', '==', user.uid),
@@ -162,6 +171,25 @@ export function MyTripsList() {
     }, [firestore, user]);
 
     const { data: trips, isLoading } = useCollection<Trip>(tripsQuery);
+    
+    const chatIds = useMemo(() => trips?.map(t => t.id) || [], [trips]);
+    const chatsQuery = useMemo(() => {
+        if (!firestore || chatIds.length === 0) return null;
+        return query(collection(firestore, 'chats'), where('id', 'in', chatIds));
+    }, [firestore, chatIds]);
+    const { data: chats } = useCollection<Chat>(chatsQuery);
+
+    const unreadCounts = useMemo(() => {
+        const counts: { [tripId: string]: number } = {};
+        if (chats && user) {
+            chats.forEach(chat => {
+                if (chat.unreadCounts && chat.unreadCounts[user.uid]) {
+                    counts[chat.id] = chat.unreadCounts[user.uid];
+                }
+            });
+        }
+        return counts;
+    }, [chats, user]);
     
     // Perform client-side sorting here
     const sortedTrips = useMemo(() => {
@@ -185,6 +213,11 @@ export function MyTripsList() {
     const handleManagePassengersClick = (trip: Trip) => {
         setSelectedTrip(trip);
         setIsPassengersDialogOpen(true);
+    }
+    
+    const handleOpenChatClick = (trip: Trip) => {
+        setSelectedTrip(trip);
+        setIsChatOpen(true);
     }
     
     const handleUpdateStatus = (trip: Trip, newStatus: Trip['status']) => {
@@ -255,6 +288,8 @@ export function MyTripsList() {
                         onInitiateTransfer={handleInitiateTransferClick}
                         onManagePassengers={handleManagePassengersClick}
                         onUpdateStatus={handleUpdateStatus}
+                        onOpenChat={handleOpenChatClick}
+                        unreadCount={unreadCounts[trip.id] || 0}
                     />
                 ))}
             </div>
@@ -266,6 +301,11 @@ export function MyTripsList() {
             <PassengersListDialog
                 isOpen={isPassengersDialogOpen}
                 onOpenChange={setIsPassengersDialogOpen}
+                trip={selectedTrip}
+            />
+            <ChatDialog 
+                isOpen={isChatOpen}
+                onOpenChange={setIsChatOpen}
                 trip={selectedTrip}
             />
              <AlertDialog open={isCancelConfirmOpen} onOpenChange={setIsCancelConfirmOpen}>
@@ -290,3 +330,5 @@ export function MyTripsList() {
         </>
     );
 }
+
+    
