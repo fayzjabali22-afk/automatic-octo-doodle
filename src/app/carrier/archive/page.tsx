@@ -137,15 +137,15 @@ export default function ArchivePage() {
                         </TabsList>
                     </div>
                     {isLoading ? (
-                        <div className="mt-4">
+                        <div className="mt-4 px-2 md:px-0">
                              <TripListSkeleton />
                         </div>
                     ) : (
                         <>
-                            <TabsContent value="completed" className="mt-4">
+                            <TabsContent value="completed" className="mt-4 px-2 md:px-0">
                                 <TripList trips={completedTrips} />
                             </TabsContent>
-                            <TabsContent value="cancelled" className="mt-4">
+                            <TabsContent value="cancelled" className="mt-4 px-2 md:px-0">
                                 <TripList trips={cancelledTrips} />
                             </TabsContent>
                         </>

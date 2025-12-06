@@ -15,7 +15,7 @@ export default function CarrierTripsPage() {
                 </div>
             </header>
             
-            <main>
+            <main className="px-2 md:px-0">
                 <MyTripsList />
             </main>
         </div>
