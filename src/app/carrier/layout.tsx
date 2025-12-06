@@ -4,13 +4,13 @@
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Ship, LayoutDashboard, Briefcase, PlusCircle, Archive, Menu, Search } from 'lucide-react';
+import { Ship, LayoutDashboard, Search, PlusCircle, Archive, Menu, Route } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { AddTripDialog } from '@/app/carrier/add-trip-dialog';
 import { CarrierBottomNav } from '@/components/carrier/carrier-bottom-nav';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { CarrierMobileMenu } from '@/components/carrier/carrier-mobile-menu';
 import { Logo } from '@/components/logo';
 
@@ -28,8 +28,7 @@ function LoadingSpinner() {
 const sidebarNavLinks = [
     { href: '/carrier', label: 'لوحة القيادة', icon: LayoutDashboard, exact: true },
     { href: '/carrier/opportunities', label: 'مركز الفرص', icon: Search, exact: false },
-    { href: '/carrier/trips', label: 'رحلاتي النشطة', icon: Briefcase, exact: false },
-    { href: '/carrier/bookings', label: 'طلبات الموافقة', icon: Briefcase, exact: false },
+    { href: '/carrier/trips', label: 'رحلاتي وحجوزاتي', icon: Route, exact: false },
     { href: '/carrier/archive', label: 'الأرشيف', icon: Archive, exact: false },
 ];
 
@@ -67,6 +66,7 @@ export default function CarrierLayout({
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="right" className="w-full max-w-xs p-0">
+                           <SheetTitle className="sr-only">Carrier Navigation Menu</SheetTitle>
                            <CarrierMobileMenu onLinkClick={() => setIsMobileMenuOpen(false)} />
                         </SheetContent>
                     </Sheet>

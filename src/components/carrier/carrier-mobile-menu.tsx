@@ -2,15 +2,13 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Logo } from '../logo';
-import { LayoutDashboard, Search, Briefcase, Archive, Settings, User } from 'lucide-react';
+import { LayoutDashboard, Search, Route, Archive, User } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { SheetTitle } from '../ui/sheet';
 
 const menuLinks = [
     { href: '/carrier', label: 'لوحة القيادة', icon: LayoutDashboard, exact: true },
     { href: '/carrier/opportunities', label: 'مركز الفرص', icon: Search, exact: false },
-    { href: '/carrier/trips', label: 'رحلاتي النشطة', icon: Briefcase, exact: false },
-    { href: '/carrier/bookings', label: 'طلبات الموافقة', icon: Briefcase, exact: false },
+    { href: '/carrier/trips', label: 'رحلاتي وحجوزاتي', icon: Route, exact: false },
     { href: '/carrier/archive', label: 'الأرشيف', icon: Archive, exact: false },
     { href: '/profile', label: 'الملف الشخصي', icon: User, exact: true },
 ];
@@ -24,7 +22,6 @@ export function CarrierMobileMenu({ onLinkClick }: CarrierMobileMenuProps) {
 
     return (
         <div className="flex flex-col h-full">
-            <SheetTitle className="sr-only">Carrier Navigation Menu</SheetTitle>
             <div className="p-4 border-b">
                 <Logo />
             </div>

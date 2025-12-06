@@ -2,7 +2,7 @@
 
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Route, Search, BarChart3, Briefcase } from 'lucide-react';
+import { Route, Search } from 'lucide-react';
 import Link from 'next/link';
 
 export function QuickActions() {
@@ -29,20 +29,14 @@ export function QuickActions() {
                 <CardHeader>
                     <CardTitle>إدارة رحلاتي وحجوزاتي</CardTitle>
                     <CardDescription>
-                       أدر رحلاتك النشطة، وقم بتأكيد أو رفض طلبات الحجز الجديدة.
+                       أدر رحلاتك النشطة، وقم بتأكيد أو رفض طلبات الحجز الجديدة في شاشة واحدة.
                     </CardDescription>
                 </CardHeader>
-                 <div className="p-4 pt-0 grid grid-cols-2 gap-2">
-                    <Button asChild variant="outline">
+                 <div className="p-4 pt-0">
+                    <Button asChild className="w-full" variant="outline">
                         <Link href="/carrier/trips">
                             <Route className="ml-2 h-4 w-4" />
-                            رحلاتي
-                        </Link>
-                    </Button>
-                     <Button asChild variant="outline">
-                        <Link href="/carrier/bookings">
-                            <Briefcase className="ml-2 h-4 w-4" />
-                            الحجوزات
+                            إدارة الرحلات والحجوزات
                         </Link>
                     </Button>
                 </div>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Archive, Search, Route, PlusCircle, Briefcase, LayoutDashboard } from 'lucide-react';
+import { Archive, Search, Route, PlusCircle, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -12,7 +12,7 @@ const navItems = [
   { href: '/carrier/opportunities', label: 'الفرص', icon: Search },
   null, // Placeholder for the central FAB
   { href: '/carrier/trips', label: 'رحلاتي', icon: Route },
-  { href: '/carrier/bookings', label: 'الحجوزات', icon: Briefcase },
+  { href: '/carrier/archive', label: 'الأرشيف', icon: Archive },
 ];
 
 interface CarrierBottomNavProps {
