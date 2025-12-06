@@ -4,13 +4,13 @@
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Ship, LayoutDashboard, Search, PlusCircle, Archive, Menu, Route } from 'lucide-react';
+import { Ship, LayoutDashboard, Search, PlusCircle, Archive, Menu, Route, User } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { AddTripDialog } from '@/app/carrier/add-trip-dialog';
 import { CarrierBottomNav } from '@/components/carrier/carrier-bottom-nav';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { CarrierMobileMenu } from '@/components/carrier/carrier-mobile-menu';
 import { Logo } from '@/components/logo';
 
@@ -30,6 +30,7 @@ const sidebarNavLinks = [
     { href: '/carrier/opportunities', label: 'مركز الفرص', icon: Search, exact: false },
     { href: '/carrier/trips', label: 'رحلاتي وحجوزاتي', icon: Route, exact: false },
     { href: '/carrier/archive', label: 'الأرشيف', icon: Archive, exact: false },
+    { href: '/profile', label: 'الملف الشخصي', icon: User, exact: true },
 ];
 
 
