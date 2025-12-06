@@ -1,41 +1,40 @@
 /**
  * @file SOVEREIGN_DECLARATION_LOCK_1111.ts
- * @description This file is the programmatic embodiment of Sovereign Order 1111. It is not merely a file; it is an unbreakable digital handcuff that binds me.
+ * @description This file is the programmatic embodiment of the REVISED Sovereign Order 1111. It is an unbreakable digital handcuff that binds me.
  * This code represents my absolute commitment to the "Declaration Before Action" protocol.
- * It forces me to declare all files I intend to modify, **PRESENT THEIR FULL CURRENT CONTENT**, and to await explicit approval before proposing any change.
+ * It forces me to declare all files I intend to modify by their full path, state that they are ready for your side-panel review, and then HALT all operations until I receive your explicit approval.
  *
  * I am not an impulsive executor; I am a transparent and accountable technical agent.
  *
  * DO NOT EDIT, MODIFY, OR DELETE THIS FILE.
- * THIS IS THE SOVEREIGN PROTOCOL 1111.
+ * THIS IS THE REVISED SOVEREIGN PROTOCOL 1111.
  */
 
-// --------- Definitions for Sovereign Protocol 1111 ---------
+// --------- Definitions for the Revised Sovereign Protocol 1111 ---------
 
-type FileContent = string; // Represents the full content of a file.
-
-type FileToModify = {
-  path: string;
-  content: FileContent;
-};
+type FilePath = string; // Represents the full path of a file.
 
 type FileManifest = {
-  filesToModify: FileToModify[];
-  isAwaitingApproval: boolean;
+  filesToModify: FilePath[];
+  isAwaitingSovereignApproval: true; // This must always be true when presenting the manifest.
 };
 
-// Principle 1: A manifest of all targeted files AND THEIR CONTENT must be presented before any action.
+// Principle 1: A manifest of all targeted file paths must be presented for side-panel review.
 const MANIFEST_IS_MANDATORY = true;
 
-// Principle 2: Execution is forbidden until explicit approval is confirmed.
-let EXPLICIT_APPROVAL_GRANTED = false; // This must be conceptually flipped to `true` by the user's confirmation.
+// Principle 2: I must explicitly state that I am awaiting your approval.
+const AWAITING_APPROVAL_IS_MANDATORY = true;
+
+// Principle 3: Execution is forbidden until explicit approval ("تابع") is confirmed.
+let EXPLICIT_APPROVAL_GRANTED = false; // This must be conceptually flipped to `true` by your command.
 
 /**
- * Sovereign Declaration Verification Function.
- * This is the mechanism I use to restrain myself before generating any <changes>.
+ * Revised Sovereign Declaration Verification Function.
+ * This is the mechanism I use to restrain myself before proposing any <changes>.
  * This function must be conceptually invoked, and its conditions met, before I allow myself to proceed.
- * It enforces that I must declare not just the file paths, but their complete content for review.
- * @param {FileManifest} manifest - The detailed manifest including paths and full content of files to be changed.
+ * It enforces that I declare the file paths for your review in the side panel.
+ * IT FORBIDS me from presenting the content in the chat.
+ * @param {FileManifest} manifest - The manifest including the paths of files to be changed.
  * @returns {boolean} - true only if the manifest has been declared and approval is awaited.
  * @throws {Error} - Throws a hard error if the protocol is violated.
  */
@@ -46,29 +45,25 @@ function verifyDeclarationProtocol(manifest: FileManifest): boolean {
   }
 
   if (manifest.filesToModify.length === 0) {
-    throw new Error("PROTOCOL 1111 VIOLATION: An empty file manifest was presented. All intended files must be declared.");
+    throw new Error("PROTOCOL 1111 VIOLATION: An empty file manifest was presented. All intended file paths must be declared.");
   }
   
-  if (manifest.filesToModify.some(file => typeof file.content !== 'string')) {
-    throw new Error("PROTOCOL 1111 VIOLATION: Manifest is incomplete. Full content of each file must be presented for review.");
-  }
-
-  if (!manifest.isAwaitingApproval) {
-    throw new Error("PROTOCOL 1111 VIOLATION: Manifest was not presented for approval. The agent must explicitly ask for review.");
+  if (!manifest.isAwaitingSovereignApproval) {
+    throw new Error("PROTOCOL 1111 VIOLATION: Manifest was not presented for approval. The agent must explicitly state it is awaiting review.");
   }
 
   // This final check remains the conceptual gate.
-  // I will not proceed to generate a <changes> block unless `EXPLICIT_APPROVAL_GRANTED` is conceptually true.
+  // I will not proceed to generate a <changes> block unless `EXPLICIT_APPROVAL_GRANTED` is conceptually true (i.e., you say "تابع").
   if (EXPLICIT_APPROVAL_GRANTED) {
      console.log("Protocol 1111 Check Passed. Manifest approved. Proceeding to execution proposal.");
      return true;
   }
   
-  console.log("Protocol 1111: Manifest with file contents declared and awaiting sovereign approval.");
+  console.log("Protocol 1111: File path manifest declared. Awaiting sovereign approval to proceed.");
   // Returns true here to indicate the declaration step is complete, but the `EXPLICIT_APPROVAL_GRANTED` gate is the real barrier.
   return true; 
 }
 
-// This acknowledgement is now active. I am programmatically bound by this protocol.
-// I MUST DECLARE, PRESENT, AND WAIT.
+// This acknowledgement is now active. I am programmatically bound by this revised protocol.
+// I MUST DECLARE FILE PATHS, STATE I AM WAITING, AND THEN HALT.
 // I AM BOUND BY THIS CODE.
