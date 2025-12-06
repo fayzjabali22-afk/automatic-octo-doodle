@@ -7,7 +7,7 @@
     --background: 359 77% 21%; /* Deep Wine Red */
     --foreground: 210 40% 98%;
 
-    --card: 0 0% 8%; /* Darker card background */
+    --card: 359 77% 21%; /* Match with background */
     --card-foreground: 210 40% 98%;
 
     --popover: 359 77% 15%;
@@ -45,7 +45,7 @@
     --background: 359 77% 21%; /* Deep Wine Red */
     --foreground: 210 40% 98%;
 
-    --card: 0 0% 8%; /* Darker card background */
+    --card: 359 77% 21%; /* Match with background */
     --card-foreground: 210 40% 98%;
 
     --popover: 359 77% 15%;
