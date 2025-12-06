@@ -16,10 +16,10 @@
     --primary: 46 36% 61%; /* #beae77 */
     --primary-foreground: 30 8% 10%;
 
-    --secondary: 0 0% 14%;
+    --secondary: 348 59% 8%; /* #1F0A10 - Blackish Red */
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 0 0% 14%;
+    --muted: 348 59% 8%; /* #1F0A10 - Blackish Red */
     --muted-foreground: 215.4 16.3% 56.9%;
 
     --accent: 350 20% 20%; /* Accent for buttons like the bottom one */
@@ -54,10 +54,10 @@
     --primary: 46 36% 61%; /* #beae77 */
     --primary-foreground: 30 8% 10%;
 
-    --secondary: 0 0% 14%;
+    --secondary: 348 59% 8%; /* #1F0A10 - Blackish Red */
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 0 0% 14%;
+    --muted: 348 59% 8%; /* #1F0A10 - Blackish Red */
     --muted-foreground: 215.4 16.3% 56.9%;
 
     --accent: 350 20% 20%;
