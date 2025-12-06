@@ -242,6 +242,23 @@ export default function ProfilePage() {
       <AppLayout>
         <div className="max-w-4xl mx-auto space-y-8 p-0 md:p-4">
 
+          {isDevUser && (
+            <Card className="border-accent shadow-lg">
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-accent"><TestTube2 /> منطقة المطور</CardTitle>
+                  <CardDescription>أدوات تبديل الأدوار لأغراض التطوير والاختبار.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex items-center gap-4">
+                  <span className="font-semibold">دورك الحالي:</span>
+                  {roleIsLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <span className="font-bold text-primary">{profile?.role}</span>}
+                  <Button variant="outline" size="sm" onClick={() => handleRoleChange(isCarrier ? 'traveler' : 'carrier')} disabled={roleIsLoading}>
+                      <ArrowRightLeft className="ml-2 h-4 w-4" />
+                      التبديل إلى {isCarrier ? 'مسافر' : 'ناقل'}
+                  </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {user && !user.emailVerified && !isDevUser && (
             <Card className="border-yellow-500 shadow-lg">
               <CardHeader>
