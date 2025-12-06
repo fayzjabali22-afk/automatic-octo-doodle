@@ -9,7 +9,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Offer, Booking, UserProfile } from '@/lib/data';
-import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, Edit, XCircle, Send, Loader2, ArrowRight } from 'lucide-react';
+import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, Edit, XCircle, Send, Loader2, ArrowRight, ChevronLeft } from 'lucide-react';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
 import { format, addHours, isFuture } from 'date-fns';
@@ -112,6 +112,7 @@ export default function HistoryPage() {
   const searchParams = useSearchParams();
   const [activeTripRequest, setActiveTripRequest] = useState<Trip | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const router = useRouter();
 
   // This state determines which path the user is on, controlled by query params for simulation
   const forcedPath = searchParams.get('path');
@@ -127,7 +128,6 @@ export default function HistoryPage() {
   const ticketItems = [mockConfirmed]; // Confirmed tickets always show up
 
   const handleAcceptOffer = (trip: Trip, offer: Offer) => {
-    if (!user) return;
     setIsProcessing(true);
     toast({
         title: "محاكاة: تم قبول العرض!",
@@ -135,6 +135,7 @@ export default function HistoryPage() {
     });
     setTimeout(() => {
         setActiveTripRequest(null); 
+        router.push('/history?path=booking');
         setIsProcessing(false);
     }, 2000);
   };
@@ -161,7 +162,7 @@ export default function HistoryPage() {
 
             <TabsContent value="processing" className="mt-6 space-y-6">
                  {/* SMART UI RENDERING: Show only one path at a time */}
-                {userPath === 'booking' && (
+                {userPath === 'booking' && pendingConfirmationBookings.length > 0 && (
                     <div className="space-y-4">
                         <h3 className="font-bold text-lg">طلبات بانتظار الموافقة</h3>
                         {pendingConfirmationBookings.map(item => (
@@ -170,7 +171,7 @@ export default function HistoryPage() {
                     </div>
                 )}
                 
-                {userPath === 'offers' && (
+                {userPath === 'offers' && awaitingOffersTrips.length > 0 && (
                      <div className="space-y-4">
                         <h3 className="font-bold text-lg">طلبات بانتظار العروض</h3>
                         {awaitingOffersTrips.map(trip => (
@@ -184,7 +185,7 @@ export default function HistoryPage() {
                     </div>
                 )}
                 
-                {userPath === 'none' && (
+                {userPath !== 'booking' && userPath !== 'offers' && (
                     <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
                         <PackageOpen className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4"/>
                         <p className="font-bold">لا توجد لديك أي حجوزات أو طلبات قيد المعالجة.</p>

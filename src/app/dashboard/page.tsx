@@ -35,7 +35,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils"
-import { format } from "date-fns"
+import { format, isFuture, isSameDay, addDays, subDays } from "date-fns"
 import { useCollection, useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { AuthRedirectDialog } from '@/components/auth-redirect-dialog';
@@ -48,7 +48,6 @@ import { logEvent } from '@/lib/analytics';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Form, FormControl, FormField } from '@/components/ui/form';
-import { isFuture } from 'date-fns';
 
 
 // --- MOCK DATA ---
@@ -210,25 +209,60 @@ export default function DashboardPage() {
       sortedDates.forEach(date => sortedGroupedTrips[date] = grouped[date]);
       return sortedGroupedTrips;
     };
-
-    let baseTrips: Trip[] = allTrips || [];
+    
+    let baseTrips: Trip[] = allTrips ? allTrips.filter(trip => isFuture(new Date(trip.departureDate))) : [];
     let isSearching = false;
 
+    // --- LOGIC FOR SPECIFIC CARRIER ---
     if (searchMode === 'specific-carrier') {
-      if (!selectedCarrier) {
-        return { filtered: {}, alternatives: {}, hasFilteredResults: false, hasAlternativeResults: false, showNoResultsMessage: false };
-      }
-      baseTrips = baseTrips.filter(trip => trip.carrierId === selectedCarrier.id && isFuture(new Date(trip.departureDate)));
-      isSearching = true; // In this mode, we are always "searching" the carrier's schedule
-    } else { // 'all-carriers' mode
-      baseTrips = baseTrips.filter(trip => isFuture(new Date(trip.departureDate)));
-       if (searchVehicleType !== 'any') {
-        baseTrips = baseTrips.filter(trip => (trip.vehicleCategory || 'small') === searchVehicleType);
-      }
-      isSearching = !!(searchOriginCity || searchDestinationCity || date);
-      if (!isSearching) {
+        if (!selectedCarrier) {
+            return { filtered: {}, alternatives: {}, hasFilteredResults: false, hasAlternativeResults: false, showNoResultsMessage: false };
+        }
+        
+        baseTrips = baseTrips.filter(trip => trip.carrierId === selectedCarrier.id);
+        isSearching = true;
+
+        // 1. EXACT MATCHES
+        let filteredTrips = [...baseTrips];
+        if (searchOriginCity) filteredTrips = filteredTrips.filter(t => t.origin === searchOriginCity);
+        if (searchDestinationCity) filteredTrips = filteredTrips.filter(t => t.destination === searchDestinationCity);
+        if (searchSeats > 0) filteredTrips = filteredTrips.filter(t => (t.availableSeats || 0) >= searchSeats);
+        if (date) filteredTrips = filteredTrips.filter(t => isSameDay(new Date(t.departureDate), date));
+        
+        const hasFilteredResults = filteredTrips.length > 0;
+        
+        // 2. ALTERNATIVE MATCHES (if no exact matches)
+        let alternativeTrips: Trip[] = [];
+        if (!hasFilteredResults) {
+            const twoDaysBefore = date ? subDays(date, 2) : subDays(new Date(), 2);
+            const twoDaysAfter = date ? addDays(date, 2) : addDays(new Date(), 90); // Wider range if no date selected
+            
+            alternativeTrips = baseTrips.filter(t => {
+                const tripDate = new Date(t.departureDate);
+                const isAlternative = tripDate >= twoDaysBefore && tripDate <= twoDaysAfter && 
+                                      (t.availableSeats || 0) >= searchSeats;
+                
+                // Exclude any trips that were already in the (empty) filtered list
+                return isAlternative && !filteredTrips.some(ft => ft.id === t.id);
+            });
+        }
+        
+        return {
+            filtered: groupTrips(filteredTrips),
+            alternatives: groupTrips(alternativeTrips),
+            hasFilteredResults: hasFilteredResults,
+            hasAlternativeResults: alternativeTrips.length > 0,
+            showNoResultsMessage: isSearching && !hasFilteredResults && alternativeTrips.length === 0,
+        };
+    }
+    
+    // --- LOGIC FOR ALL CARRIERS ---
+    if (searchVehicleType !== 'any') {
+      baseTrips = baseTrips.filter(trip => (trip.vehicleCategory || 'small') === searchVehicleType);
+    }
+    isSearching = !!(searchOriginCity || searchDestinationCity || date);
+    if (!isSearching) {
          return { filtered: groupTrips(baseTrips), alternatives: {}, hasFilteredResults: baseTrips.length > 0, hasAlternativeResults: false, showNoResultsMessage: false };
-      }
     }
 
     let filteredTrips = [...baseTrips];
@@ -249,7 +283,7 @@ export default function DashboardPage() {
     
     const groupedAlternatives = groupTrips(alternativeTrips);
     const hasAlternativeResults = alternativeTrips.length > 0;
-
+    
     const firstFilteredDate = Object.keys(groupedFiltered)[0];
     const firstAlternativeDate = Object.keys(groupedAlternatives)[0];
     if (firstFilteredDate) {
@@ -314,7 +348,7 @@ export default function DashboardPage() {
   const renderTripGroup = (groupedTrips: GroupedTrips, isAlternative = false) => {
     return (
         <div>
-            {isAlternative && <h3 className="text-xl font-bold mb-4 border-t pt-6">رحلات أخرى متاحة</h3>}
+            {isAlternative && <h3 className="text-xl font-bold mb-4 border-t pt-6">لا يوجد تطابق تام، ولكن هذه رحلات بديلة</h3>}
             <Accordion type="multiple" value={openAccordion} onValueChange={setOpenAccordion} className="space-y-4">
             {Object.keys(groupedTrips).map(tripDate => (
             <AccordionItem key={tripDate} value={tripDate} className="border-none">
@@ -554,32 +588,19 @@ export default function DashboardPage() {
                        {tripDisplayResult.hasAlternativeResults && (
                           renderTripGroup(tripDisplayResult.alternatives, true)
                        )}
-                      
-                      {searchMode === 'specific-carrier' && selectedCarrier && !tripDisplayResult.hasFilteredResults && !tripDisplayResult.hasAlternativeResults && (
-                          <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg bg-background/50">
-                            <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-                            <p className="text-lg font-bold">لا توجد رحلات مجدولة لهذا الناقل حالياً.</p>
-                             <div className="mt-8 text-center">
-                                <Button
-                                    onClick={handleRequestAction}
-                                    className="bg-accent text-black hover:bg-accent/90 border border-white/50"
-                                >
-                                    <Send className="ml-2 h-4 w-4" />
-                                    لم تجد ما تبحث عنه؟ أرسل طلباً خاصاً إلى {selectedCarrier.name}
-                                </Button>
-                            </div>
-                          </div>
-                      )}
                   </div>
                 )}
-                 {searchMode === 'all-carriers' && !tripDisplayResult.showNoResultsMessage && (
+                 {(searchMode === 'all-carriers' || (searchMode === 'specific-carrier' && !tripDisplayResult.hasFilteredResults && !tripDisplayResult.hasAlternativeResults)) && (
                     <div className="mt-8 text-center">
                         <Button
                             onClick={handleRequestAction}
                             className="bg-accent text-black hover:bg-accent/90 border border-white/50"
                         >
                             <Send className="ml-2 h-4 w-4" />
-                            لم تجد ما تبحث عنه؟ أرسل طلباً إلى السوق العام
+                            {searchMode === 'specific-carrier' && selectedCarrier
+                                ? `لم تجد ما تبحث عنه؟ أرسل طلباً خاصاً إلى ${selectedCarrier.name}`
+                                : 'لم تجد ما تبحث عنه؟ أرسل طلباً إلى السوق العام'
+                            }
                         </Button>
                     </div>
                  )}
