@@ -33,7 +33,7 @@ export function QuickActions() {
                     </CardDescription>
                 </CardHeader>
                  <div className="p-4 pt-0">
-                    <Button asChild className="w-full" variant="secondary">
+                    <Button asChild className="w-full">
                         <Link href="/carrier/trips">
                             <Route className="ml-2 h-4 w-4" />
                             إدارة الرحلات
@@ -49,7 +49,7 @@ export function QuickActions() {
                     </CardDescription>
                 </CardHeader>
                  <div className="p-4 pt-0">
-                    <Button asChild className="w-full" variant="outline">
+                    <Button asChild className="w-full">
                         <Link href="/carrier/overview">
                             <BarChart3 className="ml-2 h-4 w-4" />
                             عرض الإحصائيات
