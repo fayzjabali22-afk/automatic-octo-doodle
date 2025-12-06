@@ -170,11 +170,14 @@ export default function DashboardPage() {
 
   const tripsQuery = useMemo(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'trips'), where('status', '==', 'Planned'), orderBy('departureDate', 'asc'));
+    // FIX: Simplified query to avoid composite index requirement for now.
+    // We will filter by status on the client-side.
+    return query(collection(firestore, 'trips'), orderBy('departureDate', 'asc'));
   }, [firestore]);
 
   const { data: realTrips, isLoading } = useCollection<Trip>(tripsQuery);
-  const allTrips = (!isLoading && (!realTrips || realTrips.length === 0)) ? mockScheduledTrips : realTrips;
+  const allTrips = (!isLoading && (!realTrips || realTrips.length === 0)) ? mockScheduledTrips : (realTrips || []).filter(t => t.status === 'Planned');
+
 
   const [searchOriginCountry, setSearchOriginCountry] = useState('');
   const [searchOriginCity, setSearchOriginCity] = useState('');
