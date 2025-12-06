@@ -20,10 +20,10 @@
     --secondary-foreground: 210 40% 96.1%;
 
     --muted: 30 8% 10%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 46 36% 61%; /* GOLDEN */
 
-    --accent: 350 20% 20%; /* Accent for buttons like the bottom one */
-    --accent-foreground: 210 40% 98%;
+    --accent: 46 36% 61%; /* GOLDEN */
+    --accent-foreground: 30 8% 10%; /* Darker for contrast on gold */
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
@@ -58,10 +58,10 @@
     --secondary-foreground: 210 40% 96.1%;
 
     --muted: 30 8% 10%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 46 36% 61%; /* GOLDEN */
 
-    --accent: 350 20% 20%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 46 36% 61%; /* GOLDEN */
+    --accent-foreground: 30 8% 10%; /* Darker for contrast on gold */
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
