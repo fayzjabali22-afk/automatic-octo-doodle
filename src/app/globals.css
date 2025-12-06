@@ -7,10 +7,10 @@
     --background: 359 77% 21%; /* Deep Wine Red */
     --foreground: 210 40% 98%;
 
-    --card: 359 77% 15%; /* Darker Wine Red for cards */
+    --card: 301 58% 16%; /* Dark Purple */
     --card-foreground: 210 40% 98%;
 
-    --popover: 359 77% 15%;
+    --popover: 301 58% 16%; /* Dark Purple */
     --popover-foreground: 210 40% 98%;
 
     --primary: 46 36% 61%; /* #beae77 */
@@ -45,10 +45,10 @@
     --background: 359 77% 21%; /* Deep Wine Red */
     --foreground: 210 40% 98%;
 
-    --card: 359 77% 15%; /* Darker Wine Red for cards */
+    --card: 301 58% 16%; /* Dark Purple */
     --card-foreground: 210 40% 98%;
 
-    --popover: 359 77% 15%;
+    --popover: 301 58% 16%; /* Dark Purple */
     --popover-foreground: 210 40% 98%;
 
     --primary: 46 36% 61%; /* #beae77 */
