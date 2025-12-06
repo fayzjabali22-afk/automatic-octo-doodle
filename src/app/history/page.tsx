@@ -4,53 +4,18 @@ import { AppLayout } from '@/components/app-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { useUser, useFirestore, useCollection, addDocumentNonBlocking, useDoc, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useDoc } from '@/firebase';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Offer, Booking, UserProfile } from '@/lib/data';
-import { CheckCircle, PackageOpen, AlertCircle, PlusCircle, CalendarX, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, Edit, XCircle, Send, Loader2, ArrowRight, ChevronLeft } from 'lucide-react';
+import { CheckCircle, PackageOpen, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, ArrowRight, ChevronLeft, Ship } from 'lucide-react';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
-import { format, addHours, isFuture } from 'date-fns';
+import { format } from 'date-fns';
 import { arSA } from 'date-fns/locale';
-import { ScheduledTripCard } from '@/components/scheduled-trip-card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { doc, writeBatch, serverTimestamp, collection, query, where, orderBy, runTransaction } from 'firebase/firestore';
+import { doc, writeBatch, serverTimestamp, collection, query, where, runTransaction } from 'firebase/firestore';
 import { OfferDecisionRoom } from '@/components/offer-decision-room';
-
-
-// --- STRATEGIC MOCK DATA FOR THE FULL LIFECYCLE ---
-const mockAwaitingOffers: Trip = {
-    id: 'trip_req_1', userId: 'current_user_mock', origin: 'amman', destination: 'riyadh',
-    departureDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    status: 'Awaiting-Offers', requestType: 'General', passengers: 2, createdAt: new Date().toISOString(),
-};
-const mockPendingConfirmationBooking: { trip: Trip, booking: Booking } = {
-    trip: { id: 'trip_pending_1', userId: 'user1', carrierId: 'carrier2', carrierName: 'الناقل السريع', origin: 'damascus', destination: 'amman', departureDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), status: 'Pending-Carrier-Confirmation' },
-    booking: { id: 'booking_pending_1', tripId: 'trip_pending_1', userId: 'user1', carrierId: 'carrier2', seats: 1, passengersDetails: [{ name: 'Fayez Al-Harbi', type: 'adult' }], status: 'Pending-Carrier-Confirmation', totalPrice: 40, currency: 'JOD', createdAt: new Date().toISOString() }
-};
-const mockConfirmed: { trip: Trip, booking: Booking } = {
-    trip: { 
-        id: 'trip_confirmed_1', userId: 'user1', carrierId: 'carrier3', carrierName: 'فوزي الناقل', 
-        origin: 'cairo', destination: 'jeddah', departureDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), 
-        status: 'Planned', meetingPoint: "مطار القاهرة الدولي - صالة 3", meetingPointLink: "https://maps.app.goo.gl/12345",
-        conditions: "حقيبة واحدة لكل راكب. ممنوع التدخين.", vehicleType: "GMC Yukon 2024", vehiclePlateNumber: "123-ABC"
-    },
-    booking: { id: 'booking_confirmed_1', tripId: 'trip_confirmed_1', userId: 'user1', carrierId: 'carrier3', seats: 2, passengersDetails: [{ name: 'حسن علي', type: 'adult' }, { name: 'علي حسن', type: 'child' }], status: 'Confirmed', totalPrice: 180, currency: 'USD', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString() }
-};
-const mockOffers: Offer[] = [
-    {
-        id: 'offer1', tripId: 'trip_req_1', carrierId: 'carrier_A', price: 90, currency: 'JOD',
-        notes: 'توقف للاستراحة في الطريق، واي فاي متوفر.', status: 'Pending', createdAt: new Date().toISOString(),
-        vehicleType: 'GMC Yukon 2023', vehicleCategory: 'small', vehicleModelYear: 2023, availableSeats: 4, depositPercentage: 20,
-    },
-    {
-        id: 'offer2', tripId: 'trip_req_1', carrierId: 'carrier_B', price: 85, currency: 'JOD',
-        notes: 'رحلة مباشرة بدون توقف.', status: 'Pending', createdAt: new Date().toISOString(),
-        vehicleType: 'Hyundai Staria 2024', vehicleCategory: 'small', vehicleModelYear: 2024, availableSeats: 6, depositPercentage: 15,
-    }
-];
 
 const cities: { [key: string]: string } = {
     damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص', amman: 'عمّان', irbid: 'إربد', zarqa: 'الزرقاء',
@@ -59,14 +24,13 @@ const cities: { [key: string]: string } = {
 const getCityName = (key: string) => cities[key] || key;
 
 // --- CARD COMPONENTS FOR DIFFERENT STATES ---
-
-const PendingConfirmationCard = ({ booking, trip }: { booking: Booking, trip: Trip }) => (
+const PendingConfirmationCard = ({ booking, trip }: { booking: Booking, trip?: Trip | null }) => (
     <Card className="border-yellow-500 border-2 bg-yellow-500/5">
         <CardHeader>
             <div className="flex justify-between items-start">
                 <div>
-                    <CardTitle className="text-lg">{getCityName(trip.origin)} - {getCityName(trip.destination)}</CardTitle>
-                    <CardDescription>مع الناقل: {trip.carrierName}</CardDescription>
+                    <CardTitle className="text-lg">{trip ? `${getCityName(trip.origin)} - ${getCityName(trip.destination)}` : '...'}</CardTitle>
+                    <CardDescription>مع الناقل: {trip?.carrierName || '...'}</CardDescription>
                 </div>
                  <Badge variant="outline" className="flex items-center gap-2 bg-yellow-100 text-yellow-800 border-yellow-300">
                     <Hourglass className="h-4 w-4 animate-spin" />
@@ -109,51 +73,45 @@ const AwaitingOffersCard = ({ trip, offerCount, onClick }: { trip: Trip, offerCo
 // --- MAIN PAGE COMPONENT ---
 export default function HistoryPage() {
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
   const [activeTripRequest, setActiveTripRequest] = useState<Trip | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // --- REAL DATA QUERIES ---
+  // --- QUERIES FOR ALL ACTIVE STATES ---
+  const confirmedQuery = useMemo(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'bookings'), where('userId', '==', user.uid), where('status', '==', 'Confirmed'), limit(1));
+  }, [firestore, user]);
+  
   const awaitingOffersQuery = useMemo(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'trips'), where('userId', '==', user.uid), where('status', '==', 'Awaiting-Offers'));
   }, [firestore, user]);
   
-  const { data: realAwaitingOffers, isLoading: isLoadingAwaiting } = useCollection<Trip>(awaitingOffersQuery);
+  const pendingConfirmationQuery = useMemo(() => {
+      if (!firestore || !user) return null;
+      return query(collection(firestore, 'bookings'), where('userId', '==', user.uid), where('status', '==', 'Pending-Carrier-Confirmation'));
+  }, [firestore, user]);
   
+  // --- DATA FETCHING ---
+  const { data: confirmedBookings, isLoading: isLoadingConfirmed } = useCollection<Booking>(confirmedQuery);
+  const { data: awaitingOffersTrips, isLoading: isLoadingAwaiting } = useCollection<Trip>(awaitingOffersQuery);
+  const { data: pendingBookings, isLoading: isLoadingPending } = useCollection<Booking>(pendingConfirmationQuery);
+
+  const confirmedBooking = confirmedBookings?.[0];
+  const { data: confirmedTrip } = useDoc<Trip>(
+    (firestore && confirmedBooking) ? doc(firestore, 'trips', confirmedBooking.tripId) : null
+  );
+
   const offersQuery = useMemo(() => {
       if (!firestore || !activeTripRequest) return null;
       return query(collection(firestore, 'trips', activeTripRequest.id, 'offers'));
   }, [firestore, activeTripRequest]);
 
-  const { data: realOffers, isLoading: isLoadingOffers } = useCollection<Offer>(offersQuery);
-
-  const pendingConfirmationQuery = useMemo(() => {
-      if (!firestore || !user) return null;
-      return query(collection(firestore, 'bookings'), where('userId', '==', user.uid), where('status', '==', 'Pending-Carrier-Confirmation'));
-  }, [firestore, user]);
-
-  const { data: realPendingConfirmations, isLoading: isLoadingPending } = useCollection<Booking>(pendingConfirmationQuery);
-  const { data: tripForPending } = useDoc<Trip>(
-    (firestore && realPendingConfirmations && realPendingConfirmations.length > 0) 
-      ? doc(firestore, 'trips', realPendingConfirmations[0].tripId) 
-      : null
-  );
-
-  // --- HYBRID DATA LOGIC ---
-  const isLoading = isLoadingAwaiting || isLoadingPending;
-  const isUsingAwaitingMock = !isLoadingAwaiting && (!realAwaitingOffers || realAwaitingOffers.length === 0);
-  const awaitingOffersTrips = isUsingAwaitingMock ? [mockAwaitingOffers] : realAwaitingOffers || [];
-  
-  const isUsingPendingMock = !isLoadingPending && (!realPendingConfirmations || realPendingConfirmations.length === 0);
-  const pendingBookings = isUsingPendingMock ? [mockPendingConfirmationBooking.booking] : realPendingConfirmations || [];
-  const pendingTrip = isUsingPendingMock ? mockPendingConfirmationBooking.trip : tripForPending;
-
-
-  const offersForActiveTrip = (activeTripRequest?.id === mockAwaitingOffers.id) ? mockOffers : realOffers || [];
+  const { data: offersForActiveTrip, isLoading: isLoadingOffers } = useCollection<Offer>(offersQuery);
 
   const handleAcceptOffer = async (trip: Trip, offer: Offer) => {
     if (!firestore || !user) return;
@@ -165,8 +123,7 @@ export default function HistoryPage() {
             const offerRef = doc(firestore, 'trips', trip.id, 'offers', offer.id);
             const bookingRef = doc(collection(firestore, 'bookings'));
 
-            // 1. Create the new Booking document. This is the key change.
-            const newBooking: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'> = {
+            const newBookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'> = {
                 tripId: trip.id,
                 userId: user.uid,
                 carrierId: offer.carrierId,
@@ -176,29 +133,17 @@ export default function HistoryPage() {
                 totalPrice: offer.price,
                 currency: offer.currency as Booking['currency'],
             };
-            transaction.set(bookingRef, { ...newBooking, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+            transaction.set(bookingRef, { ...newBookingData, id: bookingRef.id, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
             
-            // 2. Update the original Trip (request) to show it's being processed.
-            transaction.update(tripRef, { 
-                status: 'Pending-Carrier-Confirmation', // This status indicates the request is now a pending booking
-                acceptedOfferId: offer.id,
-                bookingIds: [bookingRef.id] // Link the new booking
-            });
-            
-            // 3. Update the offer status.
+            transaction.update(tripRef, { status: 'Pending-Carrier-Confirmation', acceptedOfferId: offer.id, bookingIds: [bookingRef.id] });
             transaction.update(offerRef, { status: 'Accepted' });
-
-            // 4. (Future) In a real system, you'd reject other offers here.
         });
         
-        // This is now a real action, no longer a simulation
         toast({
             title: "تم قبول العرض بنجاح!",
             description: "تم إرسال طلب التأكيد النهائي للناقل. تابع من هنا."
         });
-        
-        setActiveTripRequest(null); // Close the decision room
-
+        setActiveTripRequest(null);
     } catch (error) {
         console.error("Error accepting offer:", error);
         toast({ variant: 'destructive', title: 'خطأ', description: 'فشل قبول العرض.' });
@@ -206,103 +151,95 @@ export default function HistoryPage() {
         setIsProcessing(false);
     }
   };
-  
-  const renderMainContent = () => {
+
+  // --- RENDER LOGIC ---
+  const renderLoading = () => (
+    <div className="flex h-[calc(100vh-300px)] flex-col items-center justify-center gap-4 text-center">
+        <Ship className="h-16 w-16 animate-pulse text-primary" />
+        <h1 className="text-xl font-bold text-muted-foreground">جاري تحميل غرفة العمليات...</h1>
+    </div>
+  );
+
+  const renderContent = () => {
+    // Priority 1: Show the confirmed ticket ("the masterpiece") exclusively if it exists.
+    if (confirmedBooking && confirmedTrip) {
+        return <HeroTicket key={confirmedBooking.id} trip={confirmedTrip} booking={confirmedBooking} />;
+    }
+    
+    // Priority 2: Show the offer decision room if a request has been clicked.
     if (activeTripRequest) {
       return (
         <OfferDecisionRoom
             trip={activeTripRequest}
-            offers={offersForActiveTrip}
+            offers={offersForActiveTrip || []}
             onAcceptOffer={handleAcceptOffer}
-            isProcessing={isProcessing}
+            isProcessing={isProcessing || isLoadingOffers}
             onBack={() => setActiveTripRequest(null)}
         />
-      )
+      );
     }
 
-    if (isLoading) {
-       return (
-         <div className="space-y-4">
-           <Skeleton className="h-32 w-full" />
-           <Skeleton className="h-32 w-full" />
-         </div>
-       );
+    // Priority 3: Show pending processes if no confirmed ticket exists.
+    const hasPendingProcesses = (pendingBookings && pendingBookings.length > 0) || (awaitingOffersTrips && awaitingOffersTrips.length > 0);
+    if (hasPendingProcesses) {
+        return (
+            <div className="space-y-6">
+                {pendingBookings && pendingBookings.map(booking => {
+                    // This part is a bit tricky without a dedicated hook for multiple docs
+                    return <PendingBookingWrapper key={booking.id} booking={booking} />;
+                })}
+                {awaitingOffersTrips && awaitingOffersTrips.map(trip => (
+                    <AwaitingOffersCard 
+                        key={trip.id} 
+                        trip={trip} 
+                        offerCount={0} // Simplified for now
+                        onClick={() => setActiveTripRequest(trip)}
+                    />
+                ))}
+            </div>
+        );
     }
 
+    // Default: No active processes found.
     return (
-         <Tabs defaultValue="processing" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="processing"><ListFilter className="ml-2 h-4 w-4" />قيد المعالجة</TabsTrigger>
-                <TabsTrigger value="tickets"><Ticket className="ml-2 h-4 w-4" />تذاكري النشطة</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="processing" className="mt-6 space-y-6">
-                
-                {/* Pending Confirmation Section */}
-                {pendingBookings.length > 0 && pendingTrip && (
-                     <div className="space-y-4">
-                        <h3 className="font-bold text-lg">طلبات بانتظار الموافقة</h3>
-                        {pendingBookings.map(booking => (
-                            <PendingConfirmationCard key={booking.id} booking={booking} trip={pendingTrip} />
-                        ))}
-                    </div>
-                )}
-                
-                {/* Awaiting Offers Section */}
-                {awaitingOffersTrips.length > 0 && (
-                     <div className="space-y-4">
-                        <h3 className="font-bold text-lg">طلبات بانتظار العروض</h3>
-                        {awaitingOffersTrips.map(trip => (
-                            <AwaitingOffersCard 
-                                key={trip.id} 
-                                trip={trip} 
-                                offerCount={isUsingAwaitingMock ? mockOffers.length : (realOffers?.length || 0)}
-                                onClick={() => setActiveTripRequest(trip)}
-                            />
-                        ))}
-                    </div>
-                )}
-                
-                 {/* Empty State */}
-                {pendingBookings.length === 0 && awaitingOffersTrips.length === 0 && (
-                    <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
-                        <PackageOpen className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4"/>
-                        <p className="font-bold">لا توجد لديك أي حجوزات أو طلبات قيد المعالجة.</p>
-                        <p className="text-sm mt-1">ابدأ بحجز رحلتك الأولى من لوحة التحكم.</p>
-                    </div>
-                )}
-
-            </TabsContent>
-
-            <TabsContent value="tickets" className="mt-6 space-y-4">
-                {/* This uses mock data for now, which is fine */}
-                <HeroTicket 
-                    key={mockConfirmed.booking.id} 
-                    trip={mockConfirmed.trip} 
-                    booking={mockConfirmed.booking}
-                />
-            </TabsContent>
-            
-        </Tabs>
-    )
-  }
+        <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
+            <PackageOpen className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4"/>
+            <p className="font-bold">لا توجد لديك أي حجوزات أو طلبات نشطة.</p>
+            <p className="text-sm mt-2">ابدأ رحلتك التالية من لوحة التحكم الرئيسية.</p>
+             <Button onClick={() => router.push('/dashboard')} className="mt-4">
+                الذهاب إلى لوحة التحكم
+            </Button>
+        </div>
+    );
+  };
+  
+  const isLoading = isUserLoading || isLoadingConfirmed || isLoadingAwaiting || isLoadingPending;
 
   return (
     <AppLayout>
       <div className="bg-background/80 p-2 md:p-8 rounded-lg space-y-8">
         <Card className="bg-card/90 border-border/50">
            <CardHeader>
-              <CardTitle>إدارة الحجز والرحلات</CardTitle>
-              <CardDescription>تابع طلباتك، عروضك، وحجوزاتك من هنا.</CardDescription>
+              <CardTitle>غرفة عمليات الحجز</CardTitle>
+              <CardDescription>تابع كل طلباتك وحجوزاتك النشطة من هنا.</CardDescription>
           </CardHeader>
         </Card>
-        
-        {renderMainContent()}
-
+        {isLoading ? renderLoading() : renderContent()}
       </div>
     </AppLayout>
   );
 }
+
+// Helper component to fetch trip for each pending booking
+function PendingBookingWrapper({ booking }: { booking: Booking }) {
+    const firestore = useFirestore();
+    const { data: trip, isLoading } = useDoc<Trip>(
+        firestore ? doc(firestore, 'trips', booking.tripId) : null
+    );
+    if (isLoading) return <Skeleton className="h-32 w-full" />;
+    return <PendingConfirmationCard booking={booking} trip={trip} />;
+}
+
 
 const HeroTicket = ({ trip, booking }: { trip: Trip, booking: Booking}) => {
     const carrierProfile: UserProfile = {
@@ -378,7 +315,7 @@ const HeroTicket = ({ trip, booking }: { trip: Trip, booking: Booking}) => {
                  <div className="p-3 bg-background rounded-lg border space-y-2">
                     <p className="font-bold text-xs flex items-center gap-1"><CreditCard className="h-4 w-4 text-primary"/> التفاصيل المالية</p>
                     <div className="space-y-1 text-xs">
-                        <div className="flex justify-between"><span>تاريخ الدفع:</span> <span className="font-bold">{format(new Date(booking.updatedAt || booking.createdAt!), 'd MMM yyyy', { locale: arSA })}</span></div>
+                        <div className="flex justify-between"><span>تاريخ الدفع:</span> <span className="font-bold">{booking.updatedAt ? format(new Date(booking.updatedAt as any), 'd MMM yyyy', { locale: arSA }) : 'N/A'}</span></div>
                         <div className="flex justify-between"><span>السعر الإجمالي:</span> <span className="font-bold">{booking.totalPrice.toFixed(2)} {booking.currency}</span></div>
                         <div className="flex justify-between"><span>العربون المدفوع:</span> <span className="font-bold text-green-500">{depositAmount.toFixed(2)} {booking.currency}</span></div>
                         <div className="flex justify-between"><span>المبلغ المتبقي:</span> <span className="font-bold">{remainingAmount.toFixed(2)} {booking.currency}</span></div>
