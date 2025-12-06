@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star, ArrowRightLeft, Send, Car } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
-import type { Trip, CarrierProfile } from '@/lib/data';
+import type { Trip, CarrierProfile, Booking } from '@/lib/data';
 import { ScheduledTripCard } from '@/components/scheduled-trip-card';
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -37,7 +37,7 @@ import {
 import { cn } from "@/lib/utils"
 import { format, isFuture, isSameDay, addDays, subDays } from "date-fns"
 import { useCollection, useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { AuthRedirectDialog } from '@/components/auth-redirect-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -164,16 +164,17 @@ export default function DashboardPage() {
   const [isAuthRedirectOpen, setIsAuthRedirectOpen] = useState(false);
   const { toast } = useToast();
 
-  // Booking Dialog State
   const [selectedTripForBooking, setSelectedTripForBooking] = useState<Trip | null>(null);
   const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
-  // Request Dialog State
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
 
-  // USE MOCK DATA INSTEAD OF FIREBASE
-  const allTrips = mockScheduledTrips;
-  const isLoading = false;
+  const tripsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'trips'), where('status', '==', 'Planned'), orderBy('departureDate', 'asc'));
+  }, [firestore]);
 
+  const { data: realTrips, isLoading } = useCollection<Trip>(tripsQuery);
+  const allTrips = (!isLoading && (!realTrips || realTrips.length === 0)) ? mockScheduledTrips : realTrips;
 
   const [searchOriginCountry, setSearchOriginCountry] = useState('');
   const [searchOriginCity, setSearchOriginCity] = useState('');
@@ -219,11 +220,11 @@ export default function DashboardPage() {
             return { filtered: {}, alternatives: {}, hasFilteredResults: false, hasAlternativeResults: false, showNoResultsMessage: false };
         }
         
-        baseTrips = baseTrips.filter(trip => trip.carrierId === selectedCarrier.id);
+        const carrierTrips = baseTrips.filter(trip => trip.carrierId === selectedCarrier.id);
         isSearching = true;
 
         // 1. EXACT MATCHES
-        let filteredTrips = [...baseTrips];
+        let filteredTrips = [...carrierTrips];
         if (searchOriginCity) filteredTrips = filteredTrips.filter(t => t.origin === searchOriginCity);
         if (searchDestinationCity) filteredTrips = filteredTrips.filter(t => t.destination === searchDestinationCity);
         if (searchSeats > 0) filteredTrips = filteredTrips.filter(t => (t.availableSeats || 0) >= searchSeats);
@@ -237,12 +238,13 @@ export default function DashboardPage() {
             const twoDaysBefore = date ? subDays(date, 2) : subDays(new Date(), 2);
             const twoDaysAfter = date ? addDays(date, 2) : addDays(new Date(), 90); // Wider range if no date selected
             
-            alternativeTrips = baseTrips.filter(t => {
+            alternativeTrips = carrierTrips.filter(t => {
                 const tripDate = new Date(t.departureDate);
                 const isAlternative = tripDate >= twoDaysBefore && tripDate <= twoDaysAfter && 
-                                      (t.availableSeats || 0) >= searchSeats;
+                                      (t.availableSeats || 0) >= searchSeats &&
+                                      (!searchOriginCity || t.origin === searchOriginCity) &&
+                                      (!searchDestinationCity || t.destination === searchDestinationCity);
                 
-                // Exclude any trips that were already in the (empty) filtered list
                 return isAlternative && !filteredTrips.some(ft => ft.id === t.id);
             });
         }
@@ -313,18 +315,38 @@ export default function DashboardPage() {
         setIsBookingDialogOpen(true);
     };
 
-    const handleConfirmBooking = (passengers: PassengerDetails[]) => {
+    const handleConfirmBooking = async (passengers: PassengerDetails[]) => {
         if (!firestore || !user || !selectedTripForBooking) return;
         
-        toast({
-            title: 'محاكاة: تم إرسال طلب الحجز بنجاح!',
-            description: 'سيتم إعلامك عند تأكيد الناقل للحجز. يمكنك المتابعة من صفحة إدارة الحجز.',
-        });
-        
-        setIsBookingDialogOpen(false);
-        setSelectedTripForBooking(null);
-        // Simulate a state change and redirect
-        router.push('/history?path=booking');
+        try {
+            const bookingData: Omit<Booking, 'id'> = {
+                tripId: selectedTripForBooking.id,
+                userId: user.uid,
+                carrierId: selectedTripForBooking.carrierId!,
+                seats: passengers.length,
+                passengersDetails: passengers,
+                status: 'Pending-Carrier-Confirmation',
+                totalPrice: (selectedTripForBooking.price || 0) * passengers.length,
+                currency: selectedTripForBooking.currency as any,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            };
+
+            await addDocumentNonBlocking(collection(firestore, 'bookings'), bookingData);
+
+            toast({
+                title: 'تم إرسال طلب الحجز بنجاح!',
+                description: 'سيتم إعلامك عند تأكيد الناقل للحجز. يمكنك المتابعة من صفحة إدارة الحجز.',
+            });
+            
+            setIsBookingDialogOpen(false);
+            setSelectedTripForBooking(null);
+            router.push('/history');
+            
+        } catch (error) {
+            console.error("Booking failed:", error);
+            toast({ variant: 'destructive', title: 'فشل إرسال طلب الحجز' });
+        }
     };
     
     const handleRequestAction = () => {
@@ -340,7 +362,7 @@ export default function DashboardPage() {
             title: "تم إرسال طلبك بنجاح!",
             description: "سيتم توجيهك الآن لصفحة حجوزاتك لمتابعة العروض.",
         });
-        router.push('/history?path=offers');
+        router.push('/history');
     }
 
   const isDevUser = user?.email === 'dev@safar.com';
@@ -590,17 +612,14 @@ export default function DashboardPage() {
                        )}
                   </div>
                 )}
-                 {(searchMode === 'all-carriers' || (searchMode === 'specific-carrier' && !tripDisplayResult.hasFilteredResults && !tripDisplayResult.hasAlternativeResults)) && (
+                 {(tripDisplayResult.hasFilteredResults || tripDisplayResult.hasAlternativeResults || searchMode === 'all-carriers' || (searchMode === 'specific-carrier' && !selectedCarrier) || tripDisplayResult.showNoResultsMessage) && (
                     <div className="mt-8 text-center">
                         <Button
                             onClick={handleRequestAction}
                             className="bg-accent text-black hover:bg-accent/90 border border-white/50"
                         >
                             <Send className="ml-2 h-4 w-4" />
-                            {searchMode === 'specific-carrier' && selectedCarrier
-                                ? `لم تجد ما تبحث عنه؟ أرسل طلباً خاصاً إلى ${selectedCarrier.name}`
-                                : 'لم تجد ما تبحث عنه؟ أرسل طلباً إلى السوق العام'
-                            }
+                            {'لم تجد ما تبحث عنه؟ أرسل طلباً إلى السوق'}
                         </Button>
                     </div>
                  )}
@@ -629,9 +648,8 @@ export default function DashboardPage() {
             destination: searchDestinationCity,
             departureDate: date,
             passengers: searchSeats,
-            requestType: searchMode === 'specific-carrier' ? 'Direct' : 'General',
+            requestType: searchMode === 'specific-carrier' && selectedCarrier ? 'Direct' : 'General',
             targetCarrierId: selectedCarrier?.id,
-            preferredVehicle: searchVehicleType as 'any' | 'small' | 'bus',
         }}
         onSuccess={handleRequestSent}
       />

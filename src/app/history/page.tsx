@@ -16,7 +16,7 @@ import { format, addHours, isFuture } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { ScheduledTripCard } from '@/components/scheduled-trip-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, writeBatch, serverTimestamp, collection, query, where, orderBy } from 'firebase/firestore';
 import { OfferDecisionRoom } from '@/components/offer-decision-room';
 
 
@@ -109,35 +109,68 @@ const AwaitingOffersCard = ({ trip, offerCount, onClick }: { trip: Trip, offerCo
 // --- MAIN PAGE COMPONENT ---
 export default function HistoryPage() {
   const { toast } = useToast();
-  const searchParams = useSearchParams();
-  const [activeTripRequest, setActiveTripRequest] = useState<Trip | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { user } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
 
-  // This state determines which path the user is on, controlled by query params for simulation
-  const forcedPath = searchParams.get('path');
-  const userPath: 'booking' | 'offers' | 'none' = useMemo(() => {
-    if (forcedPath === 'booking') return 'booking';
-    if (forcedPath === 'offers') return 'offers';
-    // Default or in real app, derived from user's data
-    return 'booking'; 
-  }, [forcedPath]);
+  const [activeTripRequest, setActiveTripRequest] = useState<Trip | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const pendingConfirmationBookings = userPath === 'booking' ? [mockPendingConfirmationBooking] : [];
-  const awaitingOffersTrips = userPath === 'offers' ? [mockAwaitingOffers] : [];
-  const ticketItems = [mockConfirmed]; // Confirmed tickets always show up
+  // --- REAL DATA QUERIES ---
+  const awaitingOffersQuery = useMemo(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'trips'), where('userId', '==', user.uid), where('status', '==', 'Awaiting-Offers'));
+  }, [firestore, user]);
+  
+  const { data: realAwaitingOffers, isLoading: isLoadingAwaiting } = useCollection<Trip>(awaitingOffersQuery);
+  
+  const offersQuery = useMemo(() => {
+      if (!firestore || !activeTripRequest) return null;
+      return query(collection(firestore, 'trips', activeTripRequest.id, 'offers'));
+  }, [firestore, activeTripRequest]);
 
-  const handleAcceptOffer = (trip: Trip, offer: Offer) => {
+  const { data: realOffers, isLoading: isLoadingOffers } = useCollection<Offer>(offersQuery);
+
+  // --- HYBRID DATA LOGIC ---
+  const awaitingOffersTrips = (!isLoadingAwaiting && realAwaitingOffers?.length === 0) ? [mockAwaitingOffers] : realAwaitingOffers || [];
+  const offersForActiveTrip = (activeTripRequest?.id === mockAwaitingOffers.id) ? mockOffers : realOffers || [];
+
+  const handleAcceptOffer = async (trip: Trip, offer: Offer) => {
+    if (!firestore || !user) return;
     setIsProcessing(true);
-    toast({
-        title: "محاكاة: تم قبول العرض!",
-        description: "جاري إرسال طلب التأكيد النهائي للناقل. سيتم تحويلك إلى شاشة الانتظار."
-    });
-    setTimeout(() => {
-        setActiveTripRequest(null); 
-        router.push('/history?path=booking');
+    
+    try {
+        const batch = writeBatch(firestore);
+
+        const tripRef = doc(firestore, 'trips', trip.id);
+        batch.update(tripRef, { 
+            status: 'Pending-Carrier-Confirmation',
+            price: offer.price,
+            currency: offer.currency,
+            carrierId: offer.carrierId,
+            vehicleType: offer.vehicleType,
+            depositPercentage: offer.depositPercentage,
+            acceptedOfferId: offer.id
+        });
+        
+        const offerRef = doc(firestore, 'trips', trip.id, 'offers', offer.id);
+        batch.update(offerRef, { status: 'Accepted' });
+
+        await batch.commit();
+
+        toast({
+            title: "تم قبول العرض بنجاح!",
+            description: "تم إرسال طلب التأكيد النهائي للناقل. تابع من هنا."
+        });
+        
+        setActiveTripRequest(null);
+
+    } catch (error) {
+        console.error("Error accepting offer:", error);
+        toast({ variant: 'destructive', title: 'خطأ', description: 'فشل قبول العرض.' });
+    } finally {
         setIsProcessing(false);
-    }, 2000);
+    }
   };
   
   const renderMainContent = () => {
@@ -145,7 +178,7 @@ export default function HistoryPage() {
       return (
         <OfferDecisionRoom
             trip={activeTripRequest}
-            offers={mockOffers.filter(o => o.tripId === activeTripRequest.id)}
+            offers={offersForActiveTrip}
             onAcceptOffer={handleAcceptOffer}
             isProcessing={isProcessing}
             onBack={() => setActiveTripRequest(null)}
@@ -157,52 +190,37 @@ export default function HistoryPage() {
          <Tabs defaultValue="processing" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="processing"><ListFilter className="ml-2 h-4 w-4" />قيد المعالجة</TabsTrigger>
-                <TabsTrigger value="tickets"><Ticket className="ml-2 h-4 w-4" />تذاكري النشطة ({ticketItems.length})</TabsTrigger>
+                <TabsTrigger value="tickets"><Ticket className="ml-2 h-4 w-4" />تذاكري النشطة</TabsTrigger>
             </TabsList>
 
             <TabsContent value="processing" className="mt-6 space-y-6">
-                 {/* SMART UI RENDERING: Show only one path at a time */}
-                {userPath === 'booking' && pendingConfirmationBookings.length > 0 && (
-                    <div className="space-y-4">
-                        <h3 className="font-bold text-lg">طلبات بانتظار الموافقة</h3>
-                        {pendingConfirmationBookings.map(item => (
-                            <PendingConfirmationCard key={item.booking.id} booking={item.booking} trip={item.trip} />
-                        ))}
-                    </div>
-                )}
                 
-                {userPath === 'offers' && awaitingOffersTrips.length > 0 && (
+                {isLoadingAwaiting ? <Skeleton className="h-24 w-full" /> : (
+                  awaitingOffersTrips.length > 0 ? (
                      <div className="space-y-4">
                         <h3 className="font-bold text-lg">طلبات بانتظار العروض</h3>
                         {awaitingOffersTrips.map(trip => (
                             <AwaitingOffersCard 
                                 key={trip.id} 
                                 trip={trip} 
-                                offerCount={mockOffers.filter(o => o.tripId === trip.id).length}
+                                offerCount={trip.id === mockAwaitingOffers.id ? mockOffers.length : (realOffers?.length || 0)}
                                 onClick={() => setActiveTripRequest(trip)}
                             />
                         ))}
                     </div>
-                )}
-                
-                {userPath !== 'booking' && userPath !== 'offers' && (
+                  ) : (
                     <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
                         <PackageOpen className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4"/>
                         <p className="font-bold">لا توجد لديك أي حجوزات أو طلبات قيد المعالجة.</p>
                         <p className="text-sm mt-1">ابدأ بحجز رحلتك الأولى من لوحة التحكم.</p>
                     </div>
+                  )
                 )}
 
             </TabsContent>
 
             <TabsContent value="tickets" className="mt-6 space-y-4">
-                {ticketItems.length > 0 ? ticketItems.map(item => (
-                    <HeroTicket 
-                        key={item.booking.id} 
-                        trip={item.trip} 
-                        booking={item.booking}
-                    />
-                )) : <div className="text-center py-16 text-muted-foreground">لا توجد لديك تذاكر نشطة.</div>}
+                <div className="text-center py-16 text-muted-foreground">لا توجد لديك تذاكر نشطة.</div>
             </TabsContent>
             
         </Tabs>

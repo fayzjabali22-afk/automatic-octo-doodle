@@ -1,8 +1,8 @@
 'use client';
 import { useState, useMemo } from 'react';
 import type { Booking, Trip, UserProfile } from '@/lib/data';
-import { useFirestore, useDoc, addDocumentNonBlocking, useUser } from '@/firebase';
-import { doc, writeBatch, increment, serverTimestamp, collection } from 'firebase/firestore';
+import { useFirestore, useDoc, addDocumentNonBlocking, useUser, updateDocumentNonBlocking } from '@/firebase';
+import { doc, writeBatch, increment, serverTimestamp, collection, runTransaction } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -41,20 +41,35 @@ const mockTravelers: { [key: string]: UserProfile } = {
 };
 
 function UserInfo({ userId }: { userId: string }) {
-    const userProfile = mockTravelers[userId];
-    if (!userProfile) return <span className="font-bold">{userId}</span>;
+    const firestore = useFirestore();
+    const userProfileRef = firestore ? doc(firestore, 'users', userId) : null;
+    const { data: userProfile, isLoading } = useDoc<UserProfile>(userProfileRef);
+
+    if (isLoading) return <Skeleton className="h-8 w-32" />;
     
+    const fallbackName = mockTravelers[userId];
+
+    if (!userProfile && !fallbackName) return <span className="font-bold">{userId}</span>;
+    
+    const profile = userProfile || fallbackName;
+
     return (
         <div className="flex items-center gap-2">
             <Avatar className="h-8 w-8">
-                <AvatarFallback>{userProfile.firstName.charAt(0)}</AvatarFallback>
+                <AvatarFallback>{profile.firstName.charAt(0)}</AvatarFallback>
             </Avatar>
-            <span className="font-bold">{userProfile?.firstName} {userProfile?.lastName}</span>
+            <span className="font-bold">{profile?.firstName} {profile?.lastName}</span>
         </div>
     )
 }
 
-function TripInfo({ trip }: { trip?: Trip | null }) {
+function TripInfo({ tripId }: { tripId: string }) {
+    const firestore = useFirestore();
+    const tripRef = firestore ? doc(firestore, 'trips', tripId) : null;
+    const { data: trip, isLoading } = useDoc<Trip>(tripRef);
+    
+    if (isLoading) return <Skeleton className="h-4 w-48 mt-1" />;
+
     if (!trip) return <div className="text-red-500 text-sm">تفاصيل الرحلة غير متاحة</div>;
 
     return (
@@ -64,14 +79,25 @@ function TripInfo({ trip }: { trip?: Trip | null }) {
     );
 }
 
-export function BookingActionCard({ booking, trip }: { booking: Booking, trip: Trip | null }) {
+export function BookingActionCard({ booking }: { booking: Booking }) {
     const { toast } = useToast();
     const firestore = useFirestore();
     const [isProcessing, setIsProcessing] = useState(false);
-    const isLoadingTrip = false; 
+    
+    const tripRef = useMemo(() => {
+        if (!firestore) return null;
+        return doc(firestore, 'trips', booking.tripId);
+    }, [firestore, booking.tripId]);
+    
+    const { data: trip, isLoading: isLoadingTrip } = useDoc<Trip>(tripRef);
     
     const [isChatOpen, setIsChatOpen] = useState(false);
-    const travelerProfile = mockTravelers[booking.userId];
+    
+    const travelerProfileRef = useMemo(() => {
+        if (!firestore) return null;
+        return doc(firestore, 'users', booking.userId);
+    }, [firestore, booking.userId]);
+    const { data: travelerProfile } = useDoc<UserProfile>(travelerProfileRef);
     
     const { depositAmount, remainingAmount } = useMemo(() => {
         if (!trip) return { depositAmount: 0, remainingAmount: 0 };
@@ -87,35 +113,52 @@ export function BookingActionCard({ booking, trip }: { booking: Booking, trip: T
         }
 
         setIsProcessing(true);
-        const notificationsCollection = collection(firestore, 'notifications');
-        const notificationPayload = {
-            userId: booking.userId, // Send notification to the traveler
-            type: 'booking_confirmed' as 'booking_confirmed',
-            isRead: false,
-            createdAt: new Date().toISOString(),
-            title: '',
-            message: '',
-            link: '',
-        };
 
-        if (action === 'confirm') {
-            notificationPayload.title = 'تم تأكيد حجزك! 🎉';
-            notificationPayload.message = `لقد قام الناقل بتأكيد حجزك لرحلة ${getCityName(trip.origin)} إلى ${getCityName(trip.destination)}. نتمنى لك رحلة سعيدة!`;
-            notificationPayload.link = '/history';
-        } else { // reject
-            notificationPayload.title = 'عذراً، تم رفض طلب الحجز';
-            notificationPayload.message = `نعتذر، لم يتمكن الناقل من تأكيد حجزك لرحلة ${getCityName(trip.origin)} إلى ${getCityName(trip.destination)}.`;
-            notificationPayload.link = '/dashboard';
-        }
-        
-        // Non-blocking notification send
-        addDocumentNonBlocking(notificationsCollection, notificationPayload);
-        
-        // SIMULATION of backend logic
-        setTimeout(() => {
-            toast({ title: `محاكاة: ${action === 'confirm' ? 'تم تأكيد الحجز وإرسال إشعار' : 'تم رفض الحجز وإرسال إشعار'}` });
+        try {
+            await runTransaction(firestore, async (transaction) => {
+                const tripDocRef = doc(firestore, 'trips', trip.id);
+                const bookingDocRef = doc(firestore, 'bookings', booking.id);
+                
+                const freshTripDoc = await transaction.get(tripDocRef);
+                if (!freshTripDoc.exists()) {
+                    throw "Trip does not exist!";
+                }
+
+                if (action === 'confirm') {
+                    const currentSeats = freshTripDoc.data().availableSeats || 0;
+                    if (currentSeats < booking.seats) {
+                        throw "Not enough available seats.";
+                    }
+                    
+                    transaction.update(tripDocRef, { availableSeats: increment(-booking.seats) });
+                    transaction.update(bookingDocRef, { status: 'Confirmed' });
+                } else { // reject
+                    transaction.update(bookingDocRef, { status: 'Cancelled', cancelledBy: 'carrier', cancellationReason: 'تم رفض الطلب من قبل الناقل' });
+                }
+            });
+
+            // Send notification outside of transaction
+            const notificationPayload = {
+                userId: booking.userId,
+                type: 'booking_confirmed' as 'booking_confirmed',
+                isRead: false,
+                createdAt: serverTimestamp(),
+                title: action === 'confirm' ? 'تم تأكيد حجزك! 🎉' : 'عذراً، تم رفض طلب الحجز',
+                message: action === 'confirm'
+                    ? `لقد قام الناقل بتأكيد حجزك لرحلة ${getCityName(trip.origin)} إلى ${getCityName(trip.destination)}. نتمنى لك رحلة سعيدة!`
+                    : `نعتذر، لم يتمكن الناقل من تأكيد حجزك لرحلة ${getCityName(trip.origin)} إلى ${getCityName(trip.destination)}.`,
+                link: '/history',
+            };
+            await addDocumentNonBlocking(collection(firestore, 'notifications'), notificationPayload);
+
+            toast({ title: `تم ${action === 'confirm' ? 'تأكيد' : 'رفض'} الحجز بنجاح!` });
+            if (action === 'confirm') logEvent('BOOKING_CONFIRMED', { carrierId: booking.carrierId, bookingId: booking.id });
+        } catch (error: any) {
+            console.error("Booking action failed:", error);
+            toast({ title: 'فشل الإجراء', description: error.toString(), variant: 'destructive' });
+        } finally {
             setIsProcessing(false);
-        }, 1000);
+        }
     };
 
     const statusInfo = statusMap[booking.status] || { text: booking.status, className: 'bg-gray-100 text-gray-800' };
@@ -135,7 +178,7 @@ export function BookingActionCard({ booking, trip }: { booking: Booking, trip: T
             <CardHeader className="flex flex-row justify-between items-start pb-2">
                 <div>
                     <CardTitle className="text-base"><UserInfo userId={booking.userId} /></CardTitle>
-                    <TripInfo trip={trip} />
+                    <TripInfo tripId={booking.tripId} />
                 </div>
                  <Badge className={cn(statusInfo.className, "text-xs")}>{statusInfo.text}</Badge>
             </CardHeader>

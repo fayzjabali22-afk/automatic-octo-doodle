@@ -4,6 +4,9 @@ import { Booking, Trip } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Inbox, History, Hourglass } from 'lucide-react';
 import { BookingActionCard } from '@/components/carrier/booking-action-card';
+import { useFirestore, useCollection, useUser } from '@/firebase';
+import { collection, query, where, orderBy, doc } from 'firebase/firestore';
+
 
 // --- SIMULATION DATA ---
 const mockTrip: Trip = {
@@ -75,48 +78,33 @@ const mockHistoricalBookings: Booking[] = [
     }
 ];
 
-const mockHistoricalTrips: { [key: string]: Trip } = {
-    'trip_456_past': {
-        id: 'trip_456_past',
-        userId: 'carrier_user_id',
-        carrierId: 'carrier_user_id',
-        origin: 'cairo',
-        destination: 'jeddah',
-        departureDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'Completed',
-        price: 70,
-        availableSeats: 0,
-        depositPercentage: 20,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    },
-    'trip_789_past': {
-        id: 'trip_789_past',
-        userId: 'carrier_user_id',
-        carrierId: 'carrier_user_id',
-        origin: 'damascus',
-        destination: 'amman',
-        departureDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'Cancelled',
-        price: 90,
-        availableSeats: 4,
-        depositPercentage: 30,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    }
-}
+const mockTrips: { [key: string]: Trip } = {
+    ...mockHistoricalBookings.reduce((acc, booking) => ({ ...acc, [booking.tripId]: { id: booking.tripId, origin: 'mock', destination: 'mock', departureDate: new Date().toISOString(), status: 'Completed' } }), {}),
+    'trip_123_live': mockTrip
+};
+
 // --- END SIMULATION DATA ---
 
 
 export default function CarrierBookingsPage() {
-    const isLoading = false;
+    const { user } = useUser();
+    const firestore = useFirestore();
+
+    const pendingBookingsQuery = useMemo(() => {
+        if (!firestore || !user) return null;
+        return query(
+            collection(firestore, 'bookings'),
+            where('carrierId', '==', user.uid),
+            where('status', '==', 'Pending-Carrier-Confirmation'),
+            orderBy('createdAt', 'desc')
+        );
+    }, [firestore, user]);
+
+    const { data: realPendingBookings, isLoading } = useCollection<Booking>(pendingBookingsQuery);
+
+    const pendingBookings = (!isLoading && (!realPendingBookings || realPendingBookings.length === 0)) ? mockAllPendingBookings : realPendingBookings;
     
-    // Smart Filter: Only show pending bookings that can actually be fulfilled.
-    const pendingBookings = useMemo(() => {
-        const tripSeats = mockTrip.availableSeats || 0;
-        return mockAllPendingBookings.filter(booking => booking.seats <= tripSeats);
-    }, []);
-    
+    // We'll keep historical bookings as mock for now to keep focus on the main flow
     const historicalBookings = mockHistoricalBookings;
 
     if (isLoading) {
@@ -142,14 +130,12 @@ export default function CarrierBookingsPage() {
                     <Hourglass className="h-5 w-5 text-primary" />
                     طلبات حجز جديدة
                 </h2>
-                {pendingBookings.length > 0 ? (
+                {pendingBookings && pendingBookings.length > 0 ? (
                     <div className="space-y-4">
                         {pendingBookings.map(booking => (
                             <BookingActionCard 
                                 key={booking.id} 
                                 booking={booking} 
-                                // In simulation mode, we provide the trip data directly
-                                trip={mockTrip}
                             />
                         ))}
                     </div>
@@ -176,7 +162,6 @@ export default function CarrierBookingsPage() {
                             <BookingActionCard 
                                 key={booking.id} 
                                 booking={booking} 
-                                trip={mockHistoricalTrips[booking.tripId] || null}
                             />
                         ))}
                     </div>
