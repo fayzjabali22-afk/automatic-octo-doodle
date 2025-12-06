@@ -1,3 +1,4 @@
+
 'use client';
 import { AppLayout } from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
@@ -91,7 +92,9 @@ export default function DashboardPage() {
 
   const tripsQuery = useMemo(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'trips'), where('status', '==', 'Planned'), orderBy('departureDate', 'asc'));
+    // FIX: Removed orderBy('departureDate', 'asc') to avoid composite index requirement.
+    // Sorting will be handled client-side.
+    return query(collection(firestore, 'trips'), where('status', '==', 'Planned'));
   }, [firestore]);
 
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
@@ -125,7 +128,10 @@ export default function DashboardPage() {
 
   const tripDisplayResult = useMemo((): TripDisplayResult => {
     const groupTrips = (trips: Trip[]): GroupedTrips => {
-      const grouped = trips.reduce((acc: GroupedTrips, trip) => {
+      // FIX: Sort trips by departure date before grouping.
+      const sortedTrips = [...trips].sort((a,b) => new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime());
+      
+      const grouped = sortedTrips.reduce((acc: GroupedTrips, trip) => {
         const tripDate = new Date(trip.departureDate).toISOString().split('T')[0];
         if (!acc[tripDate]) acc[tripDate] = [];
         acc[tripDate].push(trip);
@@ -581,3 +587,5 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
+
+    
