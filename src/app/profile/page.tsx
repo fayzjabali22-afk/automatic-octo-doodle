@@ -76,6 +76,8 @@ export default function ProfilePage() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const { profile, isLoading } = useUserProfile();
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
+  
+  const isCarrier = profile?.role === 'carrier';
 
   const userProfileRef = useMemo(() => {
     if (!firestore || !user) return null;
@@ -149,7 +151,7 @@ export default function ProfilePage() {
       );
     }
 
-    if (profile?.role !== 'carrier') {
+    if (!isCarrier) {
       // Don't save carrier fields if user is not a carrier
       delete dataToSave.vehicleType;
       delete dataToSave.vehicleModel;
@@ -233,8 +235,6 @@ export default function ProfilePage() {
 
   const isDevUser = user?.email === 'dev@safar.com';
   const roleIsLoading = isLoading || isSwitchingRole;
-  
-  const isCarrier = profile?.role === 'carrier';
 
 
   return (
@@ -313,7 +313,7 @@ export default function ProfilePage() {
                     <div className="space-y-4">
                       <FormLabel className="flex items-center gap-2 font-semibold"><Car className="h-4 w-4" />روابط صور المركبة</FormLabel>
                       <FormField control={form.control} name="vehicleImageUrls.0" render={({ field }) => (<FormItem><FormLabel className="text-xs">الصورة الأساسية</FormLabel><FormControl><Input dir="ltr" placeholder="https://example.com/main-image.jpg" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                      <FormField control={form.control} name="vehicleImageUrls.1" render={({ field }) => (<FormItem><FormLabel className="text-xs">صورة إضافية</FormLabel><FormControl><Input dir="ltr" placeholder="https://example.com/extra-image.jpg" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                      <FormField control={form.control} name="vehicleImageUrls.1" render={({ field }) => (<FormItem><FormLabel className="text-xs">صورة إضافية</FormLabel><FormControl><Input dir="ltr" placeholder="https://example.com/extra-image.jpg" {...field} /></FormControl><FormMessage /></FormMessage>)} />
                     </div>
                     <Separator />
                     <div className="space-y-2">
