@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AppLayout } from '@/components/app-layout';
@@ -13,10 +12,12 @@ import type { Trip, Offer, Booking, UserProfile } from '@/lib/data';
 import { CheckCircle, PackageOpen, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, ArrowRight, ChevronLeft, Ship } from 'lucide-react';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, addHours, isPast } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { doc, writeBatch, serverTimestamp, collection, query, where, runTransaction, limit } from 'firebase/firestore';
 import { OfferDecisionRoom } from '@/components/offer-decision-room';
+import { TripClosureDialog } from '@/components/trip-closure/trip-closure-dialog';
+import { RateTripDialog } from '@/components/trip-closure/rate-trip-dialog';
 
 const cities: { [key: string]: string } = {
     damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص', amman: 'عمّان', irbid: 'إربد', zarqa: 'الزرقاء',
@@ -80,6 +81,9 @@ export default function HistoryPage() {
 
   const [activeTripRequest, setActiveTripRequest] = useState<Trip | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isClosureDialogOpen, setIsClosureDialogOpen] = useState(false);
+  const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
+  const [selectedTripForClosure, setSelectedTripForClosure] = useState<Trip | null>(null);
 
   // --- QUERIES FOR ALL ACTIVE STATES ---
   const confirmedQuery = useMemo(() => {
@@ -152,6 +156,22 @@ export default function HistoryPage() {
         setIsProcessing(false);
     }
   };
+  
+    const handleOpenClosureDialog = (trip: Trip) => {
+        setSelectedTripForClosure(trip);
+        setIsClosureDialogOpen(true);
+    };
+
+    const handleOpenRatingDialog = () => {
+        setIsClosureDialogOpen(false);
+        setIsRatingDialogOpen(true);
+    };
+    
+    const handleReportProblem = () => {
+        toast({ title: "قيد التطوير", description: "سيتم تفعيل ميزة الإبلاغ عن المشاكل قريباً."});
+        setIsClosureDialogOpen(false);
+    }
+
 
   // --- RENDER LOGIC ---
   const renderLoading = () => (
@@ -164,7 +184,7 @@ export default function HistoryPage() {
   const renderContent = () => {
     // Priority 1: Show the confirmed ticket ("the masterpiece") exclusively if it exists.
     if (confirmedBooking && confirmedTrip) {
-        return <HeroTicket key={confirmedBooking.id} trip={confirmedTrip} booking={confirmedBooking} />;
+        return <HeroTicket key={confirmedBooking.id} trip={confirmedTrip} booking={confirmedBooking} onClosureAction={handleOpenClosureDialog} />;
     }
     
     // Priority 2: Show the offer decision room if a request has been clicked.
@@ -184,7 +204,7 @@ export default function HistoryPage() {
     const hasPendingProcesses = (pendingBookings && pendingBookings.length > 0) || (awaitingOffersTrips && awaitingOffersTrips.length > 0);
     if (hasPendingProcesses) {
         return (
-            <div className="space-y-6">
+             <div className="space-y-6">
                 {pendingBookings && pendingBookings.map(booking => {
                     // This part is a bit tricky without a dedicated hook for multiple docs
                     return <PendingBookingWrapper key={booking.id} booking={booking} />;
@@ -227,6 +247,19 @@ export default function HistoryPage() {
         </Card>
         {isLoading ? renderLoading() : renderContent()}
       </div>
+       <TripClosureDialog
+            isOpen={isClosureDialogOpen}
+            onOpenChange={setIsClosureDialogOpen}
+            trip={selectedTripForClosure}
+            onRate={handleOpenRatingDialog}
+            onReport={handleReportProblem}
+        />
+        <RateTripDialog
+            isOpen={isRatingDialogOpen}
+            onOpenChange={setIsRatingDialogOpen}
+            trip={selectedTripForClosure}
+            onConfirm={() => setSelectedTripForClosure(null)}
+        />
     </AppLayout>
   );
 }
@@ -242,7 +275,7 @@ function PendingBookingWrapper({ booking }: { booking: Booking }) {
 }
 
 
-const HeroTicket = ({ trip, booking }: { trip: Trip, booking: Booking}) => {
+const HeroTicket = ({ trip, booking, onClosureAction }: { trip: Trip, booking: Booking, onClosureAction: (trip: Trip) => void}) => {
     const carrierProfile: UserProfile = {
         id: 'carrier3',
         firstName: 'فوزي',
@@ -254,6 +287,15 @@ const HeroTicket = ({ trip, booking }: { trip: Trip, booking: Booking}) => {
     const depositAmount = (booking.totalPrice * ((trip.depositPercentage || 20) / 100));
     const remainingAmount = booking.totalPrice - depositAmount;
 
+    // The new logic for showing the closure button
+    const isClosureReady = useMemo(() => {
+        if (!trip.departureDate || !trip.durationHours) return false;
+        const departure = new Date(trip.departureDate);
+        const closureTime = addHours(departure, trip.durationHours + 4);
+        return isPast(closureTime);
+    }, [trip.departureDate, trip.durationHours]);
+
+
     return (
         <Card className="bg-gradient-to-br from-card to-muted/50 shadow-lg border-accent">
             <CardHeader>
@@ -262,6 +304,12 @@ const HeroTicket = ({ trip, booking }: { trip: Trip, booking: Booking}) => {
                         <Badge variant="default" className="w-fit bg-accent text-accent-foreground mb-2">تذكرة مؤكدة</Badge>
                         <CardTitle className="pt-1">{getCityName(trip.origin)} - {getCityName(trip.destination)}</CardTitle>
                     </div>
+                     {isClosureReady && onClosureAction && (
+                        <Button variant="default" onClick={() => onClosureAction(trip)}>
+                            <Flag className="ml-2 h-4 w-4" />
+                            إجراءات إغلاق الرحلة
+                        </Button>
+                    )}
                 </div>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
@@ -333,6 +381,3 @@ const HeroTicket = ({ trip, booking }: { trip: Trip, booking: Booking}) => {
         </Card>
     )
 };
-
-
-    

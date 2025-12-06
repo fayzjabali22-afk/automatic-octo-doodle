@@ -47,7 +47,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { Textarea } from '../ui/textarea';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const countries: { [key: string]: { name: string; cities: string[] } } = {
@@ -75,7 +75,7 @@ const addTripSchema = z.object({
   currency: z.string().min(1, "العملة مطلوبة").max(10, "رمز العملة طويل جداً"),
   availableSeats: z.coerce.number().int().min(1, 'يجب توفر مقعد واحد على الأقل'),
   depositPercentage: z.coerce.number().min(0, "الحد الأدنى 0%").max(25, "نسبة العربون لا يمكن أن تتجاوز 25% حسب قوانين المنصة"),
-  durationHours: z.coerce.number().positive('مدة الرحلة المتوقعة مطلوبة ويجب أن تكون رقماً موجباً'),
+  durationHours: z.coerce.number().positive('مدة الرحلة المتوقعة بالساعات إلزامية لتفعيل نظام التقييم.'),
   conditions: z.string().max(200, 'الشروط يجب ألا تتجاوز 200 حرف').optional(),
 });
 
@@ -301,7 +301,7 @@ export function AddTripDialog({ isOpen, onOpenChange }: AddTripDialogProps) {
                         )}/>
                         <FormField control={form.control} name="durationHours" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="flex items-center gap-1"><Clock className="h-4 w-4 text-muted-foreground"/>مدة الرحلة (ساعة)</FormLabel>
+                                <FormLabel className="flex items-center gap-1"><Clock className="h-4 w-4 text-primary"/>مدة الرحلة التقريبية (ساعة)</FormLabel>
                                 <FormControl><Input className="bg-card" type="number" placeholder="e.g., 8" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
