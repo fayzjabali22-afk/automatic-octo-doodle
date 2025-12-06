@@ -92,11 +92,12 @@ export default function ArchivePage() {
 
     const archivedTripsQuery = useMemo(() => {
         if (!firestore || !user) return null;
+        // The orderBy was removed from here to avoid needing a composite index.
+        // Sorting will be handled client-side in the next useMemo.
         return query(
             collection(firestore, 'trips'),
             where('carrierId', '==', user.uid),
-            where('status', 'in', ['Completed', 'Cancelled']),
-            orderBy('departureDate', 'desc')
+            where('status', 'in', ['Completed', 'Cancelled'])
         );
     }, [firestore, user]);
 
@@ -104,6 +105,7 @@ export default function ArchivePage() {
 
     const { completedTrips, cancelledTrips } = useMemo(() => {
         if (!trips) return { completedTrips: [], cancelledTrips: [] };
+        // Sort the trips here on the client-side
         const completed = trips.filter(t => t.status === 'Completed').sort((a,b) => new Date(b.departureDate).getTime() - new Date(a.departureDate).getTime());
         const cancelled = trips.filter(t => t.status === 'Cancelled').sort((a,b) => new Date(b.departureDate).getTime() - new Date(a.departureDate).getTime());
         return { completedTrips: completed, cancelledTrips: cancelled };
