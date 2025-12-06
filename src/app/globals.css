@@ -4,37 +4,37 @@
 
 @layer base {
   :root {
-    --background: 207 90% 94%; /* #E3F2FD - Light Blue */
-    --foreground: 222.2 47.4% 11.2%;
+    --background: 350 20% 12%; /* Dark reddish-brown */
+    --foreground: 210 40% 98%;
 
-    --card: 207 90% 98%; /* Lighter shade for cards */
-    --card-foreground: 222.2 47.4% 11.2%;
+    --card: 0 0% 8%; /* Darker card background */
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
+    --popover: 350 20% 12%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 231 48% 48%; /* #3F51B5 - Deep Blue */
-    --primary-foreground: 210 40% 98%;
+    --primary: 45 74% 49%; /* Gold */
+    --primary-foreground: 30 8% 10%;
 
-    --secondary: 210 40% 90%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 215.4 16.3% 56.9%;
 
-    --accent: 261 40% 62%; /* #7E57C2 - Purple */
+    --accent: 350 20% 20%; /* Accent for buttons like the bottom one */
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 231 48% 48%;
-
-    --chart-1: 231 48% 48%;
-    --chart-2: 261 40% 62%;
-    --chart-3: 160 84% 39%;
+    --border: 45 74% 35%; /* Gold border */
+    --input: 0 0% 14%;
+    --ring: 45 74% 49%;
+    
+    --chart-1: 45 74% 49%;
+    --chart-2: 350 20% 40%;
+    --chart-3: 210 40% 58%;
     --chart-4: 30 100% 50%;
     --chart-5: 280 65% 60%;
     
@@ -42,33 +42,33 @@
   }
 
   .dark {
-    --background: 224 71% 4%; /* Very dark blue */
+    --background: 350 20% 12%; /* Dark reddish-brown */
     --foreground: 210 40% 98%;
 
-    --card: 224 71% 9%; /* Slightly lighter blue for cards */
+    --card: 0 0% 8%; /* Darker card background */
     --card-foreground: 210 40% 98%;
 
-    --popover: 224 71% 4%;
+    --popover: 350 20% 12%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 231 48% 58%; /* A slightly lighter version of the deep blue for dark mode */
-    --primary-foreground: 210 40% 98%;
+    --primary: 45 74% 49%; /* Gold */
+    --primary-foreground: 30 8% 10%;
 
-    --secondary: 224 71% 14%;
+    --secondary: 0 0% 14%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 224 71% 14%;
+    --muted: 0 0% 14%;
     --muted-foreground: 215.4 16.3% 56.9%;
 
-    --accent: 261 40% 72%; /* Lighter purple for dark mode */
+    --accent: 350 20% 20%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 21.4%; /* Darker border */
-    --input: 214.3 31.8% 21.4%;
-    --ring: 231 48% 58%;
+    --border: 45 74% 35%; /* Gold border */
+    --input: 0 0% 14%;
+    --ring: 45 74% 49%;
   }
 }
 
