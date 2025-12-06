@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from '@/components/app-layout';
@@ -14,7 +15,7 @@ import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { arSA } from 'date-fns/locale';
-import { doc, writeBatch, serverTimestamp, collection, query, where, runTransaction } from 'firebase/firestore';
+import { doc, writeBatch, serverTimestamp, collection, query, where, runTransaction, limit } from 'firebase/firestore';
 import { OfferDecisionRoom } from '@/components/offer-decision-room';
 
 const cities: { [key: string]: string } = {
@@ -332,3 +333,6 @@ const HeroTicket = ({ trip, booking }: { trip: Trip, booking: Booking}) => {
         </Card>
     )
 };
+
+
+    
