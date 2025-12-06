@@ -11,7 +11,7 @@ const menuLinks = [
     { href: '/carrier/trips', label: 'رحلاتي وحجوزاتي', icon: Route, exact: false },
     { href: '/carrier/archive', label: 'الأرشيف', icon: Archive, exact: false },
     { href: '/carrier/conditions', label: 'الشروط الدائمة', icon: ListChecks, exact: false },
-    { href: '/profile', label: 'الملف الشخصي', icon: User, exact: true },
+    { href: '/carrier/profile', label: 'الملف الشخصي', icon: User, exact: true },
 ];
 
 interface CarrierMobileMenuProps {

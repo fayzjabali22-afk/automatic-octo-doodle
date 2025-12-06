@@ -113,7 +113,7 @@ export default function CarrierLayout({
                     </TooltipProvider>
                 )}
                 <Button asChild variant="ghost" size="icon" className="hover:bg-black/10">
-                  <Link href="/profile">
+                  <Link href="/carrier/profile">
                     <User className="h-6 w-6" />
                     <span className="sr-only">الملف الشخصي</span>
                   </Link>

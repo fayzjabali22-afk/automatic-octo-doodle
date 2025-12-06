@@ -2,7 +2,6 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AppLayout } from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -26,11 +25,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useAuth } from '@/firebase';
 import { doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState, useMemo } from 'react';
-import { deleteUser, sendEmailVerification } from 'firebase/auth';
+import { deleteUser } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Trash2, Upload } from 'lucide-react';
+import { ShieldAlert, Trash2, Upload, Briefcase } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { actionCodeSettings } from '@/firebase/config';
 import { useUserProfile } from '@/hooks/use-user-profile';
 
 
@@ -39,12 +37,17 @@ const profileFormSchema = z.object({
   lastName: z.string().min(2, 'Last name must be at least 2 characters.'),
   email: z.string().email('Invalid email address.'),
   phoneNumber: z.string().optional(),
+  vehicleType: z.string().optional(),
+  vehicleModel: z.string().optional(),
+  vehicleYear: z.string().optional(),
+  vehiclePlateNumber: z.string().optional(),
+  vehicleCapacity: z.coerce.number().int().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 
-export default function ProfilePage() {
+export default function CarrierProfilePage() {
   const { toast } = useToast();
   const { user } = useUser();
   const auth = useAuth();
@@ -66,6 +69,11 @@ export default function ProfilePage() {
       lastName: '',
       email: '',
       phoneNumber: '',
+      vehicleType: '',
+      vehicleModel: '',
+      vehicleYear: '',
+      vehiclePlateNumber: '',
+      vehicleCapacity: 0,
     },
   });
 
@@ -76,6 +84,11 @@ export default function ProfilePage() {
         lastName: profile.lastName || '',
         email: profile.email || user?.email || '',
         phoneNumber: profile.phoneNumber || user?.phoneNumber || '',
+        vehicleType: profile.vehicleType || '',
+        vehicleModel: profile.vehicleModel || '',
+        vehicleYear: profile.vehicleYear || '',
+        vehiclePlateNumber: profile.vehiclePlateNumber || '',
+        vehicleCapacity: profile.vehicleCapacity || 0,
       });
     } else if (user) {
       form.reset({
@@ -88,7 +101,16 @@ export default function ProfilePage() {
 
   function onUserSubmit(data: ProfileFormValues) {
     if (!userProfileRef) return;
-    updateDoc(userProfileRef, data);
+    const dataToSave: Partial<ProfileFormValues> = { ...data };
+
+    if (dataToSave.vehicleCapacity && typeof dataToSave.vehicleCapacity === 'string') {
+      dataToSave.vehicleCapacity = parseInt(dataToSave.vehicleCapacity, 10);
+    }
+    if (isNaN(dataToSave.vehicleCapacity!)) {
+      delete dataToSave.vehicleCapacity;
+    }
+
+    updateDoc(userProfileRef, dataToSave);
     toast({ title: 'تم تحديث الملف الشخصي', description: 'تم حفظ تغييراتك بنجاح.' });
   }
 
@@ -122,8 +144,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <AppLayout>
-        <div className="max-w-4xl mx-auto space-y-8 p-0 md:p-4">
+      <div className="max-w-4xl mx-auto space-y-8 p-4 md:p-8">
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onUserSubmit)} className="space-y-8">
@@ -147,6 +168,22 @@ export default function ProfilePage() {
                 </CardContent>
               </Card>
 
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Briefcase /> بيانات المركبة</CardTitle>
+                  <CardDescription>إدارة بيانات مركبتك التي تظهر للمسافرين.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <FormField control={form.control} name="vehicleType" render={({ field }) => (<FormItem><FormLabel>نوع المركبة</FormLabel><FormControl><Input placeholder="e.g., GMC Yukon" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="vehicleModel" render={({ field }) => (<FormItem><FormLabel>موديل المركبة</FormLabel><FormControl><Input placeholder="e.g., Suburban" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="vehicleYear" render={({ field }) => (<FormItem><FormLabel>سنة الصنع</FormLabel><FormControl><Input placeholder="e.g., 2024" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="vehiclePlateNumber" render={({ field }) => (<FormItem><FormLabel>رقم لوحة المركبة</FormLabel><FormControl><Input placeholder="e.g., 1-12345" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="vehicleCapacity" render={({ field }) => (<FormItem><FormLabel>سعة الركاب</FormLabel><FormControl><Input type="number" placeholder="e.g., 4" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  </div>
+                </CardContent>
+              </Card>
+
               <div className="flex justify-end">
                 <Button type="submit">حفظ التغييرات</Button>
               </div>
@@ -163,8 +200,7 @@ export default function ProfilePage() {
                 </Button>
             </CardFooter>
           </Card>
-        </div>
-      </AppLayout>
+      </div>
 
       <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
         <AlertDialogContent dir="rtl">
