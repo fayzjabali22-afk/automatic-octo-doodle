@@ -26,6 +26,7 @@ import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { OfferDecisionRoom } from '@/components/offer-decision-room';
 
 
 // --- STRATEGIC MOCK DATA FOR THE FULL LIFECYCLE ---
@@ -68,6 +69,40 @@ const mockConfirmed: { trip: Trip, booking: Booking } = {
     },
     booking: { id: 'booking_confirmed_1', tripId: 'trip_confirmed_1', userId: 'user1', carrierId: 'carrier3', seats: 2, passengersDetails: [{ name: 'حسن علي', type: 'adult' }, { name: 'علي حسن', type: 'child' }], status: 'Confirmed', totalPrice: 180, currency: 'USD', createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), updatedAt: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString() }
 };
+
+const mockOffers: Offer[] = [
+    {
+        id: 'offer1',
+        tripId: 'trip_req_1',
+        carrierId: 'carrier_A',
+        price: 90,
+        currency: 'JOD',
+        notes: 'توقف للاستراحة في الطريق، واي فاي متوفر.',
+        status: 'Pending',
+        createdAt: new Date().toISOString(),
+        vehicleType: 'GMC Yukon 2023',
+        vehicleCategory: 'small',
+        vehicleModelYear: 2023,
+        availableSeats: 4,
+        depositPercentage: 20,
+        conditions: 'حقيبة واحدة فقط لكل راكب.'
+    },
+    {
+        id: 'offer2',
+        tripId: 'trip_req_1',
+        carrierId: 'carrier_B',
+        price: 85,
+        currency: 'JOD',
+        notes: 'رحلة مباشرة بدون توقف.',
+        status: 'Pending',
+        createdAt: new Date().toISOString(),
+        vehicleType: 'Hyundai Staria 2024',
+        vehicleCategory: 'small',
+        vehicleModelYear: 2024,
+        availableSeats: 6,
+        depositPercentage: 15,
+    }
+];
 
 // Helper data
 const cities: { [key: string]: string } = {
@@ -133,17 +168,18 @@ export default function HistoryPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
-
-  // --- DIALOG STATES ---
-  const [isOffersDialogOpen, setIsOffersDialogOpen] = useState(false);
   
-  // --- MOCK DATA SIMULATION ---
-  // This state determines which path the user is on.
-  // In a real app, this would be derived from Firestore data.
-  const [userPath, setUserPath] = useState<'booking' | 'offers'>('offers'); 
+  const [activeTripRequest, setActiveTripRequest] = useState<Trip | null>(null);
+
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Filter mock data based on the selected path
+  // This state determines which path the user is on.
+  const userPath: 'booking' | 'offers' | 'none' = useMemo(() => {
+    if (mockPendingConfirmation) return 'booking';
+    if (mockAwaitingOffers) return 'offers';
+    return 'none';
+  }, []);
+
   const pendingConfirmationBookings = userPath === 'booking' ? [mockPendingConfirmation] : [];
   const awaitingOffersTrips = userPath === 'offers' ? [mockAwaitingOffers] : [];
   const ticketItems = [mockConfirmed]; // Confirmed tickets always show up
@@ -155,27 +191,31 @@ export default function HistoryPage() {
     // SIMULATION
     toast({
         title: "محاكاة: تم قبول العرض!",
-        description: "جاري إرسال طلب التأكيد النهائي للناقل. سيظهر الحجز في قائمة الانتظار قريباً."
+        description: "جاري إرسال طلب التأكيد النهائي للناقل. سيتم تحويلك إلى شاشة الانتظار."
     });
 
     setTimeout(() => {
-        // Switch the path to show the booking confirmation view
-        setUserPath('booking');
+        // In a real app, we would wait for a state change from Firestore.
+        // Here, we just go back to the main history view.
+        setActiveTripRequest(null); 
         setIsProcessing(false);
-        setIsOffersDialogOpen(false);
     }, 2000);
   };
+  
+  const renderMainContent = () => {
+    if (activeTripRequest) {
+      return (
+        <OfferDecisionRoom
+            trip={activeTripRequest}
+            offers={mockOffers.filter(o => o.tripId === activeTripRequest.id)}
+            onAcceptOffer={handleAcceptOffer}
+            isProcessing={isProcessing}
+            onBack={() => setActiveTripRequest(null)}
+        />
+      )
+    }
 
-  return (
-    <AppLayout>
-      <div className="bg-background/80 p-2 md:p-8 rounded-lg space-y-8">
-        <Card className="bg-card/90 border-border/50">
-           <CardHeader>
-              <CardTitle>إدارة الحجز والرحلات</CardTitle>
-              <CardDescription>تابع طلباتك، عروضك، وحجوزاتك من هنا.</CardDescription>
-          </CardHeader>
-        </Card>
-
+    return (
          <Tabs defaultValue="processing" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="processing"><ListFilter className="ml-2 h-4 w-4" />قيد المعالجة</TabsTrigger>
@@ -183,10 +223,7 @@ export default function HistoryPage() {
             </TabsList>
 
             <TabsContent value="processing" className="mt-6 space-y-6">
-                {/* --- SMART UI RENDERING --- */}
-
-                {/* SCENARIO 1: User is on the direct booking path */}
-                {userPath === 'booking' && pendingConfirmationBookings.length > 0 && (
+                {userPath === 'booking' && (
                     <div className="space-y-4">
                         <h3 className="font-bold text-lg">طلبات بانتظار الموافقة</h3>
                         {pendingConfirmationBookings.map(item => (
@@ -195,23 +232,21 @@ export default function HistoryPage() {
                     </div>
                 )}
                 
-                {/* SCENARIO 2: User is on the marketplace offers path */}
-                {userPath === 'offers' && awaitingOffersTrips.length > 0 && (
+                {userPath === 'offers' && (
                      <div className="space-y-4">
                         <h3 className="font-bold text-lg">طلبات بانتظار العروض</h3>
                         {awaitingOffersTrips.map(trip => (
                             <AwaitingOffersCard 
                                 key={trip.id} 
                                 trip={trip} 
-                                offerCount={2} /* Mock offer count */
-                                onClick={() => setIsOffersDialogOpen(true)}
+                                offerCount={mockOffers.filter(o => o.tripId === trip.id).length}
+                                onClick={() => setActiveTripRequest(trip)}
                             />
                         ))}
                     </div>
                 )}
                 
-                 {/* SCENARIO 3: User has no pending items */}
-                {pendingConfirmationBookings.length === 0 && awaitingOffersTrips.length === 0 && (
+                {userPath === 'none' && (
                     <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
                         <PackageOpen className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4"/>
                         <p className="font-bold">لا توجد لديك أي حجوزات أو طلبات قيد المعالجة.</p>
@@ -232,27 +267,22 @@ export default function HistoryPage() {
             </TabsContent>
             
         </Tabs>
+    )
+  }
+
+  return (
+    <AppLayout>
+      <div className="bg-background/80 p-2 md:p-8 rounded-lg space-y-8">
+        <Card className="bg-card/90 border-border/50">
+           <CardHeader>
+              <CardTitle>إدارة الحجز والرحلات</CardTitle>
+              <CardDescription>تابع طلباتك، عروضك، وحجوزاتك من هنا.</CardDescription>
+          </CardHeader>
+        </Card>
+        
+        {renderMainContent()}
+
       </div>
-
-       {/* --- Dialogs --- */}
-      {awaitingOffersTrips.length > 0 && (
-        <Dialog open={isOffersDialogOpen} onOpenChange={setIsOffersDialogOpen}>
-            <DialogContent className="max-w-4xl">
-                 <DialogHeader>
-                    <DialogTitle>العروض المستلمة لطلبك</DialogTitle>
-                    <DialogDescription>
-                       استعرض العروض المقدمة من الناقلين واختر الأنسب لك.
-                    </DialogDescription>
-                </DialogHeader>
-                <TripOffers 
-                    trip={awaitingOffersTrips[0]}
-                    onAcceptOffer={handleAcceptOffer}
-                    isProcessing={isProcessing}
-                />
-            </DialogContent>
-        </Dialog>
-      )}
-
     </AppLayout>
   );
 }

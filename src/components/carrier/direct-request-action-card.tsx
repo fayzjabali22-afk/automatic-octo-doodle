@@ -7,11 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Check, X, Calendar, Users, ArrowRight, Loader2, Info, User, CircleDollarSign, CheckCheck, Ban, Wallet } from 'lucide-react';
+import { Check, X, Calendar, Users, ArrowRight, Loader2, Info, User, CircleDollarSign, CheckCheck, Ban, Wallet, Hourglass } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { Badge } from '../ui/badge';
 
 
 const cities: { [key: string]: string } = {
@@ -24,6 +25,7 @@ const getCityName = (key: string) => cities[key] || key;
 
 const mockTravelers: { [key: string]: UserProfile } = {
     'traveler_mock_3': { id: 'traveler_mock_3', firstName: 'علي', lastName: 'حسن', email: 'ali@email.com' },
+    'traveler_mock_4': { id: 'traveler_mock_4', firstName: 'سعيد', lastName: 'محمد', email: 'saeed@email.com' },
 };
 
 function UserInfo({ userId }: { userId: string }) {
@@ -57,7 +59,7 @@ interface DirectRequestActionCardProps {
 export function DirectRequestActionCard({ tripRequest, onApprove, onReject }: DirectRequestActionCardProps) {
     const { toast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
-    const [finalPrice, setFinalPrice] = useState<number | undefined>(tripRequest.targetPrice);
+    const [finalPrice, setFinalPrice] = useState<number | undefined>(tripRequest.price || tripRequest.targetPrice);
     const [currency, setCurrency] = useState(tripRequest.currency || 'د.أ');
     const [rejectionReason, setRejectionReason] = useState('');
     const [showRejectionInput, setShowRejectionInput] = useState(false);
@@ -85,6 +87,46 @@ export function DirectRequestActionCard({ tripRequest, onApprove, onReject }: Di
          if (!success) {
             setIsProcessing(false);
         }
+    }
+    
+    const isAwaitingFinalConfirmation = tripRequest.status === 'Pending-Carrier-Confirmation';
+
+    if(isAwaitingFinalConfirmation) {
+        return (
+             <Card className="w-full shadow-md transition-shadow hover:shadow-lg border-yellow-500 border-2">
+                 <CardHeader>
+                    <Badge variant="outline" className="flex items-center gap-2 bg-yellow-100 text-yellow-800 border-yellow-300 w-fit">
+                        <Hourglass className="h-4 w-4 animate-pulse" />
+                        موافقة نهائية مطلوبة
+                    </Badge>
+                     <CardTitle className="text-base pt-2"><UserInfo userId={tripRequest.userId} /></CardTitle>
+                    <CardDescription>
+                        وافق المسافر على عرضك. مطلوب موافقتك النهائية لبدء عملية الدفع.
+                    </CardDescription>
+                 </CardHeader>
+                  <CardContent className="space-y-4 pb-4">
+                      <div className="p-3 bg-muted/50 rounded-lg border">
+                            <h4 className="font-bold text-sm mb-2 flex items-center gap-2"><Wallet className="h-4 w-4 text-primary"/>التفاصيل المالية المتفق عليها</h4>
+                            <div className="space-y-1 text-sm">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">السعر الإجمالي:</span>
+                                    <span className="font-bold text-lg">{tripRequest.price?.toFixed(2)} {tripRequest.currency}</span>
+                                </div>
+                            </div>
+                        </div>
+                  </CardContent>
+                 <CardFooter className="flex flex-col gap-2 bg-muted/30 p-2">
+                     <Button 
+                        className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                        onClick={handleApproveClick}
+                        disabled={isProcessing}
+                    >
+                        {isProcessing ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <CheckCheck className="ml-2 h-4 w-4" />}
+                        موافقة نهائية وإرسال فاتورة العربون
+                    </Button>
+                 </CardFooter>
+             </Card>
+        )
     }
 
     return (

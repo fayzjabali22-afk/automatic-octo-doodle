@@ -1,70 +1,39 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useCollection, useFirestore } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore'; 
 import type { Offer, Trip } from '@/lib/data';
 import { OfferCard } from '@/components/offer-card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PackageOpen } from 'lucide-react';
+import { PackageOpen, X } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+
 
 // --- MOCK DATA ---
-const mockOffers: Offer[] = [
-    {
-        id: 'offer1',
-        tripId: 'trip_req_1',
-        carrierId: 'carrier_A',
-        price: 90,
-        currency: 'JOD',
-        notes: 'توقف للاستراحة في الطريق، واي فاي متوفر.',
-        status: 'Pending',
-        createdAt: new Date().toISOString(),
-        vehicleType: 'GMC Yukon 2023',
-        vehicleCategory: 'small',
-        vehicleModelYear: 2023,
-        availableSeats: 4,
-        depositPercentage: 20,
-        conditions: 'حقيبة واحدة فقط لكل راكب.'
-    },
-    {
-        id: 'offer2',
-        tripId: 'trip_req_1',
-        carrierId: 'carrier_B',
-        price: 85,
-        currency: 'JOD',
-        notes: 'رحلة مباشرة بدون توقف.',
-        status: 'Pending',
-        createdAt: new Date().toISOString(),
-        vehicleType: 'Hyundai Staria 2024',
-        vehicleCategory: 'small',
-        vehicleModelYear: 2024,
-        availableSeats: 6,
-        depositPercentage: 15,
-    }
-];
+const mockCarriers: { [key: string]: { name: string } } = {
+    'carrier_A': { name: 'النقل السريع' },
+    'carrier_B': { name: 'راحة الطريق' },
+};
 // --- END MOCK DATA ---
 
 interface TripOffersProps {
   trip: Trip;
+  offers: Offer[];
   onAcceptOffer: (trip: Trip, offer: Offer) => void;
   isProcessing: boolean;
 }
 
-export function TripOffers({ trip, onAcceptOffer, isProcessing }: TripOffersProps) {
-  // --- USE MOCK DATA ---
-  const offers = mockOffers.filter(o => o.tripId === trip.id);
-  const isLoading = false;
-  // --- END MOCK DATA ---
-
+export function TripOffers({ trip, offers, onAcceptOffer, isProcessing }: TripOffersProps) {
+  const isLoading = false; // Mock loading state
 
   const handleAcceptClick = async (offer: Offer) => {
     await onAcceptOffer(trip, offer);
   };
 
-  // ✅ حالة التحميل
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-4">
         {[...Array(2)].map((_, i) => (
           <Skeleton key={i} className="h-64 w-full rounded-md" />
         ))}
@@ -72,7 +41,6 @@ export function TripOffers({ trip, onAcceptOffer, isProcessing }: TripOffersProp
     );
   }
 
-  // ✅ حالة عدم وجود عروض
   if (!offers || offers.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-8 col-span-full border-2 border-dashed rounded-lg bg-background/50">
@@ -83,18 +51,26 @@ export function TripOffers({ trip, onAcceptOffer, isProcessing }: TripOffersProp
     );
   }
 
-  // ✅ عرض العروض
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {offers.map((offer) => (
-        <OfferCard
-          key={offer.id}
-          offer={offer}
-          trip={trip}
-          onAccept={() => handleAcceptClick(offer)}
-          isAccepting={isProcessing}
-        />
-      ))}
-    </div>
+    <Accordion type="single" collapsible className="w-full space-y-3">
+        {offers.map((offer) => (
+            <AccordionItem key={offer.id} value={offer.id} className='border rounded-lg bg-card/80'>
+                <AccordionTrigger className='p-4 hover:no-underline'>
+                    <div className='flex justify-between items-center w-full'>
+                        <span className='font-bold text-sm'>عرض من: {mockCarriers[offer.carrierId]?.name || 'ناقل غير معروف'}</span>
+                        <Badge variant={'outline'} className='font-bold text-base'>{offer.price.toFixed(2)} {offer.currency}</Badge>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent className='p-4 pt-0'>
+                     <OfferCard
+                        offer={offer}
+                        trip={trip}
+                        onAccept={() => handleAcceptClick(offer)}
+                        isAccepting={isProcessing}
+                    />
+                </AccordionContent>
+            </AccordionItem>
+        ))}
+    </Accordion>
   );
 }

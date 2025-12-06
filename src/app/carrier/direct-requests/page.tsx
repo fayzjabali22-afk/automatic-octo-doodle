@@ -32,6 +32,26 @@ const mockDirectRequests: Trip[] = [
         notes: 'عائلة ترغب برحلة خاصة ومريحة.',
         createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     },
+    {
+        id: 'mock_req_4',
+        userId: 'traveler_mock_4',
+        origin: 'amman',
+        destination: 'riyadh',
+        departureDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+        passengers: 2,
+        passengersDetails: [
+            { name: 'سعيد محمد', type: 'adult'},
+            { name: 'هالة سعيد', type: 'adult'},
+        ],
+        status: 'Pending-Carrier-Confirmation',
+        requestType: 'Direct', // This is a request that was accepted by traveler and awaits final confirmation
+        targetCarrierId: 'carrier_user_id', 
+        price: 180,
+        currency: 'JOD',
+        isShared: true,
+        notes: 'قبل المسافر عرضك، بانتظار موافقتك النهائية.',
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    },
 ];
 // --- END STRATEGIC FALLBACK DATA ---
 
@@ -69,9 +89,9 @@ export default function CarrierDirectRequestsPage() {
 
     return query(
         collection(firestore, 'trips'), 
-        where('status', '==', 'Awaiting-Offers'),
         where('requestType', '==', 'Direct'),
-        where('targetCarrierId', '==', user.uid)
+        where('targetCarrierId', '==', user.uid),
+        where('status', 'in', ['Awaiting-Offers', 'Pending-Carrier-Confirmation'])
     );
   }, [firestore, user]);
 

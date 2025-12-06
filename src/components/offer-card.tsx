@@ -35,12 +35,14 @@ const CarrierInfo = React.memo(({ carrierId }: { carrierId: string }) => {
   const firestore = useFirestore();
   const carrierRef = useMemo(() => {
     if (!firestore) return null;
-    return doc(firestore, 'carriers', carrierId);
+    return doc(firestore, 'users', carrierId); // carriers are now in 'users'
   }, [firestore, carrierId]);
 
   const { data: carrier, isLoading } = useDoc<CarrierProfile>(carrierRef);
   const carrierImage = PlaceHolderImages.find((img) => img.id === 'user-avatar');
-
+  
+  const rating = carrier?.averageRating ? carrier.averageRating.toFixed(1) : 'جديد';
+  
   if (isLoading) {
     return (
       <div className="flex items-center gap-3">
@@ -52,8 +54,6 @@ const CarrierInfo = React.memo(({ carrierId }: { carrierId: string }) => {
       </div>
     );
   }
-  
-  const rating = carrier?.averageRating ? carrier.averageRating.toFixed(1) : 'جديد';
 
   return (
     <div className="flex items-center gap-3">
@@ -83,24 +83,12 @@ CarrierInfo.displayName = 'CarrierInfo';
 
 
 export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps) {
-  const router = useRouter();
-  const firestore = useFirestore();
-  const { user } = useUser();
-  const { toast } = useToast();
-
-  const handleBookNow = () => {
-      onAccept();
-  }
-
   const depositAmount = Math.max(0, (offer.price || 0) * ((offer.depositPercentage || 20) / 100));
   const vehicleImage = PlaceHolderImages.find((img) => img.id === 'car-placeholder');
 
   return (
-    <Card dir="rtl" className="w-full overflow-hidden shadow-lg transition-all hover:shadow-primary/20 border-2 border-border/60 flex flex-col justify-between bg-card">
-      <CardHeader>
-        <CarrierInfo carrierId={offer.carrierId} />
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div dir="rtl" className="w-full overflow-hidden transition-all flex flex-col justify-between bg-card">
+      <div className="space-y-4">
         {vehicleImage && (
           <div className="relative aspect-video w-full overflow-hidden rounded-md">
             <Image
@@ -168,9 +156,9 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
               <p className="ps-2">{offer.notes}</p>
           </div>
         )}
-      </CardContent>
-      <CardFooter className="flex p-2 bg-background/30">
-          <Button className="w-full" onClick={handleBookNow} disabled={isAccepting}>
+      </div>
+      <div className="flex p-2 pt-4 bg-background/30">
+          <Button className="w-full" onClick={onAccept} disabled={isAccepting}>
               {isAccepting ? (
                   <>
                       <Loader2 className="ms-2 h-4 w-4 animate-spin" />
@@ -183,7 +171,7 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
                   </>
               )}
           </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }
