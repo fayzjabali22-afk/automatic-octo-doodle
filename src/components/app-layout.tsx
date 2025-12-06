@@ -234,14 +234,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <TooltipProvider>
       <div className="flex min-h-screen w-full flex-col bg-background" dir="rtl">
         <header className={cn(
-          "sticky top-0 z-50 flex h-16 items-center justify-between px-4 shadow-md md:px-6",
-          "bg-accent text-accent-foreground border-b border-border/10"
+          "sticky top-0 z-50 flex h-16 items-center justify-between px-4 md:px-6",
+          "bg-primary text-primary-foreground border-b border-primary/50 shadow-md"
         )}>
 
           {/* Left-side icons on mobile */}
           <div className="flex items-center gap-2 md:hidden">
-            {isMounted && isCarrierPath && (
-              <Button asChild variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-black/10">
+            {isMounted && (
+              <Button asChild variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-black/20 text-primary-foreground">
                 <Link href="/profile" aria-label="الملف الشخصي">
                   <User className="h-5 w-5" />
                 </Link>
@@ -254,14 +254,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             {isMounted && !isCarrierPath && (
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-black/10">
-                    <Menu className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-black/20 text-primary-foreground">
+                    <Menu className="h-5 w-5" />
                     <span className="sr-only">القائمة الرئيسية</span>
                   </Button>
                 </SheetTrigger>
                 <SheetContent
                   side="right"
-                  className="w-full max-w-xs p-0 bg-secondary text-secondary-foreground"
+                  className="w-full max-w-xs p-0 bg-background text-foreground"
                 >
                   <SheetTitle className="sr-only">القائمة الرئيسية</SheetTitle>
                   <nav className="grid gap-6 text-lg font-medium p-6">
@@ -274,7 +274,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         <Link
                           key={item.label}
                           href={item.href}
-                          className={cn("font-bold text-white hover:text-white/80 flex items-center gap-2", isLinkActive && "underline")}
+                          className={cn("font-bold text-foreground hover:text-primary flex items-center gap-2", isLinkActive && "text-primary")}
                         >
                           {item.icon && <item.icon className="h-4 w-4" />}
                           {item.label}
@@ -310,7 +310,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="rounded-full hover:bg-black/10 relative"
+                            className="rounded-full hover:bg-black/20 relative text-primary-foreground"
                             onClick={handleSwitchRole}
                             disabled={isSwitchingRole || isProfileLoading}
                         >
@@ -326,7 +326,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             {user && (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/10 relative">
+                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/20 relative text-primary-foreground">
                             <Bell className="h-5 w-5" />
                             {unreadCount > 0 && (
                                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
@@ -369,15 +369,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="hidden md:flex">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/10">
-                    <Avatar className="h-9 w-9 border-2 border-background">
+                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/20">
+                    <Avatar className="h-9 w-9 border-2 border-primary-foreground/50">
                       {user?.photoURL && (
                         <AvatarImage
                           src={user.photoURL}
                           alt={profile?.firstName || ''}
                         />
                       )}
-                      <AvatarFallback className={cn(isCarrierPath ? "bg-gray-200 text-black" : "bg-primary text-primary-foreground")}>
+                      <AvatarFallback className={cn("bg-primary-foreground/20 text-primary-foreground")}>
                         {profile?.firstName
                           ? profile.firstName.charAt(0)
                           : user?.email?.charAt(0).toUpperCase()}
@@ -393,14 +393,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Desktop Nav - Also protected with isMounted to ensure consistency */}
-        {isMounted && !isCarrierPath && <nav className="sticky top-16 z-40 hidden h-12 items-center justify-center gap-8 border-b border-b-border/10 bg-secondary px-6 text-secondary-foreground shadow-sm md:flex">
+        {isMounted && !isCarrierPath && <nav className="sticky top-16 z-40 hidden h-12 items-center justify-center gap-8 border-b bg-card px-6 text-card-foreground shadow-sm md:flex">
           {menuItems.map((item) => {
             const isDisabled = item.auth && !user;
             const linkClass = cn(
-              "text-sm font-bold transition-colors hover:text-white/80 flex items-center gap-2",
-              pathname.startsWith(item.href) && !isDisabled && "text-white underline decoration-2 underline-offset-4",
-              isDisabled && "cursor-not-allowed text-white/50"
+              "text-sm font-bold transition-colors hover:text-primary flex items-center gap-2",
+              pathname.startsWith(item.href) && !isDisabled && "text-primary underline decoration-2 underline-offset-4",
+              isDisabled && "cursor-not-allowed text-muted-foreground"
             );
 
             if (isDisabled) {

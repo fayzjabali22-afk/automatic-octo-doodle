@@ -304,9 +304,9 @@ export default function DashboardPage() {
                 <Card>
                 <AccordionTrigger className="p-4 text-md hover:no-underline font-bold">
                     <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-5 w-5 text-accent"/>
+                    <CalendarIcon className="h-5 w-5 text-primary"/>
                     <span>{format(new Date(tripDate), "EEEE, d MMMM yyyy")}</span>
-                    <Badge variant="outline">{groupedTrips[tripDate].length} رحلات</Badge>
+                    <Badge variant="secondary">{groupedTrips[tripDate].length} رحلات</Badge>
                     </div>
                 </AccordionTrigger>
                 <AccordionContent>
@@ -351,7 +351,7 @@ export default function DashboardPage() {
               <p className="text-muted-foreground mt-2">ابحث عن رحلتك القادمة أو استعرض الرحلات المجدولة بسهولة.</p>
             </header>
 
-            <Card className="w-full shadow-lg rounded-lg mb-8 border-accent bg-card/80 backdrop-blur-sm">
+            <Card className="w-full shadow-lg rounded-lg mb-8 bg-card">
               <CardContent className="p-4 md:p-6">
                 <div className="grid grid-cols-1 gap-4">
 
@@ -471,7 +471,7 @@ export default function DashboardPage() {
                               !date && "text-muted-foreground"
                             )}
                           >
-                            <CalendarIcon className="ml-2 h-4 w-4 text-accent" />
+                            <CalendarIcon className="ml-2 h-4 w-4 text-primary" />
                             {date ? format(date, "PPP") : <span>اختر تاريخاً</span>}
                           </Button>
                         </PopoverTrigger>
@@ -509,7 +509,7 @@ export default function DashboardPage() {
                       {[...Array(3)].map((_,i) => <Skeleton key={i} className="h-48 w-full" />)}
                     </div>
                 ) : tripDisplayResult.showNoResultsMessage ? (
-                    <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg bg-background/50">
+                    <div className="text-center text-muted-foreground py-12 border-2 border-dashed rounded-lg bg-card/80">
                         <ShipWheel className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
                         <p className="text-lg font-bold">لا توجد رحلات تطابق بحثك</p>
                         <p className="text-sm mt-2 mb-6">
@@ -517,7 +517,6 @@ export default function DashboardPage() {
                         </p>
                         <Button
                             onClick={handleRequestAction}
-                            className="bg-accent text-black hover:bg-accent/90 border border-white/50"
                         >
                             <Send className="ml-2 h-4 w-4" />
                             {searchMode === 'all-carriers' ? 'إرسال الطلب إلى السوق العام' : `إرسال طلب مباشر إلى ${selectedCarrier?.firstName || 'الناقل'}`}
@@ -543,7 +542,6 @@ export default function DashboardPage() {
                     <div className="mt-8 text-center">
                         <Button
                             onClick={handleRequestAction}
-                            className="bg-accent text-black hover:bg-accent/90 border border-white/50"
                         >
                             <Send className="ml-2 h-4 w-4" />
                             {'لم تجد ما تبحث عنه؟ أرسل طلباً إلى السوق'}

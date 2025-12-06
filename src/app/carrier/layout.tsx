@@ -64,14 +64,14 @@ export default function CarrierLayout({
              <PlusCircle className="ml-2 h-4 w-4" />
              تأسيس رحلة جديدة
            </Button>
-           <nav className="flex flex-col gap-2">
+           <nav className="flex flex-col gap-1">
             {sidebarNavLinks.map(link => {
                 const isActive = link.exact ? pathname === link.href : pathname.startsWith(link.href);
                 return (
                     <Link key={link.href} href={link.href}>
                         <div className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-accent-foreground hover:bg-accent",
-                            isActive && "bg-accent text-accent-foreground font-bold"
+                            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-card-foreground transition-all hover:bg-muted/50 hover:text-primary",
+                            isActive && "bg-primary/10 text-primary font-bold"
                         )}>
                             <link.icon className="h-4 w-4" />
                             {link.label}
@@ -83,7 +83,7 @@ export default function CarrierLayout({
         </aside>
 
         {/* --- Main Content Area --- */}
-        <main className="flex-1 overflow-y-auto bg-muted/30 pb-24 md:pb-0">
+        <main className="flex-1 overflow-y-auto bg-muted/20 pb-24 md:pb-0">
             {children}
         </main>
       </div>

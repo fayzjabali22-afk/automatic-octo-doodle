@@ -28,7 +28,7 @@ const getCityName = (key: string) => cities[key] || key;
 
 // --- CARD COMPONENTS FOR DIFFERENT STATES ---
 const PendingConfirmationCard = ({ booking, trip }: { booking: Booking, trip?: Trip | null }) => (
-    <Card className="border-yellow-500 border-2 bg-yellow-500/5">
+    <Card className="border-accent border-2 bg-accent/5">
         <CardHeader>
             <div className="flex justify-between items-start">
                 <div>
@@ -297,7 +297,7 @@ export default function HistoryPage() {
   return (
     <AppLayout>
       <div className="bg-background/80 p-2 md:p-8 rounded-lg space-y-8">
-        <Card className="bg-card/90 border-border/50">
+        <Card className="bg-card">
            <CardHeader>
               <CardTitle>غرفة عمليات الحجز</CardTitle>
               <CardDescription>تابع كل طلباتك وحجوزاتك النشطة من هنا.</CardDescription>
@@ -364,11 +364,11 @@ const HeroTicket = ({ trip, booking, onClosureAction, onCancelBooking }: { trip:
 
 
     return (
-        <Card className="bg-gradient-to-br from-card to-muted/50 shadow-lg border-accent">
+        <Card className="bg-gradient-to-br from-card to-muted/50 shadow-lg border-primary">
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div>
-                        <Badge variant="default" className="w-fit bg-accent text-accent-foreground mb-2">تذكرة مؤكدة</Badge>
+                        <Badge variant="default" className="w-fit mb-2">تذكرة مؤكدة</Badge>
                         <CardTitle className="pt-1">{getCityName(trip.origin)} - {getCityName(trip.destination)}</CardTitle>
                     </div>
                 </div>

@@ -3,97 +3,72 @@
 @tailwind utilities;
 
 @layer base {
-  /* الأساسيات */
   :root {
-    /* الألوان الأساسية للوضع الفاتح */
-    --background: 0 0% 100%;
+    --background: 207 90% 94%; /* #E3F2FD - Light Blue */
     --foreground: 222.2 47.4% 11.2%;
 
-    --card: 0 0% 100%;
+    --card: 207 90% 98%; /* Lighter shade for cards */
     --card-foreground: 222.2 47.4% 11.2%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 47.4% 11.2%;
 
-    --primary: 220 90% 56%;
+    --primary: 231 48% 48%; /* #3F51B5 - Deep Blue */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96%;
+    --secondary: 210 40% 90%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 210 40% 96%;
+    --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 51 61% 65%; /* #D4C87D - A distinctive, professional gold/khaki */
-    --accent-foreground: 24 9.8% 10%;
+    --accent: 261 40% 62%; /* #7E57C2 - Purple */
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 220 90% 56%;
+    --ring: 231 48% 48%;
 
-    /* ألوان إضافية */
-    --chart-1: 220 90% 56%;
-    --chart-2: 160 84% 39%;
-    --chart-3: 30 100% 50%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 82% 52%;
-
-    /* Sidebar */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 222.2 47.4% 11.2%;
-    --sidebar-primary: 51 61% 65%; /* #D4C87D */
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 40% 96%;
-    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 220 90% 56%;
-
-    /* الحدود */
+    --chart-1: 231 48% 48%;
+    --chart-2: 261 40% 62%;
+    --chart-3: 160 84% 39%;
+    --chart-4: 30 100% 50%;
+    --chart-5: 280 65% 60%;
+    
     --radius: 0.5rem;
   }
 
-  /* الوضع الداكن - الهوية البصرية الجديدة */
   .dark {
-    --background: 343 26% 20%;      /* #402631 - الخلفية الجدارية */
-    --foreground: 0 0% 96%;        /* #F5F5F5 - النصوص */
+    --background: 224 71% 4%; /* Very dark blue */
+    --foreground: 210 40% 98%;
 
-    --card: 337 40% 3%;            /* #05080F - خلفية البطاقات */
-    --card-foreground: 0 0% 92%;   /* #EAEAEA - نصوص البطاقات */
+    --card: 224 71% 9%; /* Slightly lighter blue for cards */
+    --card-foreground: 210 40% 98%;
 
-    --popover: 337 40% 3%;
-    --popover-foreground: 0 0% 92%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 318 48% 13%;        /* #32112D - لون الحدود المستخدم كـ Primary */
-    --primary-foreground: 0 0% 100%;
+    --primary: 231 48% 58%; /* A slightly lighter version of the deep blue for dark mode */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 353 58% 8%;       /* #1F0A0D - خلفية الحاويات الثانوية */
-    --secondary-foreground: 0 0% 92%;
+    --secondary: 224 71% 14%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 323 23% 13%;          /* #2A1A24 - لون معتدل */
-    --muted-foreground: 0 0% 82%;  /* #D1D1D1 */
+    --muted: 224 71% 14%;
+    --muted-foreground: 215.4 16.3% 56.9%;
 
-    --accent: 46 60% 50%;          /* #CBA135 - اللون المميز */
-    --accent-foreground: 45 100% 95%; /* A very light color for text on accent */
+    --accent: 261 40% 72%; /* Lighter purple for dark mode */
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 46 60% 50%;          /* #CBA135 - الحدود */
-    --input: 318 48% 13%;          /* #32112D - حقول الإدخال */
-    --ring: 46 60% 50%;            /* #CBA135 - حلقة التركيز */
-
-    /* Sidebar */
-    --sidebar-background: 319 41% 6%;
-    --sidebar-foreground: 0 0% 96%;
-    --sidebar-primary: 51 61% 65%; /* #D4C87D */
-    --sidebar-primary-foreground: 0 0% 0%; /* Black text for better contrast on the new primary color */
-    --sidebar-accent: 318 48% 13%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 318 48% 13%;
-    --sidebar-ring: 46 60% 50%;
+    --border: 214.3 31.8% 21.4%; /* Darker border */
+    --input: 214.3 31.8% 21.4%;
+    --ring: 231 48% 58%;
   }
 }
 
@@ -103,6 +78,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'PT Sans', sans-serif;
   }
 }
