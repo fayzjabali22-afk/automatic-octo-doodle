@@ -4,7 +4,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShieldAlert, Ship, LayoutDashboard, FilePlus, Route, Briefcase, MessageSquare, BarChart3, PlusCircle, Archive, UserCheck } from 'lucide-react';
+import { ShieldAlert, Ship, LayoutDashboard, FilePlus, Route, Briefcase, MessageSquare, PlusCircle, Archive, UserCheck } from 'lucide-react';
 import { AppLayout } from '@/components/app-layout';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -26,13 +26,11 @@ function LoadingSpinner() {
 
 const sidebarNavLinks = [
     { href: '/carrier', label: 'لوحة القيادة', icon: LayoutDashboard, exact: true },
-    { href: '/carrier/overview', label: 'النظرة السريعة', icon: BarChart3, exact: false },
     { href: '/carrier/requests', label: 'سوق الطلبات العام', icon: FilePlus, exact: false },
     { href: '/carrier/direct-requests', label: 'الطلبات المباشرة', icon: UserCheck, exact: false },
     { href: '/carrier/trips', label: 'رحلاتي النشطة', icon: Route, exact: false },
     { href: '/carrier/archive', label: 'الأرشيف', icon: Archive, exact: false },
     { href: '/carrier/bookings', label: 'طلبات الموافقة', icon: Briefcase, exact: false },
-    { href: '/carrier/chats', label: 'المحادثات', icon: MessageSquare, exact: false },
 ];
 
 
