@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Users, Search, ShipWheel, CalendarIcon, UserSearch, Globe, Star, ArrowRightLeft, Send, Car } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
-import type { Trip, CarrierProfile, Booking } from '@/lib/data';
+import type { Trip, UserProfile, Booking } from '@/lib/data';
 import { ScheduledTripCard } from '@/components/scheduled-trip-card';
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -47,7 +47,6 @@ import { RequestDialog } from '@/components/requests/request-dialog';
 import { logEvent } from '@/lib/analytics';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Form, FormControl, FormField } from '@/components/ui/form';
 
 
 // Mock data for countries and cities
@@ -101,7 +100,7 @@ export default function DashboardPage() {
       if (!firestore) return null;
       return query(collection(firestore, 'users'), where('role', '==', 'carrier'));
   }, [firestore]);
-  const { data: allCarriers, isLoading: isLoadingCarriers } = useCollection<CarrierProfile>(carriersQuery);
+  const { data: allCarriers, isLoading: isLoadingCarriers } = useCollection<UserProfile>(carriersQuery);
 
 
   const [searchOriginCountry, setSearchOriginCountry] = useState('');
@@ -109,7 +108,7 @@ export default function DashboardPage() {
   const [searchDestinationCountry, setSearchDestinationCountry] = useState('');
   const [searchDestinationCity, setSearchDestinationCity] = useState('');
   const [searchSeats, setSearchSeats] = useState(1);
-  const [selectedCarrier, setSelectedCarrier] = useState<CarrierProfile | null>(null);
+  const [selectedCarrier, setSelectedCarrier] = useState<UserProfile | null>(null);
   const [searchVehicleType, setSearchVehicleType] = useState('any');
   const [searchMode, setSearchMode] = useState<'all-carriers' | 'specific-carrier'>('all-carriers');
 

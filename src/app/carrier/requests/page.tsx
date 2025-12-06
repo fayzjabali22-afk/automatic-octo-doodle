@@ -150,7 +150,7 @@ export default function CarrierRequestsPage() {
                 createdAt: new Date().toISOString()
             };
 
-            await setDoc(newOfferRef, finalOfferData);
+            await setDoc(newOfferRef, { ...finalOfferData, id: newOfferRef.id });
             
             toast({
                 title: 'تم إرسال العرض بنجاح!',

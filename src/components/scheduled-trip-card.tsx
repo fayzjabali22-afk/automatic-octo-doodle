@@ -1,6 +1,6 @@
 'use client';
 
-import type { CarrierProfile, Trip, Booking, UserProfile } from '@/lib/data';
+import type { UserProfile, Trip, Booking } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -70,7 +70,6 @@ const statusMap: Record<string, { text: string; icon: React.ElementType; color: 
   'In-Transit': { text: 'قيد التنفيذ', icon: Clock, color: 'text-yellow-500' },
 };
 
-
 const CarrierInfo = ({ carrierId, carrierName }: { carrierId?: string; carrierName?: string; }) => {
   const firestore = useFirestore();
   const carrierRef = useMemo(() => {
@@ -80,9 +79,6 @@ const CarrierInfo = ({ carrierId, carrierName }: { carrierId?: string; carrierNa
 
   const { data: carrier, isLoading } = useDoc<UserProfile>(carrierRef);
   
-  const placeholderImage = PlaceHolderImages.find((img) => img.id === 'user-avatar');
-  const displayImage = carrier?.vehicleImageUrls?.[0] || placeholderImage?.imageUrl;
-
   if (isLoading) {
     return (
       <div className="flex items-center gap-3">
@@ -96,11 +92,12 @@ const CarrierInfo = ({ carrierId, carrierName }: { carrierId?: string; carrierNa
   }
   
   const name = carrier?.firstName || carrierName || "ناقل غير معروف";
+  const displayImage = carrier?.vehicleImageUrls?.[0];
 
   return (
     <div className="flex items-center gap-3">
       <Avatar className="h-10 w-10 border-2 border-accent">
-        <AvatarImage src={displayImage} alt={name} />
+        {displayImage && <AvatarImage src={displayImage} alt={name} />}
         <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
       </Avatar>
       <div>

@@ -44,7 +44,7 @@ function UserInfo({ userId }: { userId: string }) {
       </div>
     );
     
-    if (!userProfile) return <span className="font-bold text-sm">مسافر غير معروف</span>;
+    if (!userProfile) return <span className="font-bold text-sm">مسافر ({userId})</span>;
     
     const profile = userProfile;
 

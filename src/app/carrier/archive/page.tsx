@@ -56,7 +56,7 @@ function ArchivedTripItem({ trip }: { trip: Trip }) {
             <div className="flex items-center justify-between text-xs text-muted-foreground">
                  <div className="flex items-center gap-2">
                     <CircleDollarSign className="h-3 w-3 text-green-500" />
-                    <span>السعر: {trip.price} د.أ</span>
+                    <span>السعر: {trip.price} {trip.currency}</span>
                  </div>
                  <div className="flex items-center gap-2">
                     <Users className="h-3 w-3 text-primary" />

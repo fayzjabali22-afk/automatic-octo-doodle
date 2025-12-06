@@ -53,7 +53,6 @@ export default function CarrierDirectRequestsPage() {
   const handleApprove = async (trip: Trip, finalPrice: number, currency: string) => {
     if (!firestore || !user) return false;
 
-    // THE SHORT-CIRCUIT LOGIC
     try {
         await runTransaction(firestore, async (transaction) => {
             const tripRef = doc(firestore, 'trips', trip.id);
@@ -63,34 +62,21 @@ export default function CarrierDirectRequestsPage() {
             transaction.update(tripRef, { 
                 price: finalPrice,
                 currency: currency,
-                status: 'Pending-Payment'
+                status: 'Pending-Carrier-Confirmation' // Changed to wait for user to accept the price
             });
 
-            // 2. Create the Booking document immediately
-            const bookingData: Partial<Booking> = {
-                id: bookingRef.id,
-                tripId: trip.id,
-                userId: trip.userId,
-                carrierId: user.uid,
-                seats: trip.passengers || 1,
-                passengersDetails: trip.passengersDetails || [],
-                status: 'Pending-Payment',
-                totalPrice: finalPrice,
-                currency: currency,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-            };
-            transaction.set(bookingRef, bookingData);
-
+            // 2. Create the Booking document immediately is not needed anymore
+            // User will initiate booking after accepting the price
+            
             // 3. (Optional but good) Create a notification for the traveler
             const notificationRef = doc(collection(firestore, 'notifications'));
             transaction.set(notificationRef, {
                 id: notificationRef.id,
                 userId: trip.userId,
                 title: '🎉 تمت الموافقة على طلبك المباشر!',
-                message: `وافق الناقل على طلبك لرحلة ${trip.origin} - ${trip.destination}. بانتظار إتمام الدفع لتأكيد الحجز.`,
+                message: `وافق الناقل على طلبك لرحلة ${trip.origin} - ${trip.destination}. السعر الجديد هو ${finalPrice} ${currency}. بانتظار موافقتك النهائية.`,
                 link: '/history',
-                type: 'booking_confirmed',
+                type: 'new_offer',
                 isRead: false,
                 createdAt: serverTimestamp(),
             });
@@ -98,7 +84,7 @@ export default function CarrierDirectRequestsPage() {
 
         toast({
             title: 'تمت الموافقة بنجاح!',
-            description: 'تم إرسال الفاتورة للمسافر وهو الآن في مرحلة الدفع.',
+            description: 'تم إرسال السعر للمسافر وهو الآن بانتظار موافقته النهائية.',
         });
         return true; // Indicates success to the card
     } catch (e) {

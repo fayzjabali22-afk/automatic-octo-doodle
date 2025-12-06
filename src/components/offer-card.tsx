@@ -1,6 +1,6 @@
 'use client';
 
-import type { Offer, CarrierProfile, Trip, UserProfile } from '@/lib/data';
+import type { Offer, UserProfile, Trip } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { HandCoins, Star, Car, Loader2, ListChecks, Send } from 'lucide-react';
@@ -28,17 +28,22 @@ const formatCurrency = (value: number | undefined, currency: string = 'JOD') => 
     }).format(value);
 };
 
-// CarrierInfo component integrated directly to simplify logic
-function CarrierInfo({ carrierId }: { carrierId: string }) {
-    const firestore = useFirestore();
-    const carrierRef = useMemo(() => {
-        if (!firestore || !carrierId) return null;
-        return doc(firestore, 'users', carrierId);
-    }, [firestore, carrierId]);
 
-    const { data: carrier, isLoading } = useDoc<UserProfile>(carrierRef);
+export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps) {
+  const depositAmount = Math.max(0, (offer.price || 0) * ((offer.depositPercentage || 20) / 100));
+  const defaultVehicleImage = PlaceHolderImages.find((img) => img.id === 'car-placeholder');
+  const firestore = useFirestore();
+  
+  const carrierRef = useMemo(() => {
+    if (!firestore || !offer.carrierId) return null;
+    return doc(firestore, 'users', offer.carrierId);
+  }, [firestore, offer.carrierId]);
+  
+  const { data: carrier, isLoading: isCarrierLoading } = useDoc<UserProfile>(carrierRef);
+  const vehicleImage = (carrier?.vehicleImageUrls && carrier.vehicleImageUrls[0]) || defaultVehicleImage?.imageUrl;
 
-    if (isLoading) {
+  const CarrierInfo = () => {
+    if (isCarrierLoading) {
         return (
             <div className="flex items-center gap-3">
                 <Skeleton className="h-10 w-10 rounded-full" />
@@ -67,21 +72,7 @@ function CarrierInfo({ carrierId }: { carrierId: string }) {
             </div>
         </div>
     );
-}
-
-export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps) {
-  const depositAmount = Math.max(0, (offer.price || 0) * ((offer.depositPercentage || 20) / 100));
-  const defaultVehicleImage = PlaceHolderImages.find((img) => img.id === 'car-placeholder');
-  const firestore = useFirestore();
-  
-  const carrierRef = useMemo(() => {
-    if (!firestore || !offer.carrierId) return null;
-    return doc(firestore, 'users', offer.carrierId);
-  }, [firestore, offer.carrierId]);
-  
-  const { data: carrier } = useDoc<UserProfile>(carrierRef);
-  const vehicleImage = (carrier?.vehicleImageUrls && carrier.vehicleImageUrls[0]) || defaultVehicleImage?.imageUrl;
-
+  };
 
   return (
     <div dir="rtl" className="w-full overflow-hidden transition-all flex flex-col justify-between bg-card">
@@ -99,7 +90,7 @@ export function OfferCard({ offer, trip, onAccept, isAccepting }: OfferCardProps
         )}
         
         <div className="p-3">
-            <CarrierInfo carrierId={offer.carrierId} />
+            <CarrierInfo />
         </div>
 
         <div className="text-sm text-foreground p-3 bg-background/50 rounded-md border border-dashed border-border space-y-2">

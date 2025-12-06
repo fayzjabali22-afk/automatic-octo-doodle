@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Offer, Trip, CarrierProfile, UserProfile } from '@/lib/data';
+import type { Offer, Trip, UserProfile } from '@/lib/data';
 import { OfferCard } from '@/components/offer-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PackageOpen, X } from 'lucide-react';
@@ -9,7 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useCollection, useFirestore } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 
 
 interface TripOffersProps {

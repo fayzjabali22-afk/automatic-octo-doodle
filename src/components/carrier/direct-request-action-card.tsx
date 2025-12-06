@@ -191,7 +191,7 @@ export function DirectRequestActionCard({ tripRequest, onApprove, onReject }: Di
                      </div>
                       {tripRequest.targetPrice && (
                         <p className="text-xs text-muted-foreground mt-2">
-                            *ميزانية المسافر المستهدفة كانت ~{tripRequest.targetPrice} {tripRequest.currency}.
+                            *ميزانية المسافر المستهدفة كانت ~{tripRequest.targetPrice} {tripRequest.currency || 'د.أ'}.
                         </p>
                       )}
                  </div>
