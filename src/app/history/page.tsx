@@ -9,15 +9,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip, Offer, Booking, UserProfile } from '@/lib/data';
-import { CheckCircle, PackageOpen, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, ArrowRight, ChevronLeft, Ship } from 'lucide-react';
+import { CheckCircle, PackageOpen, Hourglass, Radar, MessageSquare, Flag, CreditCard, UserCheck, Ticket, ListFilter, Users, MapPin, Phone, Car, Link as LinkIcon, ArrowRight, ChevronLeft, Ship, Ban } from 'lucide-react';
 import { TripOffers } from '@/components/trip-offers';
 import { useToast } from '@/hooks/use-toast';
-import { format, addHours, isPast } from 'date-fns';
+import { format, addHours, isPast, isFuture } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { doc, writeBatch, serverTimestamp, collection, query, where, runTransaction, limit } from 'firebase/firestore';
 import { OfferDecisionRoom } from '@/components/offer-decision-room';
 import { TripClosureDialog } from '@/components/trip-closure/trip-closure-dialog';
 import { RateTripDialog } from '@/components/trip-closure/rate-trip-dialog';
+import { CancellationDialog } from '@/components/booking/cancellation-dialog';
 
 const cities: { [key: string]: string } = {
     damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص', amman: 'عمّان', irbid: 'إربد', zarqa: 'الزرقاء',
@@ -81,9 +82,17 @@ export default function HistoryPage() {
 
   const [activeTripRequest, setActiveTripRequest] = useState<Trip | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // State for closure/rating flow
   const [isClosureDialogOpen, setIsClosureDialogOpen] = useState(false);
   const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
   const [selectedTripForClosure, setSelectedTripForClosure] = useState<Trip | null>(null);
+
+  // State for cancellation flow
+  const [isCancellationDialogOpen, setIsCancellationDialogOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [itemToCancel, setItemToCancel] = useState<{ trip: Trip, booking: Booking } | null>(null);
+
 
   // --- QUERIES FOR ALL ACTIVE STATES ---
   const confirmedQuery = useMemo(() => {
@@ -172,6 +181,55 @@ export default function HistoryPage() {
         setIsClosureDialogOpen(false);
     }
 
+    const handleOpenCancellationDialog = (trip: Trip, booking: Booking) => {
+        setItemToCancel({ trip, booking });
+        setIsCancellationDialogOpen(true);
+    };
+
+    const handleConfirmCancellation = async () => {
+        if (!firestore || !itemToCancel) return;
+        setIsCancelling(true);
+        const { trip, booking } = itemToCancel;
+
+        try {
+            const batch = writeBatch(firestore);
+            
+            // 1. Update booking status
+            const bookingRef = doc(firestore, 'bookings', booking.id);
+            batch.update(bookingRef, {
+                status: 'Cancelled',
+                cancelledBy: 'traveler',
+                cancellationReason: 'تم الإلغاء من طرف المسافر'
+            });
+
+            // 2. Notify carrier
+            const notificationRef = doc(collection(firestore, 'notifications'));
+            batch.set(notificationRef, {
+                id: notificationRef.id,
+                userId: trip.carrierId,
+                title: 'إلغاء حجز من مسافر',
+                message: `قام مسافر بإلغاء حجزه لـ ${booking.seats} مقعد/مقاعد في رحلتك من ${getCityName(trip.origin)} إلى ${getCityName(trip.destination)}.`,
+                link: '/carrier/bookings',
+                type: 'new_booking_request',
+                isRead: false,
+                createdAt: serverTimestamp(),
+            });
+
+            await batch.commit();
+
+            toast({
+                title: 'تم إلغاء الحجز بنجاح',
+            });
+            setIsCancellationDialogOpen(false);
+            setItemToCancel(null);
+        } catch (error) {
+            console.error("Cancellation failed:", error);
+            toast({ variant: 'destructive', title: 'فشل الإلغاء' });
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
 
   // --- RENDER LOGIC ---
   const renderLoading = () => (
@@ -184,7 +242,7 @@ export default function HistoryPage() {
   const renderContent = () => {
     // Priority 1: Show the confirmed ticket ("the masterpiece") exclusively if it exists.
     if (confirmedBooking && confirmedTrip) {
-        return <HeroTicket key={confirmedBooking.id} trip={confirmedTrip} booking={confirmedBooking} onClosureAction={handleOpenClosureDialog} />;
+        return <HeroTicket key={confirmedBooking.id} trip={confirmedTrip} booking={confirmedBooking} onClosureAction={handleOpenClosureDialog} onCancelBooking={handleOpenCancellationDialog} />;
     }
     
     // Priority 2: Show the offer decision room if a request has been clicked.
@@ -260,6 +318,12 @@ export default function HistoryPage() {
             trip={selectedTripForClosure}
             onConfirm={() => setSelectedTripForClosure(null)}
         />
+        <CancellationDialog
+            isOpen={isCancellationDialogOpen}
+            onOpenChange={setIsCancellationDialogOpen}
+            isCancelling={isCancelling}
+            onConfirm={handleConfirmCancellation}
+        />
     </AppLayout>
   );
 }
@@ -275,7 +339,7 @@ function PendingBookingWrapper({ booking }: { booking: Booking }) {
 }
 
 
-const HeroTicket = ({ trip, booking, onClosureAction }: { trip: Trip, booking: Booking, onClosureAction: (trip: Trip) => void}) => {
+const HeroTicket = ({ trip, booking, onClosureAction, onCancelBooking }: { trip: Trip, booking: Booking, onClosureAction: (trip: Trip) => void, onCancelBooking: (trip: Trip, booking: Booking) => void }) => {
     const carrierProfile: UserProfile = {
         id: 'carrier3',
         firstName: 'فوزي',
@@ -287,13 +351,17 @@ const HeroTicket = ({ trip, booking, onClosureAction }: { trip: Trip, booking: B
     const depositAmount = (booking.totalPrice * ((trip.depositPercentage || 20) / 100));
     const remainingAmount = booking.totalPrice - depositAmount;
 
-    // The new logic for showing the closure button
     const isClosureReady = useMemo(() => {
         if (!trip.departureDate || !trip.durationHours) return false;
         const departure = new Date(trip.departureDate);
         const closureTime = addHours(departure, trip.durationHours + 4);
         return isPast(closureTime);
     }, [trip.departureDate, trip.durationHours]);
+
+    const canCancel = useMemo(() => {
+        if (!trip.departureDate) return false;
+        return isFuture(new Date(trip.departureDate));
+    }, [trip.departureDate]);
 
 
     return (
@@ -304,12 +372,6 @@ const HeroTicket = ({ trip, booking, onClosureAction }: { trip: Trip, booking: B
                         <Badge variant="default" className="w-fit bg-accent text-accent-foreground mb-2">تذكرة مؤكدة</Badge>
                         <CardTitle className="pt-1">{getCityName(trip.origin)} - {getCityName(trip.destination)}</CardTitle>
                     </div>
-                     {isClosureReady && onClosureAction && (
-                        <Button variant="default" onClick={() => onClosureAction(trip)}>
-                            <Flag className="ml-2 h-4 w-4" />
-                            إجراءات إغلاق الرحلة
-                        </Button>
-                    )}
                 </div>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
@@ -378,6 +440,20 @@ const HeroTicket = ({ trip, booking, onClosureAction }: { trip: Trip, booking: B
                     </div>
                  )}
             </CardContent>
+             <CardFooter className="flex-col sm:flex-row gap-2">
+                {isClosureReady && onClosureAction && (
+                    <Button variant="default" onClick={() => onClosureAction(trip)} className="flex-1">
+                        <Flag className="ml-2 h-4 w-4" />
+                        إجراءات إغلاق الرحلة
+                    </Button>
+                )}
+                 {canCancel && onCancelBooking && (
+                    <Button variant="destructive" onClick={() => onCancelBooking(trip, booking)} className="flex-1">
+                        <Ban className="ml-2 h-4 w-4" />
+                        إلغاء الحجز
+                    </Button>
+                )}
+            </CardFooter>
         </Card>
     )
 };
