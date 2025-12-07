@@ -29,6 +29,7 @@ import { Loader2, Send, Sparkles, ListChecks } from 'lucide-react';
 import React from 'react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { SuggestOfferPriceOutput } from '@/ai/flows/suggest-offer-price-flow';
 
 const offerFormSchema = z.object({
   price: z.coerce.number().positive('يجب أن يكون السعر رقماً موجباً'),
@@ -45,7 +46,7 @@ interface OfferDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   trip: Trip;
-  suggestion: { price: number; justification: string } | null;
+  suggestion: SuggestOfferPriceOutput | null;
   isSuggestingPrice: boolean;
   onSuggestPrice: () => void;
   onSendOffer: (offerData: Omit<Offer, 'id' | 'tripId' | 'carrierId' | 'status' | 'createdAt'>) => Promise<boolean>;
@@ -80,22 +81,28 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
 
   useEffect(() => {
     if (suggestion) {
-        form.setValue('price', suggestion.price);
+        form.setValue('price', suggestion.suggestedPrice);
     }
   }, [suggestion, form]);
 
   useEffect(() => {
-    if (profile?.vehicleType) {
-        form.setValue('vehicleType', profile.vehicleType);
+    if (isOpen) {
+        // Reset specific fields but keep others that might be useful
+        form.setValue('price', trip.targetPrice || undefined);
+        form.setValue('vehicleType', profile?.vehicleType || '');
+        
+        const defaultConditions = [];
+        if (profile?.bagsPerSeat) defaultConditions.push(`حقيبة ${profile.bagsPerSeat} لكل راكب.`);
+        if (profile?.numberOfStops !== undefined) {
+            if (profile.numberOfStops === 0) defaultConditions.push('الرحلة مباشرة بدون توقف.');
+            else defaultConditions.push(`تتضمن الرحلة ${profile.numberOfStops} محطة توقف.`);
+        }
+        if (defaultConditions.length > 0) {
+            form.setValue('conditions', defaultConditions.join('\n'));
+        }
+
     }
-     if (profile?.vehicleCategory && profile.vehicleCapacity) {
-        form.setValue('vehicleCategory', profile.vehicleCapacity > 7 ? 'bus' : 'small');
-        form.setValue('availableSeats', profile.vehicleCapacity);
-    }
-    if (profile?.vehicleYear) {
-        form.setValue('vehicleModelYear', Number(profile.vehicleYear));
-    }
-  }, [profile, form, isOpen]);
+  }, [profile, form, isOpen, trip]);
 
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
@@ -153,7 +160,7 @@ export function OfferDialog({ isOpen, onOpenChange, trip, suggestion, isSuggesti
                 {isSuggestingPrice ? 'جاري التفكير...' : 'اقترح لي سعراً مناسباً (AI)'}
              </Button>
             {suggestion && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-800">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-800 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300">
                     <p><strong>تعليل الاقتراح:</strong> {suggestion.justification}</p>
                 </div>
             )}

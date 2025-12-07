@@ -1,7 +1,7 @@
 'use client';
 import { RequestCard } from '@/components/carrier/request-card';
 import { useFirestore, useCollection, useUser, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, writeBatch, serverTimestamp, runTransaction, getDocs } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, serverTimestamp, runTransaction, getDocs, addDoc } from 'firebase/firestore';
 import { PackageOpen, Settings, AlertTriangle, ListFilter, Armchair, UserCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trip, Offer, TransferRequest, Booking } from '@/lib/data';
@@ -15,9 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { DirectRequestActionCard } from '@/components/carrier/direct-request-action-card';
 import { TransferRequestCard } from '@/components/carrier/transfer-request-card';
+import { suggestOfferPrice, SuggestOfferPriceInput, SuggestOfferPriceOutput } from '@/ai/flows/suggest-offer-price-flow';
 
-// Dialogs and handlers will be consolidated here
-// For now, let's just get the combined query working.
 
 function LoadingState() {
   return (
@@ -70,6 +69,10 @@ export default function CarrierOpportunitiesPage() {
   const [filterBySpecialization, setFilterBySpecialization] = useState(true);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
+  
+  const [priceSuggestion, setPriceSuggestion] = useState<SuggestOfferPriceOutput | null>(null);
+  const [isSuggestingPrice, setIsSuggestingPrice] = useState(false);
+
 
   // --- QUERIES ---
   const opportunitiesQuery = useMemo(() => {
@@ -112,12 +115,70 @@ export default function CarrierOpportunitiesPage() {
 
   const handleOfferClick = (trip: Trip) => {
     setSelectedTrip(trip);
+    setPriceSuggestion(null); // Clear previous suggestion
     setIsOfferDialogOpen(true);
   };
   
+  const handleSuggestPrice = async () => {
+    if (!selectedTrip) return;
+    setIsSuggestingPrice(true);
+    setPriceSuggestion(null);
+    try {
+        const input: SuggestOfferPriceInput = {
+            origin: selectedTrip.origin,
+            destination: selectedTrip.destination,
+            passengers: selectedTrip.passengers || 1,
+            departureDate: selectedTrip.departureDate,
+        };
+        const suggestion = await suggestOfferPrice(input);
+        setPriceSuggestion(suggestion);
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "فشل اقتراح السعر",
+            description: "حدث خطأ أثناء التواصل مع الذكاء الاصطناعي."
+        });
+    } finally {
+        setIsSuggestingPrice(false);
+    }
+  };
+
+
   const handleSendOffer = async (offerData: Omit<Offer, 'id' | 'tripId' | 'carrierId' | 'status' | 'createdAt'>): Promise<boolean> => {
-     toast({ title: "وظيفة قيد الإنشاء", description: "سيتم ربط إرسال العروض قريبًا." });
-    return false;
+     if (!firestore || !user || !selectedTrip) return false;
+
+    try {
+        const offersCollection = collection(firestore, 'trips', selectedTrip.id, 'offers');
+        const offerPayload: Omit<Offer, 'id'> = {
+            ...offerData,
+            tripId: selectedTrip.id,
+            carrierId: user.uid,
+            status: 'Pending',
+            createdAt: serverTimestamp() as any,
+        };
+
+        // Create the offer document
+        await addDoc(offersCollection, offerPayload);
+
+        // Send a notification to the traveler
+        const notificationPayload = {
+            userId: selectedTrip.userId,
+            title: 'عرض جديد لرحلتك!',
+            message: `لقد استلمت عرضاً جديداً لرحلتك من ${userProfile?.firstName || 'ناقل'}.`,
+            type: 'new_offer' as const,
+            isRead: false,
+            createdAt: serverTimestamp(),
+            link: '/history',
+        };
+        await addDocumentNonBlocking(collection(firestore, 'notifications'), notificationPayload);
+
+        toast({ title: 'تم إرسال العرض بنجاح!', description: 'سيتم إعلام المسافر بعرضك.' });
+        return true;
+    } catch (error) {
+        console.error("Error sending offer:", error);
+        toast({ variant: 'destructive', title: 'فشل إرسال العرض', description: 'حدث خطأ ما.' });
+        return false;
+    }
   };
 
    const handleApproveDirect = async (trip: Trip, finalPrice: number, currency: string): Promise<boolean> => {
@@ -155,8 +216,37 @@ export default function CarrierOpportunitiesPage() {
   };
 
    const handleRejectDirect = async (trip: Trip, reason: string): Promise<boolean> => {
-     toast({ title: "وظيفة قيد الإنشاء", description: "سيتم ربط إرسال العروض قريبًا." });
-    return false;
+     if (!firestore) {
+        toast({ variant: 'destructive', title: 'خطأ', description: 'خدمة Firestore غير متاحة' });
+        return false;
+     }
+     
+     try {
+        await runTransaction(firestore, async (transaction) => {
+            const tripRef = doc(firestore, 'trips', trip.id);
+            transaction.update(tripRef, { status: 'Cancelled', cancellationReason: reason });
+
+            // Create notification for traveler
+            const notificationPayload = {
+                userId: trip.userId,
+                title: 'نعتذر، تم رفض طلبك المباشر',
+                message: `لم يتمكن الناقل من قبول طلبك. السبب: ${reason}`,
+                type: 'trip_update' as const,
+                isRead: false,
+                createdAt: serverTimestamp(),
+                link: '/dashboard',
+            };
+            const notifRef = doc(collection(firestore, 'notifications'));
+            transaction.set(notifRef, notificationPayload);
+        });
+
+        toast({ title: 'تم الاعتذار عن الطلب بنجاح' });
+        return true;
+     } catch (error) {
+        console.error("Error rejecting direct request:", error);
+        toast({ variant: 'destructive', title: 'فشل رفض الطلب', description: 'حدث خطأ ما.' });
+        return false;
+     }
   };
 
   const handleAcceptTransfer = async (request: TransferRequest) => {
@@ -332,9 +422,9 @@ export default function CarrierOpportunitiesPage() {
             isOpen={isOfferDialogOpen}
             onOpenChange={setIsOfferDialogOpen}
             trip={selectedTrip}
-            suggestion={null} // Suggestion logic needs to be wired
-            onSuggestPrice={() => {}}
-            isSuggestingPrice={false}
+            suggestion={priceSuggestion}
+            onSuggestPrice={handleSuggestPrice}
+            isSuggestingPrice={isSuggestingPrice}
             onSendOffer={handleSendOffer}
         />
     )}
