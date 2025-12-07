@@ -58,6 +58,14 @@
             "type": "string",
             "description": "A flexible text field for the carrier to provide payout instructions (e.g., mobile wallet number, bank details)."
         },
+        "bagsPerSeat": {
+            "type": "number",
+            "description": "The default number of bags allowed per passenger seat."
+        },
+        "numberOfStops": {
+            "type": "number",
+            "description": "The typical number of stops the carrier makes during a trip."
+        },
         "createdAt": {
             "type": "string",
             "format": "date-time",

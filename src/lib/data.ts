@@ -23,6 +23,8 @@ export type UserProfile = {
     destination: string;
   };
   paymentInformation?: string; // Flexible text field for payment instructions
+  bagsPerSeat?: number;
+  numberOfStops?: number;
   createdAt?: any;
   updatedAt?: any;
 };

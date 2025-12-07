@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { ListChecks, Route, Wallet, Save, Loader2 } from "lucide-react";
+import { ListChecks, Route, Wallet, Save, Loader2, Briefcase, MapPin } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,6 +28,8 @@ const conditionsSchema = z.object({
       destination: z.string().optional(),
   }).optional(),
   paymentInformation: z.string().max(300, 'يجب ألا تتجاوز التعليمات 300 حرف').optional(),
+  bagsPerSeat: z.coerce.number().optional(),
+  numberOfStops: z.coerce.number().optional(),
 });
 
 type ConditionsFormValues = z.infer<typeof conditionsSchema>;
@@ -49,6 +51,8 @@ export default function CarrierConditionsPage() {
         defaultValues: {
             primaryRoute: { origin: '', destination: '' },
             paymentInformation: '',
+            bagsPerSeat: 1,
+            numberOfStops: 1,
         }
     });
 
@@ -59,6 +63,8 @@ export default function CarrierConditionsPage() {
             form.reset({
                 primaryRoute: profile.primaryRoute || { origin: '', destination: '' },
                 paymentInformation: profile.paymentInformation || '',
+                bagsPerSeat: profile.bagsPerSeat || 1,
+                numberOfStops: profile.numberOfStops || 1,
             });
         }
     }, [profile, form]);
@@ -104,6 +110,50 @@ export default function CarrierConditionsPage() {
                                 </div>
                             </CardContent>
                         </Card>
+                        
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><ListChecks/> شروط الرحلة الافتراضية</CardTitle>
+                                <CardDescription>هذه الشروط تظهر للمسافرين عند حجز رحلاتك.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-2 gap-4">
+                                     <FormField
+                                        control={form.control}
+                                        name="bagsPerSeat"
+                                        render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="flex items-center gap-1"><Briefcase className="h-4 w-4" /> عدد الحقائب/مقعد</FormLabel>
+                                            <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="اختر العدد" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                {[1, 2, 3].map(num => <SelectItem key={num} value={String(num)}>{num}</SelectItem>)}
+                                            </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="numberOfStops"
+                                        render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="flex items-center gap-1"><MapPin className="h-4 w-4" /> عدد محطات التوقف</FormLabel>
+                                            <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="اختر العدد" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                {[0, 1, 2, 3].map(num => <SelectItem key={num} value={String(num)}>{num === 0 ? 'مباشرة بدون توقف' : num}</SelectItem>)}
+                                            </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+
                          <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><Wallet/> تعليمات استلام الدفعات</CardTitle>
