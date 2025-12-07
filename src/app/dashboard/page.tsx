@@ -344,21 +344,7 @@ export default function DashboardPage() {
   return (
     <AppLayout>
       <div className="w-full">
-        {isDevUser && (
-          <Card className="mb-4 border-accent">
-            <CardHeader>
-              <CardTitle className="text-accent text-base">Developer Quick Switch</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button asChild variant="outline">
-                <Link href="/carrier">
-                  <ArrowRightLeft className="ml-2 h-4 w-4" />
-                  Switch to Carrier Interface
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        
         <div className="flex flex-col lg:flex-row gap-8">
 
           <div className="flex-1 min-w-0">
@@ -554,7 +540,7 @@ export default function DashboardPage() {
                        )}
                   </div>
                 )}
-                 {(tripDisplayResult.hasFilteredResults || tripDisplayResult.hasAlternativeResults || searchMode === 'all-carriers' || (searchMode === 'specific-carrier' && !selectedCarrier) || tripDisplayResult.showNoResultsMessage) && (
+                 {(!tripDisplayResult.hasFilteredResults && !tripDisplayResult.hasAlternativeResults && (searchMode === 'all-carriers' || !selectedCarrier)) && (
                     <div className="mt-8 text-center">
                         <Button
                             onClick={handleRequestAction}
