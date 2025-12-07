@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation'; // تم جلب هذا الاستيراد الضروري
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { AppLayout } from '@/components/app-layout'; // أو أي Layout عام
 import { Ship } from 'lucide-react';
 
 function LoadingScreen() {
