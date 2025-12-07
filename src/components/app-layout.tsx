@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -181,25 +182,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     });
     setIsDeleteConfirmOpen(false);
   };
-
-  const handleResendVerification = async () => {
-    if (user) {
-      try {
-        await sendEmailVerification(user);
-        toast({
-          title: 'تم إرسال رسالة التفعيل',
-          description: 'الرجاء التحقق من بريدك الإلكتروني.',
-        });
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'حدث خطأ',
-          description: 'لم نتمكن من إرسال رسالة التفعيل. يرجى المحاولة مرة أخرى.',
-        });
-      }
-    }
-  };
-
+  
   const isDevUser = user?.email === 'dev@safar.com';
 
   const UserMenuContent = () => (
@@ -333,6 +316,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                             {!notification.isRead && <span className="h-2 w-2 rounded-full bg-blue-500" />}
                                         </div>
                                         <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
+
                                         <span className="text-[10px] text-muted-foreground/70 w-full text-start">
                                             {isMounted ? new Date(notification.createdAt).toLocaleDateString('ar-SA') : ''}
                                         </span>
@@ -408,16 +392,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             )
           })}
         </nav>}
-
-        {user && !user.emailVerified && !isDevUser && (
-          <div className="sticky top-16 md:top-28 z-40 bg-yellow-600 text-white text-sm text-center p-2 flex items-center justify-center gap-2 animate-in slide-in-from-top duration-300">
-            <AlertTriangle className="h-4 w-4" />
-            <span>حسابك غير مفعل. الرجاء التحقق من بريدك الإلكتروني.</span>
-            <Button variant="link" className="p-0 h-auto text-white underline font-bold" onClick={handleResendVerification}>
-              إعادة إرسال
-            </Button>
-          </div>
-        )}
 
         <main className="flex flex-1 flex-col">
           {children}

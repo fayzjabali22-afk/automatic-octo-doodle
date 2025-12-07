@@ -39,7 +39,7 @@ export async function initiateEmailSignUp(
     email: string, 
     password: string,
     profileData: UserProfileCreation,
-    signOutAfter: boolean = true
+    signOutAfter: boolean = true // This parameter is no longer used but kept for compatibility
 ): Promise<boolean> {
     let user;
     try {
@@ -91,30 +91,7 @@ export async function initiateEmailSignUp(
         return false;
     }
 
-    try {
-        // Don't send verification for the dev account
-        if (email !== 'dev@safar.com') {
-            await sendEmailVerification(user, actionCodeSettings);
-            if (signOutAfter) {
-                toast({
-                    title: 'Final Step!',
-                    description: 'A verification email has been sent to activate your account.',
-                    duration: 8000,
-                });
-            }
-        }
-    } catch (emailError: any) {
-         toast({
-            variant: "destructive",
-            title: "Failed to Send Verification Email",
-            description: "Your account was created, but sending the verification email failed. You can log in and request it again from your profile page.",
-            duration: 10000
-        });
-    }
-
-    if (signOutAfter) {
-        await auth.signOut();
-    }
+    // Email verification is removed.
     
     return true;
 }

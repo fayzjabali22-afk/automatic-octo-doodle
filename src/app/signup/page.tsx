@@ -48,9 +48,7 @@ export default function SignupPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const [isSignUpSuccessful, setIsSignUpSuccessful] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
-
+  
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
     defaultValues: {
@@ -76,11 +74,14 @@ export default function SignupPage() {
         role: data.email === 'dev@safar.com' ? 'owner' : 'traveler'
     };
 
-    const success = await initiateEmailSignUp(auth, firestore, data.email, data.password, userProfile);
+    const success = await initiateEmailSignUp(auth, firestore, data.email, data.password, userProfile, false);
 
     if (success) {
-        setUserEmail(data.email);
-        setIsSignUpSuccessful(true);
+        toast({
+          title: 'تم إنشاء الحساب بنجاح!',
+          description: 'سيتم توجيهك إلى لوحة التحكم.',
+        });
+        router.push('/dashboard');
     }
   };
 
@@ -95,43 +96,6 @@ export default function SignupPage() {
       router.push('/dashboard');
     }
   };
-
-  if (isSignUpSuccessful) {
-    return (
-        <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-4 py-8 md:px-0">
-            {bgImage && (
-                <Image
-                src={bgImage.imageUrl}
-                alt={bgImage.description}
-                fill
-                className="absolute inset-0 -z-10 h-full w-full object-cover"
-                data-ai-hint={bgImage.imageHint}
-                />
-            )}
-            <div className="absolute inset-0 -z-10 bg-black/60" />
-            <Card className="mx-auto max-w-sm text-center bg-card/80 backdrop-blur-sm border-white/20">
-                <CardHeader>
-                    <MailCheck className="mx-auto h-16 w-16 text-green-500" />
-                    <CardTitle className="text-2xl mt-4">خطوة أخيرة!</CardTitle>
-                    <CardDescription className="pt-2">
-                        لقد أرسلنا رابط تفعيل وإقرار بالشروط إلى بريدك الإلكتروني.
-                        <br/>
-                        <span className="font-bold text-foreground">{userEmail}</span>
-                        <br/><br/>
-                        <p className='text-red-500'>ملاحظة: بالضغط على الرابط، أنت تقر بموافقتك على شروط وأحكام منصة safaryat.net كوسيط.</p>
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-xs text-muted-foreground">
-                        إذا لم تجد البريد، الرجاء التحقق من مجلد الرسائل غير المرغوب فيها.
-                    </p>
-                    <Button onClick={() => router.push('/login')} className="mt-4">العودة لتسجيل الدخول</Button>
-                </CardContent>
-            </Card>
-        </div>
-    );
-  }
-
 
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-4 py-8 md:px-0">
