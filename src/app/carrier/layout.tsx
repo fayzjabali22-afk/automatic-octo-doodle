@@ -88,7 +88,7 @@ export default function CarrierLayout({
     <TooltipProvider>
       <div className="flex min-h-screen w-full flex-col bg-background" dir="rtl">
         <header
-          className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-card px-4 text-card-foreground shadow-lg md:px-6"
+          className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-accent px-4 text-accent-foreground shadow-lg md:px-6"
         >
             <div className="flex items-center gap-2">
                  <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -149,8 +149,8 @@ export default function CarrierLayout({
                         return (
                             <Link key={link.href} href={link.href}>
                                 <div className={cn(
-                                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-card-foreground transition-all hover:bg-muted/50 hover:text-primary",
-                                    isActive && "bg-primary/10 text-primary font-bold"
+                                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-foreground transition-all hover:bg-muted/50 hover:text-primary-foreground",
+                                    isActive && "bg-primary text-primary-foreground font-bold"
                                 )}>
                                     <link.icon className="h-4 w-4" />
                                     {link.label}
@@ -161,7 +161,7 @@ export default function CarrierLayout({
                 </nav>
             </aside>
 
-            <main className="flex-1 overflow-y-auto bg-muted/20 pb-24 md:pb-0">
+            <main className="flex-1 overflow-y-auto bg-background/80 pb-24 md:pb-0">
                 {children}
             </main>
         </div>

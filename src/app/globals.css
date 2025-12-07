@@ -4,53 +4,53 @@
 
 @layer base {
   :root {
-    --background: 328 65% 11%;
-    --foreground: 210 40% 98%;
-    --card: 328 60% 14%;
-    --card-foreground: 210 40% 98%;
-    --popover: 328 65% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 39 65% 48%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 45 23% 62%;
-    --secondary-foreground: 328 65% 11%;
-    --muted: 45 23% 62%;
-    --muted-foreground: 328 50% 85%;
-    --accent: 45 23% 72%;
-    --accent-foreground: 328 65% 11%;
+    --background: 350 40% 12%; /* Deep Maroon-Brown */
+    --foreground: 45 30% 90%; /* Off-white/Sandy */
+    --card: 350 40% 12%;
+    --card-foreground: 45 30% 90%;
+    --popover: 350 40% 10%;
+    --popover-foreground: 45 30% 90%;
+    --primary: 45 50% 75%; /* Sandy Beige/Gold */
+    --primary-foreground: 350 40% 10%; /* Dark Maroon for text on primary */
+    --secondary: 350 40% 18%; /* Slightly lighter maroon for inputs */
+    --secondary-foreground: 45 30% 90%;
+    --muted: 350 40% 18%;
+    --muted-foreground: 45 20% 70%; /* Muted sandy color */
+    --accent: 60 80% 90%; /* Pale Yellow for header */
+    --accent-foreground: 350 40% 10%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 39 65% 38%;
-    --input: 45 23% 62%;
-    --ring: 39 65% 48%;
+    --destructive-foreground: 45 30% 90%;
+    --border: 30 30% 30%; /* Golden-brown border */
+    --input: 350 40% 18%;
+    --ring: 45 50% 75%;
     --radius: 0.5rem;
-    --chart-1: 39 65% 48%;
-    --chart-2: 45 23% 62%;
-    --chart-3: 210 40% 58%;
-    --chart-4: 30 100% 50%;
-    --chart-5: 280 65% 60%;
+    --chart-1: 45 50% 75%;
+    --chart-2: 60 80% 90%;
+    --chart-3: 30 30% 50%;
+    --chart-4: 350 40% 30%;
+    --chart-5: 45 20% 70%;
   }
 
   .dark {
-    --background: 328 65% 11%;
-    --foreground: 210 40% 98%;
-    --card: 328 60% 14%;
-    --card-foreground: 210 40% 98%;
-    --popover: 328 65% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 39 65% 48%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 45 23% 62%;
-    --secondary-foreground: 328 65% 11%;
-    --muted: 45 23% 62%;
-    --muted-foreground: 328 50% 85%;
-    --accent: 45 23% 72%;
-    --accent-foreground: 328 65% 11%;
+    --background: 350 40% 12%; /* Deep Maroon-Brown */
+    --foreground: 45 30% 90%; /* Off-white/Sandy */
+    --card: 350 40% 12%;
+    --card-foreground: 45 30% 90%;
+    --popover: 350 40% 10%;
+    --popover-foreground: 45 30% 90%;
+    --primary: 45 50% 75%; /* Sandy Beige/Gold */
+    --primary-foreground: 350 40% 10%; /* Dark Maroon for text on primary */
+    --secondary: 350 40% 18%; /* Slightly lighter maroon for inputs */
+    --secondary-foreground: 45 30% 90%;
+    --muted: 350 40% 18%;
+    --muted-foreground: 45 20% 70%; /* Muted sandy color */
+    --accent: 60 80% 90%; /* Pale Yellow for header */
+    --accent-foreground: 350 40% 10%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 39 65% 38%;
-    --input: 45 23% 62%;
-    --ring: 39 65% 48%;
+    --destructive-foreground: 45 30% 90%;
+    --border: 30 30% 30%; /* Golden-brown border */
+    --input: 350 40% 18%;
+    --ring: 45 50% 75%;
   }
 }
 
