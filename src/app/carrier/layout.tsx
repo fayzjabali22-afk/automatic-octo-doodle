@@ -14,7 +14,8 @@ import { CarrierMobileMenu } from '@/components/carrier/carrier-mobile-menu';
 import { Logo } from '@/components/logo';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { updateDocumentNonBlocking } from '@/firebase';
+import { updateDoc } from 'firebase/firestore';
+import { errorEmitter, FirestorePermissionError } from '@/firebase';
 
 
 function LoadingSpinner() {
@@ -56,21 +57,30 @@ export default function CarrierLayout({
     if (!userProfileRef || !profile) return;
     setIsSwitchingRole(true);
     const newRole = profile.role === 'carrier' ? 'traveler' : 'carrier';
-    
-    // Using non-blocking update to enable contextual error handling
-    updateDocumentNonBlocking(userProfileRef, { role: newRole });
+    const payload = { role: newRole };
 
-    // Optimistic UI update
-    toast({
-        title: `جاري التبديل إلى واجهة ${newRole === 'carrier' ? 'الناقل' : 'المسافر'}...`,
-        description: "سيتم إعادة تحميل الصفحة.",
-    });
-    
-    // The error handler will catch permission issues.
-    // We add a small delay to allow the toast to show and then force a reload.
-    setTimeout(() => {
-        window.location.href = newRole === 'carrier' ? '/carrier' : '/dashboard';
-    }, 1500);
+    // Use updateDoc with explicit error handling to generate contextual errors
+    updateDoc(userProfileRef, payload)
+        .then(() => {
+            // Optimistic UI update on success
+            toast({
+                title: `جاري التبديل إلى واجهة ${newRole === 'carrier' ? 'الناقل' : 'المسافر'}...`,
+                description: "سيتم إعادة تحميل الصفحة.",
+            });
+            setTimeout(() => {
+                window.location.href = newRole === 'carrier' ? '/carrier' : '/dashboard';
+            }, 1500);
+        })
+        .catch(serverError => {
+            // Create and emit the contextual error
+            const permissionError = new FirestorePermissionError({
+                path: userProfileRef.path,
+                operation: 'update',
+                requestResourceData: payload,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            setIsSwitchingRole(false); // Re-enable the button on error
+        });
   }
 
 
