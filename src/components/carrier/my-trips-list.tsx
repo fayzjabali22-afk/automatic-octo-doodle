@@ -32,6 +32,7 @@ import Link from 'next/link';
 import { BookingActionCard } from './booking-action-card';
 import { Separator } from '../ui/separator';
 import { TripCompletionDialog } from './trip-completion-dialog';
+import { TransferRequestDialog } from './transfer-request-dialog';
 
 
 const cities: { [key: string]: string } = {
@@ -178,6 +179,7 @@ export function MyTripsList({ trips, pendingBookingsMap }: MyTripsListProps) {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isPassengersDialogOpen, setIsPassengersDialogOpen] = useState(false);
     const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
+    const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
     const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
     const [tripToUpdate, setTripToUpdate] = useState<{trip: Trip, newStatus: Trip['status']} | null>(null);
     const { toast } = useToast();
@@ -222,11 +224,8 @@ export function MyTripsList({ trips, pendingBookingsMap }: MyTripsListProps) {
     };
 
     const handleInitiateTransferClick = (trip: Trip) => {
-         toast({
-            variant: 'default',
-            title: 'قيد الإنشاء',
-            description: 'سيتم بناء واجهة نقل الركاب لناقل آخر قريباً.',
-        });
+        setSelectedTrip(trip);
+        setIsTransferDialogOpen(true);
     }
 
     const handleManagePassengersClick = (trip: Trip) => {
@@ -411,6 +410,11 @@ export function MyTripsList({ trips, pendingBookingsMap }: MyTripsListProps) {
                 onOpenChange={setIsCompletionDialogOpen}
                 trip={selectedTripForCompletion}
                 onConfirm={handleConfirmCompletion}
+            />
+            <TransferRequestDialog
+                isOpen={isTransferDialogOpen}
+                onOpenChange={setIsTransferDialogOpen}
+                trip={selectedTrip}
             />
              <AlertDialog open={isCancelConfirmOpen} onOpenChange={setIsCancelConfirmOpen}>
                 <AlertDialogContent dir="rtl">
