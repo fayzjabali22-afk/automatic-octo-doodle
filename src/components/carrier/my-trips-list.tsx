@@ -62,6 +62,7 @@ const statusMap: Record<string, { text: string; icon: React.ElementType; classNa
 function TripListItem({ trip, pendingBookings, onEdit, onManagePassengers, onInitiateTransfer, onUpdateStatus, unreadCount, onCompleteTrip }: { trip: Trip, pendingBookings?: Booking[], onEdit: (trip: Trip) => void, onManagePassengers: (trip: Trip) => void, onInitiateTransfer: (trip: Trip) => void, onUpdateStatus: (trip: Trip, newStatus: Trip['status']) => void, unreadCount: number, onCompleteTrip: (trip: Trip) => void }) {
     const statusInfo = statusMap[trip.status] || { text: trip.status, icon: CircleDollarSign, className: 'bg-gray-100 text-gray-800' };
     const [formattedDate, setFormattedDate] = useState('');
+    const { toast } = useToast();
 
     useEffect(() => {
         setFormattedDate(safeDateFormat(trip.departureDate));
@@ -124,9 +125,9 @@ function TripListItem({ trip, pendingBookings, onEdit, onManagePassengers, onIni
                                 <span>الوصول وإنهاء الرحلة</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => onEdit(trip)} disabled>
+                            <DropdownMenuItem onClick={() => toast({ title: 'قيد التطوير', description: 'سيتم تفعيل هذه الميزة قريباً.' })}>
                                 <Pencil className="ml-2 h-4 w-4" />
-                                <span>تعديل تفاصيل الرحلة (معطل مؤقتاً)</span>
+                                <span>تعديل تفاصيل الرحلة (معطل)</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onManagePassengers(trip)}>
                                 <List className="ml-2 h-4 w-4" />

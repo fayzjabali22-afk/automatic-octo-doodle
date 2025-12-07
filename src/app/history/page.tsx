@@ -390,7 +390,7 @@ export default function HistoryPage() {
 
   return (
     <AppLayout>
-      <div className="p-0 md:p-8 space-y-8">
+      <div className="space-y-8 w-full">
         <Card className="bg-card">
            <CardHeader>
               <CardTitle>غرفة عمليات الحجز</CardTitle>

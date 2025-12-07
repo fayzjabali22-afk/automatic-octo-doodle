@@ -6,25 +6,19 @@ service cloud.firestore {
     //  Helper Functions
     // ===================================
     
-    // Is the user signed in?
     function isSignedIn() {
       return request.auth != null;
     }
     
-    // Is the user the owner of the document?
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Is the user's email verified?
     function isVerifiedUser() {
       return isSignedIn() && request.auth.token.email_verified;
     }
     
-    // Can a user create their own profile?
     function canCreateUserProfile(userId) {
-      // Allow creation if the user is creating their own document,
-      // the role is set to 'traveler', and required fields are present.
       let isCreatingOwnDoc = isOwner(userId);
       let resourceData = request.resource.data;
       let hasRequiredFields = 'firstName' in resourceData && 'lastName' in resourceData && 'email' in resourceData;
@@ -33,8 +27,6 @@ service cloud.firestore {
       return isCreatingOwnDoc && hasRequiredFields && isValidRole;
     }
     
-    // Does the incoming data match the expected schema?
-    // (This is a simplified check, more detailed checks can be added per field)
     function isValidUpdateData(allowedFields) {
         return request.resource.data.keys().hasOnly(allowedFields);
     }
@@ -52,7 +44,6 @@ service cloud.firestore {
       allow create: if canCreateUserProfile(userId);
       
       // UPDATE: A user can only update their own profile.
-      // We list the fields a user is allowed to update.
       allow update: if isOwner(userId) && isValidUpdateData([
           'firstName', 'lastName', 'phoneNumber', 'role', 'isDeactivated', 
           'vehicleType', 'vehicleModel', 'vehicleYear', 'vehiclePlateNumber', 
@@ -72,92 +63,58 @@ service cloud.firestore {
 
     // --- Trips Collection ---
     match /trips/{tripId} {
-        // READ: Any signed-in user can read trip details (for searching).
         allow read: if isSignedIn();
-
-        // CREATE: A user can create a trip if they are the owner specified in the document.
         allow create: if isOwner(request.resource.data.userId);
 
-        // UPDATE:
-        // - The carrier of the trip can update it.
-        // - A traveler who requested the trip can update it before an offer is accepted.
         allow update: if isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.carrierId) ||
                          isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.userId);
 
-        // DELETE: Only the trip creator (user) can delete a trip, and only if it's in a preliminary state.
         allow delete: if isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.userId) &&
                          (get(/databases/$(database)/documents/trips/$(tripId)).data.status == 'Awaiting-Offers' ||
                           get(/databases/$(database)/documents/trips/$(tripId)).data.status == 'Planned');
         
-        // --- Offers Subcollection ---
         match /offers/{offerId} {
-            // READ: Traveler who owns the trip request, and any signed-in user (for market transparency).
             allow read: if isSignedIn();
-
-            // CREATE: A carrier can create an offer for a trip.
-            // The creator must be the carrier specified in the offer.
             allow create: if isOwner(request.resource.data.carrierId);
-            
-            // UPDATE: Only the trip owner can update an offer (e.g., to 'Accepted').
             allow update: if isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.userId);
         }
     }
 
     // --- Bookings Collection ---
     match /bookings/{bookingId} {
-        // READ: The user who made the booking or the carrier of the trip can read it.
         allow read: if isOwner(resource.data.userId) || isOwner(resource.data.carrierId);
-
-        // CREATE: A user can create a booking for themselves.
         allow create: if isOwner(request.resource.data.userId);
-
-        // UPDATE: The user or the carrier can update the booking status (e.g., confirm, cancel).
         allow update: if isOwner(resource.data.userId) || isOwner(resource.data.carrierId);
-        
-        // DELETE: No one can delete a booking to maintain history. It should be 'Cancelled'.
         allow delete: if false;
     }
     
     // --- Ratings Collection ---
     match /ratings/{ratingId} {
-        // READ: All signed-in users can read ratings.
         allow read: if isSignedIn();
-        // CREATE: Only the user who took the trip can create a rating for it.
         allow create: if isOwner(request.resource.data.userId);
-        // UPDATE/DELETE: Ratings are immutable.
         allow update, delete: if false;
     }
     
     // --- Chats Collection ---
     match /chats/{chatId} {
-      // READ/WRITE: Only participants of the chat can access it.
       allow read, write: if isSignedIn() && request.auth.uid in resource.data.participants;
       
-      // --- Messages Subcollection ---
       match /messages/{messageId} {
-        // READ: Only chat participants can read messages.
         allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
-        // CREATE: A user can create a message if they are a participant.
         allow create: if isOwner(request.resource.data.senderId) && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
-        // UPDATE/DELETE: Messages are immutable.
         allow update, delete: if false;
       }
     }
 
     // --- Transfer Requests Collection ---
     match /transferRequests/{transferRequestId} {
-        // READ: Only the involved carriers can read the request.
         allow read: if isOwner(resource.data.fromCarrierId) || isOwner(resource.data.toCarrierId);
-        // CREATE: Only the 'from' carrier can create the request.
         allow create: if isOwner(request.resource.data.fromCarrierId);
-        // UPDATE: Only the 'to' carrier can update the status (accept/reject).
         allow update: if isOwner(resource.data.toCarrierId);
-        // DELETE: No one can delete, to maintain a record.
         allow delete: if false;
     }
 
     // --- Analytics Collection ---
-    // Anyone can write to it, but no one can read from it. This is a "write-only" log.
     match /analytics_events/{eventId} {
         allow read, update, delete: if false;
         allow create: if true;

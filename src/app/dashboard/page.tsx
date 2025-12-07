@@ -45,7 +45,6 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { BookingDialog, type PassengerDetails } from '@/components/booking-dialog';
 import { RequestDialog } from '@/components/requests/request-dialog';
-import { logEvent } from '@/lib/analytics';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -344,7 +343,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
-      <div className="p-0 md:p-4">
+      <div className="w-full">
         {isDevUser && (
           <Card className="mb-4 border-accent">
             <CardHeader>
@@ -360,7 +359,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         )}
-        <div className="flex flex-col lg:flex-row gap-8 p-0 md:p-2 lg:p-4">
+        <div className="flex flex-col lg:flex-row gap-8">
 
           <div className="flex-1 min-w-0">
             <header className="mb-8 text-center lg:text-right">

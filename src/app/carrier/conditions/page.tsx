@@ -84,7 +84,7 @@ export default function CarrierConditionsPage() {
     }
 
     return (
-        <div className="p-4 md:px-6 lg:px-8 space-y-4">
+        <div className="space-y-4 w-full">
              <header className="rounded-b-lg md:rounded-lg bg-card shadow-sm border-b md:border p-4">
                 <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
                     <ListChecks className="h-6 w-6 text-primary" />

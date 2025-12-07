@@ -122,7 +122,7 @@ export default function ProfilePage() {
   return (
     <>
       <AppLayout>
-        <div className="max-w-4xl mx-auto space-y-8 p-4 md:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto space-y-8 w-full">
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onUserSubmit)} className="space-y-8">
