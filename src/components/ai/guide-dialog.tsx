@@ -24,20 +24,23 @@ export function GuideDialog({ isOpen, onOpenChange }: GuideDialogProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [activeStep, setActiveStep] = useState(0);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
 
-  // 1. Load Voices Ensure voices are loaded
+
+  // 1. Load Voices & select Arabic voice
   useEffect(() => {
-    const loadVoices = () => {
+    const loadAndSelectVoice = () => {
       const availableVoices = window.speechSynthesis.getVoices();
       if (availableVoices.length > 0) {
         setVoices(availableVoices);
+        const arabicVoice = availableVoices.find(v => v.lang === 'ar-SA') || availableVoices.find(v => v.lang.includes('ar'));
+        setSelectedVoice(arabicVoice || null);
       }
     };
 
-    loadVoices();
-    // Chrome loads voices asynchronously, so we must listen for this event
+    loadAndSelectVoice();
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
+      window.speechSynthesis.onvoiceschanged = loadAndSelectVoice;
     }
   }, []);
 
@@ -61,31 +64,27 @@ export function GuideDialog({ isOpen, onOpenChange }: GuideDialogProps) {
 
   const handleSpeak = (text: string) => {
     if (!('speechSynthesis' in window)) {
-      alert('عذراً، متصفحك لا يدعم ميزة النطق الصوتي.');
-      return;
+      return; // Fail silently or show toast
     }
 
-    // Cancel any ongoing speech to avoid overlap
+    // Cancel any ongoing speech
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // SMART VOICE SELECTION: Try to find a specific Arabic voice
-    const arabicVoice = voices.find(v => v.lang === 'ar-SA') || voices.find(v => v.lang.includes('ar'));
-    
-    if (arabicVoice) {
-      utterance.voice = arabicVoice;
-      utterance.lang = arabicVoice.lang;
-    } else {
-      // Fallback if no Arabic voice detected (rare in modern OS)
-      utterance.lang = 'ar-SA'; 
+    // 1. Force Language Intent
+    utterance.lang = 'ar-SA'; 
+    utterance.rate = 0.9;
+
+    // 2. Try to assign the specific voice if we found one
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
     }
 
-    // Adjust rate and pitch for a better "Bot" feel
-    utterance.rate = 0.9; // Slightly slower for clarity
-    
+    // 3. Speak regardless (Browser will use default fallback if voice is null)
     window.speechSynthesis.speak(utterance);
   };
+
 
   const nextStep = () => {
     if (guide && activeStep < guide.steps.length - 1) {
@@ -122,7 +121,11 @@ export function GuideDialog({ isOpen, onOpenChange }: GuideDialogProps) {
                 </p>
               </div>
               <div className="flex items-center justify-center gap-4">
-                 <Button variant="outline" size="icon" onClick={() => handleSpeak(guide.steps[activeStep].text)}>
+                 <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={() => handleSpeak(guide.steps[activeStep].text)}
+                  >
                     <Volume2 className="h-5 w-5" />
                     <span className="sr-only">استمع</span>
                 </Button>
