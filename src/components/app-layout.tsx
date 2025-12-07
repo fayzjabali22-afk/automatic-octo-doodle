@@ -85,7 +85,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, isLoading: isProfileLoading } = useUserProfile();
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   
-  // FIX: State to track if the component has mounted on the client
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -155,27 +154,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
   
   const handleSwitchRole = async () => {
-        if (!userProfileRef || !profile) return;
-        setIsSwitchingRole(true);
-        const newRole = profile.role === 'carrier' ? 'traveler' : 'carrier';
-        try {
-            await updateDoc(userProfileRef, { role: newRole });
-            toast({
-                title: `تم التبديل إلى واجهة ${newRole === 'carrier' ? 'الناقل' : 'المسافر'}`,
-            });
-            if (newRole === 'carrier') {
-                router.push('/carrier');
-            } else {
-                router.push('/dashboard');
-            }
-        } catch (e) {
-             toast({
-                variant: "destructive",
-                title: "فشل تبديل الدور",
-            });
-        } finally {
-            setIsSwitchingRole(false);
+    if (!userProfileRef || !profile) return;
+    setIsSwitchingRole(true);
+    const newRole = profile.role === 'carrier' ? 'traveler' : 'carrier';
+    try {
+        await updateDoc(userProfileRef, { role: newRole });
+        toast({
+            title: `تم التبديل إلى واجهة ${newRole === 'carrier' ? 'الناقل' : 'المسافر'}`,
+        });
+        if (newRole === 'carrier') {
+            router.push('/carrier');
+        } else {
+            router.push('/dashboard');
         }
+    } catch (e) {
+         toast({
+            variant: "destructive",
+            title: "فشل تبديل الدور",
+        });
+    } finally {
+        setIsSwitchingRole(false);
+    }
   }
 
   const handleDeleteAccount = async () => {
@@ -243,12 +242,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           style={{ backgroundColor: '#FEFFC2', color: '#000000' }}
         >
 
-          {/* Left-side icons on mobile */}
           <div className="flex items-center gap-2 md:hidden">
-            {/* The profile icon was here. It has been removed. */}
+            <Button asChild variant="ghost" size="icon" className="hover:bg-black/10">
+              <Link href="/profile">
+                <User className="h-6 w-6" />
+                <span className="sr-only">الملف الشخصي</span>
+              </Link>
+            </Button>
           </div>
           
-          {/* Hamburger Menu (Mobile, Traveler only) - FIXED HYDRATION ERROR */}
           <div className="md:hidden">
             {isMounted && !isCarrierPath && (
               <Sheet>
@@ -286,14 +288,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
-          {/* Logo */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <Link href="/">
                 <Logo />
             </Link>
           </div>
 
-          {/* Right-side actions */}
           <div className="flex items-center gap-2 ms-auto">
             
             {isDevUser && (

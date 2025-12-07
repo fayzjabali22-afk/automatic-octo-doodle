@@ -48,21 +48,16 @@ export default function CarrierLayout({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   const { toast } = useToast();
-  const { user, profile, isLoading } = useUserProfile();
+  const { user, profile, isLoading, userProfileRef } = useUserProfile();
 
   const isDevUser = user?.email === 'dev@safar.com';
 
   const handleSwitchRole = async () => {
-    if (!user || !profile) return;
+    if (!userProfileRef || !profile) return;
     setIsSwitchingRole(true);
     const newRole = profile.role === 'carrier' ? 'traveler' : 'carrier';
     try {
-        // This is a simplified way, ideally you'd have a user document reference
-        // from a context or a more robust hook.
-        const { getFirestore, doc } = await import('firebase/firestore');
-        const firestore = getFirestore();
-        const userDocRef = doc(firestore, 'users', user.uid);
-        await updateDoc(userDocRef, { role: newRole });
+        await updateDoc(userProfileRef, { role: newRole });
 
         toast({
             title: `تم التبديل إلى واجهة ${newRole === 'carrier' ? 'الناقل' : 'المسافر'}`,
@@ -90,7 +85,6 @@ export default function CarrierLayout({
           className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-black/10 px-4 text-black shadow-lg md:px-6"
           style={{ backgroundColor: '#FEFFC2' }}
         >
-            {/* Left side: Profile Icon on all screens */}
             <div className="flex items-center gap-2 w-auto">
                  {isDevUser && (
                      <TooltipProvider>
@@ -120,12 +114,10 @@ export default function CarrierLayout({
                 </Button>
             </div>
             
-            {/* Centered Logo */}
              <div className="absolute left-1/2 -translate-x-1/2">
                <Logo />
             </div>
 
-            {/* Right side Actions */}
             <div className="flex items-center gap-2 w-auto">
                  <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                     <SheetTrigger asChild>
@@ -143,7 +135,6 @@ export default function CarrierLayout({
         </header>
         
         <div className="grid h-full flex-1 grid-cols-1 md:grid-cols-[240px_1fr]">
-            {/* --- Sidebar for Desktop --- */}
             <aside className="hidden h-full border-e bg-card p-4 overflow-y-auto md:block">
                 <Button className="mb-4 w-full" onClick={() => setIsAddTripDialogOpen(true)}>
                     <PlusCircle className="ml-2 h-4 w-4" />
@@ -167,17 +158,14 @@ export default function CarrierLayout({
                 </nav>
             </aside>
 
-            {/* --- Main Content Area --- */}
             <main className="flex-1 overflow-y-auto bg-muted/20 pb-24 md:pb-0">
                 {children}
             </main>
         </div>
         
-        {/* --- Bottom Nav for Mobile --- */}
         <CarrierBottomNav onAddTripClick={() => setIsAddTripDialogOpen(true)} />
       </div>
       
-      {/* --- Global Dialog --- */}
       <AddTripDialog 
         isOpen={isAddTripDialogOpen}
         onOpenChange={setIsAddTripDialogOpen}

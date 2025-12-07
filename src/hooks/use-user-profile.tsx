@@ -36,5 +36,6 @@ export function useUserProfile() {
     profile, // The user profile document from Firestore (contains the 'role')
     isLoading,
     error: userError || profileError,
+    userProfileRef, // Expose the ref for mutation
   };
 }
