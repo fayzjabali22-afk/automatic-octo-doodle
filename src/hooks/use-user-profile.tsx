@@ -29,19 +29,12 @@ export function useUserProfile() {
   } = useDoc<UserProfile>(userProfileRef);
 
   // The overall loading state is true if either the auth state or the profile fetch is in progress.
-  const isLoading = isAuthLoading || isProfileLoading;
-  
-  // CRITICAL FIX:
-  // If authentication is still loading, or if the user has just logged in but their profile
-  // hasn't been fetched yet, we must return a loading state with null data.
-  // This prevents downstream hooks (like useAdmin) from acting on stale data (e.g., a null profile
-  // for a user who is actually an admin).
-  const profile = isLoading ? null : profileData;
+  const isLoading = isAuthLoading || (user && !profileData && !profileError);
 
 
   return {
     user, // The user object from Firebase Auth
-    profile, // The user profile document from Firestore (contains the 'role')
+    profile: profileData, // The user profile document from Firestore (contains the 'role')
     isLoading,
     error: userError || profileError,
     userProfileRef, // Expose the ref for mutation
