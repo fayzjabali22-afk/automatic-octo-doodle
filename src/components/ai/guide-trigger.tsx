@@ -10,9 +10,6 @@ export function GuideTrigger() {
 
   return (
     <>
-      {/* FIX: Z-Index increased to 100 to stay above BottomNav and Toaster.
-         FIX: Bottom position increased to bottom-20 on mobile to clear the nav bar.
-      */}
       <div className="fixed bottom-20 left-4 md:bottom-6 md:left-6 z-[100]">
         <Button
           size="icon"
@@ -20,7 +17,7 @@ export function GuideTrigger() {
           onClick={() => setIsDialogOpen(true)}
           aria-label="افتح المرشد الذكي"
         >
-          <Lightbulb className="h-7 w-7 animate-pulse" />
+          <Lightbulb className="h-7 w-7" />
         </Button>
       </div>
       <GuideDialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} />
