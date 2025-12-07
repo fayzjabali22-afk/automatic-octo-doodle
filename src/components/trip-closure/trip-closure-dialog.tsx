@@ -10,7 +10,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Clock, Star } from 'lucide-react';
 import type { Trip } from '@/lib/data';
 
 interface TripClosureDialogProps {

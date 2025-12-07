@@ -76,8 +76,9 @@
   * {
     @apply border-border;
   }
-  body {
+  html, body {
     @apply bg-background text-foreground;
     font-family: 'PT Sans', sans-serif;
+    overflow-x: hidden;
   }
 }

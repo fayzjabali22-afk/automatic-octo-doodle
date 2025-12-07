@@ -26,11 +26,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useAuth } from '@/firebase';
 import { doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState, useMemo } from 'react';
-import { deleteUser, sendEmailVerification } from 'firebase/auth';
+import { deleteUser } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, Trash2, Upload } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { actionCodeSettings } from '@/firebase/config';
 import { useUserProfile } from '@/hooks/use-user-profile';
 
 
@@ -123,7 +122,7 @@ export default function ProfilePage() {
   return (
     <>
       <AppLayout>
-        <div className="max-w-4xl mx-auto space-y-8 p-0 md:p-4">
+        <div className="max-w-4xl mx-auto space-y-8 p-4 md:px-6 lg:px-8">
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onUserSubmit)} className="space-y-8">

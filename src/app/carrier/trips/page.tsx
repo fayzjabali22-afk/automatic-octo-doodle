@@ -10,7 +10,7 @@ import { collection, query, where } from 'firebase/firestore';
 
 function LoadingState() {
     return (
-      <div className="space-y-6 p-2 md:p-0">
+      <div className="space-y-6 px-4 md:px-0">
           <Skeleton key="header-1" className="h-8 w-48 rounded-lg mb-4" />
           <div className="space-y-3">
               {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)}
@@ -68,15 +68,15 @@ export default function CarrierTripsPage() {
     }
 
     return (
-        <div className="p-0 md:p-6 lg:p-8 space-y-8">
-            <header className="p-4 md:p-0">
+        <div className="p-4 md:px-6 lg:px-8 space-y-8">
+            <header>
                 <h1 className="text-xl md:text-2xl font-bold">إدارة الرحلات والحجوزات</h1>
                 <p className="text-muted-foreground text-sm md:text-base">
                    أدرْ رحلاتك النشطة، وقم بتأكيد أو رفض طلبات الحجز الجديدة في مكان واحد.
                 </p>
             </header>
             
-            <main className="space-y-8 px-2 md:px-0">
+            <main className="space-y-8">
                 {bookingsAwaitingPayment.length > 0 && (
                     <div>
                         <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-orange-500">

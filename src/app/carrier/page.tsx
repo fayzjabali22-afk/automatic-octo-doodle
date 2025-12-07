@@ -30,7 +30,7 @@ export default function CarrierDashboardPage() {
   }, []); // Empty dependency array ensures it runs once on mount
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-8">
+    <div className="p-4 md:px-6 lg:px-8 space-y-8">
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div>

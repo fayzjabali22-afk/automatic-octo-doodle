@@ -113,9 +113,8 @@ export default function ArchivePage() {
 
 
     return (
-        // PWA Compliance: No horizontal padding on mobile (p-0), but add it for larger screens
-        <div className="p-0 md:p-6 lg:p-8 space-y-4">
-            <header className="p-4 rounded-b-lg md:rounded-lg bg-card shadow-sm border-b md:border">
+        <div className="p-4 md:px-6 lg:px-8 space-y-4">
+            <header className="rounded-b-lg md:rounded-lg bg-card shadow-sm border-b md:border p-4">
                 <h1 className="text-xl md:text-2xl font-bold">أرشيف الرحلات</h1>
                 <p className="text-muted-foreground text-xs md:text-sm">
                     سجلك الكامل للرحلات المكتملة والملغاة.
