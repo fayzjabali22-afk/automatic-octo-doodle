@@ -90,18 +90,18 @@ export default function DashboardPage() {
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
 
   const tripsQuery = useMemo(() => {
-    if (!firestore) return null;
-    // FIX: Removed orderBy('departureDate', 'asc') to avoid composite index requirement.
-    // Sorting will be handled client-side.
+    // MODIFICATION: Do not run the query if the user is not authenticated.
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'trips'), where('status', '==', 'Planned'));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: allTrips, isLoading } = useCollection<Trip>(tripsQuery);
 
   const carriersQuery = useMemo(() => {
-      if (!firestore) return null;
+      // MODIFICATION: Do not run the query if the user is not authenticated.
+      if (!firestore || !user) return null;
       return query(collection(firestore, 'users'), where('role', '==', 'carrier'));
-  }, [firestore]);
+  }, [firestore, user]);
   const { data: allCarriersData, isLoading: isLoadingCarriers } = useCollection<UserProfile>(carriersQuery);
 
   // Filter out deactivated carriers from the list used for dropdowns
