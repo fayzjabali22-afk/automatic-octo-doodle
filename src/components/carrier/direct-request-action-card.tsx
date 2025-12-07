@@ -88,44 +88,6 @@ export function DirectRequestActionCard({ tripRequest, onApprove, onReject }: Di
     
     const isAwaitingFinalConfirmation = tripRequest.status === 'Pending-Carrier-Confirmation';
 
-    if(isAwaitingFinalConfirmation) {
-        return (
-             <Card className="w-full shadow-md transition-shadow hover:shadow-lg border-yellow-500 border-2">
-                 <CardHeader>
-                    <Badge variant="outline" className="flex items-center gap-2 bg-yellow-100 text-yellow-800 border-yellow-300 w-fit">
-                        <Hourglass className="h-4 w-4 animate-pulse" />
-                        موافقة نهائية مطلوبة
-                    </Badge>
-                     <CardTitle className="text-base pt-2"><UserInfo userId={tripRequest.userId} /></CardTitle>
-                    <CardDescription>
-                        وافق المسافر على عرضك. مطلوب موافقتك النهائية لبدء عملية الدفع.
-                    </CardDescription>
-                 </CardHeader>
-                  <CardContent className="space-y-4 pb-4">
-                      <div className="p-3 bg-muted/50 rounded-lg border">
-                            <h4 className="font-bold text-sm mb-2 flex items-center gap-2"><Wallet className="h-4 w-4 text-primary"/>التفاصيل المالية المتفق عليها</h4>
-                            <div className="space-y-1 text-sm">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-muted-foreground">السعر الإجمالي:</span>
-                                    <span className="font-bold text-lg">{tripRequest.price?.toFixed(2)} {tripRequest.currency}</span>
-                                </div>
-                            </div>
-                        </div>
-                  </CardContent>
-                 <CardFooter className="flex flex-col gap-2 bg-muted/30 p-2">
-                     <Button 
-                        className="w-full bg-green-600 hover:bg-green-700 text-white" 
-                        onClick={handleApproveClick}
-                        disabled={isProcessing}
-                    >
-                        {isProcessing ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <CheckCheck className="ml-2 h-4 w-4" />}
-                        موافقة نهائية وإرسال فاتورة العربون
-                    </Button>
-                 </CardFooter>
-             </Card>
-        )
-    }
-
     return (
         <Card className="w-full shadow-md transition-shadow hover:shadow-lg border-primary border-2">
             <CardHeader className="flex flex-row justify-between items-start pb-4">
@@ -135,6 +97,12 @@ export function DirectRequestActionCard({ tripRequest, onApprove, onReject }: Di
                         طلب مباشر لرحلة: {getCityName(tripRequest.origin)} <ArrowRight className="inline h-3 w-3" /> {getCityName(tripRequest.destination)}
                     </CardDescription>
                 </div>
+                 {isAwaitingFinalConfirmation && (
+                    <Badge variant="outline" className="flex items-center gap-2 bg-yellow-100 text-yellow-800 border-yellow-300 w-fit">
+                        <Hourglass className="h-4 w-4 animate-pulse" />
+                        بانتظار موافقة المسافر
+                    </Badge>
+                )}
             </CardHeader>
             <CardContent className="space-y-4 pb-4">
                  <div className="grid grid-cols-2 gap-4 text-sm">
@@ -173,7 +141,7 @@ export function DirectRequestActionCard({ tripRequest, onApprove, onReject }: Di
                                 placeholder="السعر الإجمالي"
                                 value={finalPrice}
                                 onChange={(e) => setFinalPrice(Number(e.target.value))}
-                                disabled={isProcessing}
+                                disabled={isProcessing || isAwaitingFinalConfirmation}
                                 className="text-lg"
                              />
                         </div>
@@ -184,7 +152,7 @@ export function DirectRequestActionCard({ tripRequest, onApprove, onReject }: Di
                                 placeholder="العملة"
                                 value={currency}
                                 onChange={(e) => setCurrency(e.target.value)}
-                                disabled={isProcessing}
+                                disabled={isProcessing || isAwaitingFinalConfirmation}
                                 className="text-lg"
                             />
                         </div>
@@ -198,6 +166,7 @@ export function DirectRequestActionCard({ tripRequest, onApprove, onReject }: Di
 
             </CardContent>
             
+            {!isAwaitingFinalConfirmation && (
             <CardFooter className="flex flex-col gap-2 bg-muted/30 p-2">
                 {!showRejectionInput && (
                     <div className='flex gap-2 w-full'>
@@ -240,6 +209,9 @@ export function DirectRequestActionCard({ tripRequest, onApprove, onReject }: Di
                      </div>
                 )}
             </CardFooter>
+            )}
         </Card>
     );
 }
+
+    

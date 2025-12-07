@@ -1,10 +1,10 @@
 'use client';
 import { RequestCard } from '@/components/carrier/request-card';
 import { useFirestore, useCollection, useUser, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, writeBatch, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, serverTimestamp, runTransaction, getDocs } from 'firebase/firestore';
 import { PackageOpen, Settings, AlertTriangle, ListFilter, Armchair, UserCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trip, Offer, TransferRequest } from '@/lib/data';
+import { Trip, Offer, TransferRequest, Booking } from '@/lib/data';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -119,10 +119,41 @@ export default function CarrierOpportunitiesPage() {
      toast({ title: "وظيفة قيد الإنشاء", description: "سيتم ربط إرسال العروض قريبًا." });
     return false;
   };
+
    const handleApproveDirect = async (trip: Trip, finalPrice: number, currency: string): Promise<boolean> => {
-     toast({ title: "وظيفة قيد الإنشاء", description: "سيتم ربط إرسال العروض قريبًا." });
-    return false;
+     if (!firestore || !user || !userProfile) return false;
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const tripRef = doc(firestore, 'trips', trip.id);
+            const offerRef = doc(collection(firestore, 'trips', trip.id, 'offers'));
+
+            const offerPayload = {
+                carrierId: user.uid,
+                price: finalPrice,
+                currency: currency,
+                status: 'Pending',
+                createdAt: serverTimestamp(),
+                vehicleType: userProfile.vehicleType || 'غير محدد',
+                depositPercentage: userProfile.isDeactivated === true ? 20 : 10,
+            };
+            
+            transaction.set(offerRef, offerPayload);
+            transaction.update(tripRef, { 
+                price: finalPrice, // Set final price on the trip itself
+                status: 'Pending-Carrier-Confirmation', // Await traveler's final approval
+                acceptedOfferId: offerRef.id
+            });
+        });
+        toast({ title: 'تم إرسال الموافقة والسعر', description: 'بانتظار موافقة المسافر النهائية على السعر.' });
+        return true;
+    } catch (error) {
+        console.error("Error approving direct request:", error);
+        toast({ variant: 'destructive', title: 'فشل إرسال الموافقة', description: 'حدث خطأ ما.' });
+        return false;
+    }
   };
+
    const handleRejectDirect = async (trip: Trip, reason: string): Promise<boolean> => {
      toast({ title: "وظيفة قيد الإنشاء", description: "سيتم ربط إرسال العروض قريبًا." });
     return false;
@@ -144,7 +175,7 @@ export default function CarrierOpportunitiesPage() {
 
             // 3. Update all associated bookings
             const bookingsQuery = query(collection(firestore, 'bookings'), where('tripId', '==', request.originalTripId));
-            const bookingsSnapshot = await transaction.get(bookingsQuery);
+            const bookingsSnapshot = await getDocs(bookingsQuery);
             
             const passengerUserIds: string[] = [];
             bookingsSnapshot.forEach(bookingDoc => {
@@ -310,3 +341,5 @@ export default function CarrierOpportunitiesPage() {
     </>
   );
 }
+
+    
