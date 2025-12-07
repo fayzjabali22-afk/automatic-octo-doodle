@@ -1,7 +1,7 @@
 'use client';
 import { RequestCard } from '@/components/carrier/request-card';
-import { useFirestore, useCollection, useUser } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useFirestore, useCollection, useUser, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, doc, writeBatch, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { PackageOpen, Settings, AlertTriangle, ListFilter, Armchair, UserCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trip, Offer, TransferRequest } from '@/lib/data';
@@ -115,7 +115,6 @@ export default function CarrierOpportunitiesPage() {
     setIsOfferDialogOpen(true);
   };
   
-  // --- HANDLERS (PLACEHOLDERS) ---
   const handleSendOffer = async (offerData: Omit<Offer, 'id' | 'tripId' | 'carrierId' | 'status' | 'createdAt'>): Promise<boolean> => {
      toast({ title: "وظيفة قيد الإنشاء", description: "سيتم ربط إرسال العروض قريبًا." });
     return false;
@@ -128,6 +127,83 @@ export default function CarrierOpportunitiesPage() {
      toast({ title: "وظيفة قيد الإنشاء", description: "سيتم ربط إرسال العروض قريبًا." });
     return false;
   };
+
+  const handleAcceptTransfer = async (request: TransferRequest) => {
+    if (!firestore || !user) return;
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const transferReqRef = doc(firestore, 'transferRequests', request.id);
+            const tripRef = doc(firestore, 'trips', request.originalTripId);
+            const batch = writeBatch(firestore); // Use a batch for notifications outside transaction
+
+            // 1. Update TransferRequest status
+            transaction.update(transferReqRef, { status: 'accepted', updatedAt: serverTimestamp() });
+
+            // 2. Update the original Trip's carrierId
+            transaction.update(tripRef, { carrierId: request.toCarrierId });
+
+            // 3. Update all associated bookings
+            const bookingsQuery = query(collection(firestore, 'bookings'), where('tripId', '==', request.originalTripId));
+            const bookingsSnapshot = await transaction.get(bookingsQuery);
+            
+            const passengerUserIds: string[] = [];
+            bookingsSnapshot.forEach(bookingDoc => {
+                transaction.update(bookingDoc.ref, { carrierId: request.toCarrierId });
+                passengerUserIds.push(bookingDoc.data().userId);
+            });
+            
+            // 4. Prepare Notifications (to be committed outside transaction)
+            // Notify original carrier
+            const fromCarrierNotifRef = doc(collection(firestore, 'notifications'));
+            batch.set(fromCarrierNotifRef, {
+                userId: request.fromCarrierId,
+                title: 'تم قبول طلب نقل الرحلة',
+                message: `وافق الناقل البديل على استلام رحلتك. تم نقل المسؤولية بنجاح.`,
+                type: 'trip_update', isRead: false, createdAt: serverTimestamp(), link: '/carrier/archive'
+            });
+
+            // Notify all passengers
+            passengerUserIds.forEach(userId => {
+                const passengerNotifRef = doc(collection(firestore, 'notifications'));
+                 batch.set(passengerNotifRef, {
+                    userId: userId,
+                    title: 'تحديث هام بخصوص رحلتك',
+                    message: `تم نقل رحلتك إلى ناقل آخر. الرجاء مراجعة تفاصيل الناقل الجديد في صفحة إدارة الحجز.`,
+                    type: 'trip_update', isRead: false, createdAt: serverTimestamp(), link: '/history'
+                });
+            });
+
+            // Commit notifications after transaction succeeds
+            await batch.commit();
+        });
+
+        toast({ title: 'تم استلام الرحلة بنجاح!', description: 'تم تحديث بيانات الرحلة والحجوزات وإعلام جميع الأطراف.' });
+        // The card will disappear automatically due to the status change
+    } catch (error) {
+        console.error("Error accepting transfer:", error);
+        toast({ variant: 'destructive', title: 'فشل قبول النقل', description: 'حدث خطأ ما. لا يمكن إكمال العملية.' });
+    }
+  }
+  
+  const handleRejectTransfer = async (request: TransferRequest) => {
+    if (!firestore) return;
+    try {
+      const transferReqRef = doc(firestore, 'transferRequests', request.id);
+      await updateDocumentNonBlocking(transferReqRef, { status: 'rejected', updatedAt: serverTimestamp() });
+      // Also notify the original carrier
+      const notifPayload = {
+          userId: request.fromCarrierId,
+          title: 'تم رفض طلب نقل الرحلة',
+          message: 'نعتذر، لم يتمكن الناقل البديل من قبول طلبك لنقل الرحلة.',
+          type: 'trip_update', isRead: false, createdAt: serverTimestamp(), link: '/carrier/trips'
+      }
+      await addDocumentNonBlocking(collection(firestore, 'notifications'), notifPayload);
+      toast({ title: 'تم رفض الطلب', variant: 'default' });
+    } catch (error) {
+       toast({ title: 'فشل رفض الطلب', variant: 'destructive' });
+    }
+  }
+
 
   if (isLoading) return <LoadingState />;
   
@@ -186,7 +262,12 @@ export default function CarrierOpportunitiesPage() {
                     <h2 className="text-lg font-bold mb-3">عروض نقل من زملاء</h2>
                     <div className="space-y-3">
                         {transferRequests.map(req => (
-                            <TransferRequestCard key={req.id} request={req} />
+                            <TransferRequestCard 
+                              key={req.id} 
+                              request={req} 
+                              onAccept={handleAcceptTransfer}
+                              onReject={handleRejectTransfer}
+                            />
                         ))}
                     </div>
                 </div>

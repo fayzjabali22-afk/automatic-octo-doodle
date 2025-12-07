@@ -8,8 +8,6 @@ import { doc } from 'firebase/firestore';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Skeleton } from '../ui/skeleton';
 import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-
 
 const cities: { [key: string]: string } = {
     damascus: 'دمشق', aleppo: 'حلب', homs: 'حمص',
@@ -53,24 +51,26 @@ function FromCarrierInfo({ carrierId }: { carrierId: string }) {
 
 interface TransferRequestCardProps {
     request: TransferRequest;
+    onAccept: (request: TransferRequest) => Promise<void>;
+    onReject: (request: TransferRequest) => Promise<void>;
 }
 
-export function TransferRequestCard({ request }: TransferRequestCardProps) {
+export function TransferRequestCard({ request, onAccept, onReject }: TransferRequestCardProps) {
     const [isProcessing, setIsProcessing] = useState(false);
-    const { toast } = useToast();
     
     const { tripDetails } = request;
 
-    const handleAccept = () => {
+    const handleAccept = async () => {
         setIsProcessing(true);
-        toast({ title: "قيد التطوير", description: "سيتم تفعيل منطق القبول قريباً."});
-        setTimeout(() => setIsProcessing(false), 1500);
+        await onAccept(request);
+        // No need to set isProcessing(false) on success, as the card will disappear.
+        // If the promise rejects, the parent component should handle it and we might re-enable.
+        // For simplicity, we assume success removes the card.
     }
 
-    const handleReject = () => {
+    const handleReject = async () => {
         setIsProcessing(true);
-        toast({ title: "قيد التطوير", description: "سيتم تفعيل منطق الرفض قريباً."});
-        setTimeout(() => setIsProcessing(false), 1500);
+        await onReject(request);
     }
 
     return (
