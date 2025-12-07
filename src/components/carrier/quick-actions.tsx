@@ -11,9 +11,9 @@ export function QuickActions() {
         <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
             <Card className="flex flex-col justify-between hover:bg-card/80 transition-colors w-full">
                 <CardHeader>
-                    <CardTitle>مركز الفرص</CardTitle>
+                    <CardTitle>مركز الفرص (سوق الطلبات)</CardTitle>
                     <CardDescription>
-                        استعرض كل الطلبات المتاحة (العامة والمباشرة) وقدم أفضل عروضك.
+                        استعرض كل طلبات المسافرين المتاحة وقدم أفضل عروضك لتأمين حجوزات جديدة.
                     </CardDescription>
                 </CardHeader>
                 <div className="p-4 pt-0">
@@ -29,7 +29,7 @@ export function QuickActions() {
                 <CardHeader>
                     <CardTitle>إدارة رحلاتي وحجوزاتي</CardTitle>
                     <CardDescription>
-                       أدر رحلاتك النشطة، وقم بتأكيد أو رفض طلبات الحجز الجديدة في شاشة واحدة.
+                       أدرْ رحلاتك المجدولة، وقم بتأكيد أو رفض طلبات الحجز الواردة عليها في شاشة واحدة.
                     </CardDescription>
                 </CardHeader>
                  <div className="p-4 pt-0">
