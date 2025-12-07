@@ -21,29 +21,32 @@ export default function SmartRedirectPage() {
 
     useEffect(() => {
         // 1. بروتوكول الصبر: انتظر انتهاء التحميل تماماً
-        if (isLoading) return;
+        if (isLoading) {
+            return;
+        }
 
-        // 2. بروتوكول الأمن: لا مستخدم = طرد للدخول
+        // 2. بروتوكول الأمن: لا مستخدم = طرد إلى بوابة الدخول
         if (!user) {
             router.replace('/login');
             return;
         }
-
-        // 3. بروتوكول التوجيه الذكي (The Brain):
-        // المالك والمدير -> القلعة
+        
+        // 3. بروتوكول التوجيه الطبقي (النسخة النهائية والحاسمة)
+        // الأولوية القصوى: المالك والمدير يذهبون إلى القلعة أولاً.
         if (profile?.role === 'admin' || profile?.role === 'owner') {
-            router.replace('/admin'); 
+            router.replace('/admin');
         } 
-        // الناقل -> غرفة العمليات
+        // إذا لم يكن مديراً، تحقق مما إذا كان ناقلاً.
         else if (profile?.role === 'carrier') {
             router.replace('/carrier');
         } 
-        // المسافر -> سجل الرحلات
+        // إذا لم يكن أي مما سبق، فهو مسافر.
         else {
-            router.replace('/history'); 
+            router.replace('/history');
         }
+        
     }, [user, profile, isLoading, router]);
 
-    // عرض شاشة الانتظار دائماً لمنع الوميض
+    // عرض شاشة الانتظار دائماً لمنع الوميض وضمان اتخاذ قرار توجيه واحد وصحيح.
     return <LoadingScreen />;
 }
