@@ -18,6 +18,12 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email_verified;
     }
     
+    function isAdmin() {
+      // Check if the user has the 'admin' or 'owner' role in their profile
+      return isSignedIn() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'owner']);
+    }
+    
     function canCreateUserProfile(userId) {
       let isCreatingOwnDoc = isOwner(userId);
       let resourceData = request.resource.data;
@@ -37,27 +43,27 @@ service cloud.firestore {
 
     // --- Users Collection ---
     match /users/{userId} {
-      // READ: Any signed-in user can read any user's profile (for displaying carrier/traveler info).
+      // READ: Any signed-in user can read any user's profile. Admin can read all.
       allow read: if isSignedIn();
       
       // CREATE: A user can create their own profile document.
       allow create: if canCreateUserProfile(userId);
       
-      // UPDATE: A user can only update their own profile.
-      allow update: if isOwner(userId) && isValidUpdateData([
+      // UPDATE: A user can only update their own profile, or an admin can update any profile.
+      allow update: if isAdmin() || (isOwner(userId) && isValidUpdateData([
           'firstName', 'lastName', 'phoneNumber', 'role', 'isDeactivated', 
           'vehicleType', 'vehicleModel', 'vehicleYear', 'vehiclePlateNumber', 
           'vehicleCapacity', 'vehicleImageUrls', 'primaryRoute', 'paymentInformation',
           'bagsPerSeat', 'numberOfStops', 'updatedAt'
-      ]);
+      ]));
       
-      // DELETE: A user can delete their own profile document.
-      allow delete: if isOwner(userId);
+      // DELETE: A user can delete their own profile document, or an admin can delete any.
+      allow delete: if isAdmin() || isOwner(userId);
 
       // --- Notifications Subcollection ---
       match /notifications/{notificationId} {
         // Only the owner of the parent user document can access their notifications.
-        allow read, write: if isOwner(userId);
+        allow read, write: if isOwner(userId) || isAdmin();
       }
     }
 
@@ -66,12 +72,12 @@ service cloud.firestore {
         allow read: if isSignedIn();
         allow create: if isOwner(request.resource.data.userId);
 
-        allow update: if isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.carrierId) ||
+        allow update: if isAdmin() || isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.carrierId) ||
                          isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.userId);
 
-        allow delete: if isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.userId) &&
+        allow delete: if isAdmin() || (isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.userId) &&
                          (get(/databases/$(database)/documents/trips/$(tripId)).data.status == 'Awaiting-Offers' ||
-                          get(/databases/$(database)/documents/trips/$(tripId)).data.status == 'Planned');
+                          get(/databases/$(database)/documents/trips/$(tripId)).data.status == 'Planned'));
         
         match /offers/{offerId} {
             allow read: if isSignedIn();
@@ -83,10 +89,10 @@ service cloud.firestore {
 
     // --- Bookings Collection ---
     match /bookings/{bookingId} {
-        allow read: if isOwner(resource.data.userId) || isOwner(resource.data.carrierId);
+        allow read: if isAdmin() || isOwner(resource.data.userId) || isOwner(resource.data.carrierId);
         allow create: if isOwner(request.resource.data.userId);
-        allow update: if isOwner(resource.data.userId) || isOwner(resource.data.carrierId);
-        allow delete: if false;
+        allow update: if isAdmin() || isOwner(resource.data.userId) || isOwner(resource.data.carrierId);
+        allow delete: if isAdmin();
     }
     
     // --- Ratings Collection ---
