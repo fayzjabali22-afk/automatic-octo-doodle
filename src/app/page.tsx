@@ -9,8 +9,8 @@ function LoadingScreen() {
     return (
         <div className="flex h-screen flex-col items-center justify-center gap-4 text-center bg-background">
             <Ship className="h-16 w-16 animate-pulse text-primary" />
-            <h1 className="text-xl font-bold text-muted-foreground">جاري تحديد وجهتك ...</h1>
-            <p className="text-sm text-muted-foreground">يقوم النظام بالتحقق من صلاحيات حسابك.</p>
+            <h1 className="text-xl font-bold text-muted-foreground">جاري التحقق من الهوية السيادية...</h1>
+            <p className="text-sm text-muted-foreground">الرجاء الانتظار.</p>
         </div>
     );
 }
@@ -20,23 +20,23 @@ export default function SmartRedirectPage() {
     const { user, profile, isLoading } = useUserProfile();
 
     useEffect(() => {
-        // 1. بروتوكول الصبر: انتظر انتهاء التحميل تماماً
+        // بروتوكول الصبر: لا تتخذ أي قرار حتى انتهاء التحميل بشكل كامل.
         if (isLoading) {
             return;
         }
 
-        // 2. بروتوكول الأمن: لا مستخدم = طرد إلى بوابة الدخول
+        // بروتوكول الأمن: إذا لم يكن هناك مستخدم مسجل، يتم توجيهه إلى بوابة الدخول.
         if (!user) {
             router.replace('/login');
             return;
         }
         
-        // 3. بروتوكول التوجيه الطبقي (النسخة النهائية والحاسمة)
-        // الأولوية القصوى: المالك والمدير يذهبون إلى القلعة أولاً.
+        // بروتوكول التوجيه الطبقي الصارم (النسخة النهائية)
+        // الأولوية القصوى للمالك والمدير. هذا الشرط يُحسم أولاً.
         if (profile?.role === 'admin' || profile?.role === 'owner') {
             router.replace('/admin');
         } 
-        // إذا لم يكن مديراً، تحقق مما إذا كان ناقلاً.
+        // إذا لم يكن مديراً، تحقق من دوره كناقل.
         else if (profile?.role === 'carrier') {
             router.replace('/carrier');
         } 
@@ -47,6 +47,6 @@ export default function SmartRedirectPage() {
         
     }, [user, profile, isLoading, router]);
 
-    // عرض شاشة الانتظار دائماً لمنع الوميض وضمان اتخاذ قرار توجيه واحد وصحيح.
+    // عرض شاشة التحميل بشكل دائم حتى يتم اتخاذ قرار التوجيه الصحيح والوحيد.
     return <LoadingScreen />;
 }
