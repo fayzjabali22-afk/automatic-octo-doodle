@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useMemo } from 'react';
@@ -25,8 +26,8 @@ export default function SmartRedirectPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
 
-    // Query for any active processes
-    const activeProcessesQuery = useMemo(() => {
+    // Query for any active processes for the user
+    const activeBookingsQuery = useMemo(() => {
         if (!firestore || !user) return null;
         return query(
             collection(firestore, 'bookings'),
@@ -35,9 +36,7 @@ export default function SmartRedirectPage() {
         );
     }, [firestore, user]);
     
-    const { data: activeBookings, isLoading: isLoadingBookings } = useCollection<Booking>(activeProcessesQuery);
-    
-    const tripRequestsQuery = useMemo(() => {
+    const activeTripRequestsQuery = useMemo(() => {
         if (!firestore || !user) return null;
         return query(
             collection(firestore, 'trips'),
@@ -46,39 +45,32 @@ export default function SmartRedirectPage() {
         );
     }, [firestore, user]);
 
-    const { data: activeTripRequests, isLoading: isLoadingRequests } = useCollection<Trip>(tripRequestsQuery);
+    const { data: activeBookings, isLoading: isLoadingBookings } = useCollection<Booking>(activeBookingsQuery);
+    const { data: activeTripRequests, isLoading: isLoadingRequests } = useCollection<Trip>(activeTripRequestsQuery);
 
     useEffect(() => {
-        // Wait until user auth state and data fetching are complete
+        // Wait until both authentication and data fetching are complete
         if (isUserLoading || isLoadingBookings || isLoadingRequests) {
             return;
         }
 
+        // If the user is not logged in, they should be taken to the public dashboard.
         if (!user) {
-            // If not logged in, redirect to dashboard which handles auth.
             router.replace('/dashboard');
             return;
         }
-
-        // Priority 1: Pending Payment
-        const pendingPaymentBooking = activeBookings?.find(b => b.status === 'Pending-Payment');
-        if (pendingPaymentBooking) {
-            // In the future, we can redirect to a dedicated payment page. For now, history page is fine.
+        
+        // If the user has any active process (booking or request), redirect to the history page.
+        if ((activeBookings && activeBookings.length > 0) || (activeTripRequests && activeTripRequests.length > 0)) {
             router.replace('/history');
             return;
         }
 
-        // Priority 2: Confirmed Ticket or any other pending process
-        if (activeBookings?.length > 0 || activeTripRequests?.length > 0) {
-            router.replace('/history');
-            return;
-        }
-
-        // Default: No active processes, go to dashboard to explore.
+        // Default case: a logged-in user with no active processes goes to the dashboard.
         router.replace('/dashboard');
 
     }, [user, isUserLoading, activeBookings, activeTripRequests, isLoadingBookings, isLoadingRequests, router]);
 
-    // Show a loading screen while we determine the correct route.
+    // Render a loading screen while the redirection logic is processing.
     return <LoadingScreen />;
 }
