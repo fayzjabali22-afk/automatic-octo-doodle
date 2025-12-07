@@ -37,7 +37,7 @@ function NoSpecializationState() {
               للاستفادة من الفلترة الذكية، يرجى الذهاب إلى صفحة الملف الشخصي وتحديد "خط السير المفضل" و "السعة القصوى للمركبة".
             </p>
              <Button asChild className="mt-6">
-                <Link href="/profile">
+                <Link href="/carrier/profile">
                     <Settings className="ml-2 h-4 w-4" />
                     الذهاب إلى الملف الشخصي
                 </Link>
@@ -72,7 +72,7 @@ export default function CarrierOpportunitiesPage() {
 
   // --- Combined Query Logic ---
   const opportunitiesQuery = useMemo(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user || userProfile?.isDeactivated) return null; // Don't fetch if account is frozen
 
     const baseConditions = [
         where('status', 'in', ['Awaiting-Offers', 'Pending-Carrier-Confirmation']),
@@ -160,6 +160,24 @@ export default function CarrierOpportunitiesPage() {
 
   if (!canFilter || !hasCapacity) {
     return <NoSpecializationState />;
+  }
+  
+  if (userProfile?.isDeactivated) {
+      return (
+        <div className="flex flex-col items-center justify-center text-center py-16 border-2 border-dashed rounded-lg bg-card/50">
+            <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500/80 mb-4" />
+            <h3 className="text-xl font-bold">حسابك مجمد حالياً</h3>
+            <p className="text-muted-foreground mt-2 max-w-md">
+                لقد قمت بتجميد حسابك. لن تظهر لك أي فرص جديدة. يمكنك إعادة تنشيط حسابك من صفحة الملف الشخصي.
+            </p>
+             <Button asChild className="mt-6">
+                <Link href="/carrier/profile">
+                    <Settings className="ml-2 h-4 w-4" />
+                    الذهاب إلى الملف الشخصي
+                </Link>
+            </Button>
+      </div>
+      )
   }
 
   return (

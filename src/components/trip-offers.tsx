@@ -21,9 +21,23 @@ interface TripOffersProps {
 
 export function TripOffers({ trip, offers, onAcceptOffer, isProcessing }: TripOffersProps) {
   const firestore = useFirestore();
-  const { data: carriers, isLoading: isLoadingCarriers } = useCollection<UserProfile>(
-      firestore ? query(collection(firestore, 'users'), where('role', '==', 'carrier')) : null
-  );
+  const carrierIds = useMemo(() => offers?.map(o => o.carrierId) || [], [offers]);
+  
+  const carriersQuery = useMemo(() => {
+    if (!firestore || carrierIds.length === 0) return null;
+    return query(collection(firestore, 'users'), where('id', 'in', carrierIds));
+  }, [firestore, carrierIds]);
+
+  const { data: carriersData, isLoading: isLoadingCarriers } = useCollection<UserProfile>(carriersQuery);
+
+  const activeCarriers = useMemo(() => {
+    return carriersData?.filter(c => !c.isDeactivated) || [];
+  }, [carriersData]);
+
+  const activeOffers = useMemo(() => {
+    const activeCarrierIds = new Set(activeCarriers.map(c => c.id));
+    return offers.filter(offer => activeCarrierIds.has(offer.carrierId));
+  }, [offers, activeCarriers]);
 
   const handleAcceptClick = async (offer: Offer) => {
     await onAcceptOffer(trip, offer);
@@ -31,10 +45,9 @@ export function TripOffers({ trip, offers, onAcceptOffer, isProcessing }: TripOf
   
   const getCarrierName = (carrierId: string) => {
     if (isLoadingCarriers) return '...';
-    const carrier = carriers?.find(c => c.id === carrierId);
+    const carrier = carriersData?.find(c => c.id === carrierId);
     return carrier?.firstName || 'ناقل غير معروف';
   }
-
 
   if (isProcessing) {
     return (
@@ -46,7 +59,7 @@ export function TripOffers({ trip, offers, onAcceptOffer, isProcessing }: TripOf
     );
   }
 
-  if (!offers || offers.length === 0) {
+  if (!activeOffers || activeOffers.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-8 col-span-full border-2 border-dashed rounded-lg bg-background/50">
         <PackageOpen className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" aria-hidden="true" />
@@ -58,7 +71,7 @@ export function TripOffers({ trip, offers, onAcceptOffer, isProcessing }: TripOf
 
   return (
     <Accordion type="single" collapsible className="w-full space-y-3">
-        {offers.map((offer) => (
+        {activeOffers.map((offer) => (
             <AccordionItem key={offer.id} value={offer.id} className='border rounded-lg bg-card/80'>
                 <AccordionTrigger className='p-4 hover:no-underline'>
                     <div className='flex justify-between items-center w-full'>

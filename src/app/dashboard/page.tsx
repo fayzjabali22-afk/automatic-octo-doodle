@@ -103,7 +103,17 @@ export default function DashboardPage() {
       if (!firestore) return null;
       return query(collection(firestore, 'users'), where('role', '==', 'carrier'));
   }, [firestore]);
-  const { data: allCarriers, isLoading: isLoadingCarriers } = useCollection<UserProfile>(carriersQuery);
+  const { data: allCarriersData, isLoading: isLoadingCarriers } = useCollection<UserProfile>(carriersQuery);
+
+  // Filter out deactivated carriers from the list used for dropdowns
+  const allCarriers = useMemo(() => {
+      return allCarriersData?.filter(carrier => !carrier.isDeactivated) || [];
+  }, [allCarriersData]);
+
+  // Create a Set of active carrier IDs for efficient filtering of trips
+  const activeCarrierIds = useMemo(() => {
+    return new Set(allCarriers.map(c => c.id));
+  }, [allCarriers]);
 
 
   const [searchOriginCountry, setSearchOriginCountry] = useState('');
@@ -144,7 +154,8 @@ export default function DashboardPage() {
       return sortedGroupedTrips;
     };
     
-    let baseTrips: Trip[] = allTrips ? allTrips.filter(trip => isFuture(new Date(trip.departureDate))) : [];
+    // Filter out trips from deactivated carriers
+    let baseTrips: Trip[] = allTrips ? allTrips.filter(trip => isFuture(new Date(trip.departureDate)) && trip.carrierId && activeCarrierIds.has(trip.carrierId)) : [];
     let isSearching = false;
 
     // --- LOGIC FOR SPECIFIC CARRIER ---
@@ -236,7 +247,7 @@ export default function DashboardPage() {
       hasAlternativeResults,
       showNoResultsMessage: isSearching && !hasFilteredResults && !hasAlternativeResults,
     };
-  }, [searchOriginCity, searchDestinationCity, searchSeats, date, allTrips, searchMode, selectedCarrier, searchVehicleType]);
+  }, [searchOriginCity, searchDestinationCity, searchSeats, date, allTrips, searchMode, selectedCarrier, searchVehicleType, activeCarrierIds]);
 
 
     const handleBookNowClick = (trip: Trip) => {
