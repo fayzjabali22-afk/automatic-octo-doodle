@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useEffect, Fragment } from 'react';
 import { useFirestore, useCollection, useUser, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, orderBy, doc, writeBatch, serverTimestamp, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, writeBatch, serverTimestamp, getDocs, updateDoc } from 'firebase/firestore';
 import { Trip, Chat, Booking } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CalendarX, ArrowRight, Calendar, Users, CircleDollarSign, CheckCircle, Clock, XCircle, MoreVertical, Pencil, Ban, Ship, List, AlertTriangle, UsersRound, PlayCircle, StopCircle, MessageSquare, Flag } from 'lucide-react';
@@ -223,6 +223,60 @@ export function MyTripsList({ trips, pendingBookingsMap }: MyTripsListProps) {
         setIsEditDialogOpen(true);
     };
 
+    const handleConfirmEdit = async (trip: Trip, data: { price: number; availableSeats: number; departureDate: Date }) => {
+        if (!firestore) return;
+    
+        const tripRef = doc(firestore, 'trips', trip.id);
+        const bookingsQuery = query(collection(firestore, 'bookings'), where('tripId', '==', trip.id), where('status', '==', 'Confirmed'));
+    
+        try {
+            const batch = writeBatch(firestore);
+    
+            // 1. Update the trip document
+            batch.update(tripRef, { 
+                price: data.price,
+                availableSeats: data.availableSeats,
+                departureDate: data.departureDate.toISOString(), // Ensure it's a string for Firestore
+                updatedAt: serverTimestamp()
+            });
+    
+            // 2. Fetch all confirmed bookings for this trip
+            const bookingsSnapshot = await getDocs(bookingsQuery);
+    
+            // 3. Create a notification for each booked user
+            bookingsSnapshot.forEach(bookingDoc => {
+                const booking = bookingDoc.data() as Booking;
+                const notificationRef = doc(collection(firestore, 'notifications'));
+                batch.set(notificationRef, {
+                    userId: booking.userId,
+                    title: 'تحديث هام بخصوص رحلتك',
+                    message: `قام الناقل بتعديل تفاصيل رحلتك من ${getCityName(trip.origin)} إلى ${getCityName(trip.destination)}. الرجاء مراجعة التفاصيل المحدثة.`,
+                    type: 'trip_update',
+                    isRead: false,
+                    link: `/history`,
+                    createdAt: serverTimestamp(),
+                });
+            });
+    
+            // 4. Commit all changes at once
+            await batch.commit();
+    
+            toast({
+                title: 'تم تحديث الرحلة بنجاح',
+                description: 'تم إعلام جميع المسافرين المؤكدين بالتغييرات الجديدة.',
+            });
+            setIsEditDialogOpen(false);
+    
+        } catch (error) {
+            console.error("Failed to update trip and notify users:", error);
+            toast({
+                variant: 'destructive',
+                title: 'فشل تحديث الرحلة',
+                description: 'حدث خطأ أثناء حفظ التغييرات وإرسال الإشعارات.',
+            });
+        }
+    };
+
     const handleInitiateTransferClick = (trip: Trip) => {
         setSelectedTrip(trip);
         setIsTransferDialogOpen(true);
@@ -399,6 +453,7 @@ export function MyTripsList({ trips, pendingBookingsMap }: MyTripsListProps) {
                 isOpen={isEditDialogOpen}
                 onOpenChange={setIsEditDialogOpen}
                 trip={selectedTrip}
+                onConfirm={handleConfirmEdit}
             />
             <PassengersListDialog
                 isOpen={isPassengersDialogOpen}

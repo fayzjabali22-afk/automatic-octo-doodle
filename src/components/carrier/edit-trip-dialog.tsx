@@ -35,6 +35,7 @@ interface EditTripDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   trip: Trip | null;
+  onConfirm: (trip: Trip, data: EditTripFormValues) => Promise<void>;
 }
 
 const editTripSchema = z.object({
@@ -43,9 +44,9 @@ const editTripSchema = z.object({
   departureDate: z.date({ required_error: 'تاريخ المغادرة مطلوب' }),
 });
 
-type EditTripFormValues = z.infer<typeof editTripSchema>;
+export type EditTripFormValues = z.infer<typeof editTripSchema>;
 
-export function EditTripDialog({ isOpen, onOpenChange, trip }: EditTripDialogProps) {
+export function EditTripDialog({ isOpen, onOpenChange, trip, onConfirm }: EditTripDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -69,8 +70,15 @@ export function EditTripDialog({ isOpen, onOpenChange, trip }: EditTripDialogPro
   }, [trip, isOpen, form]);
 
   const onSubmit = async (data: EditTripFormValues) => {
-    // This is a placeholder for actual functionality
-    toast({ title: 'قيد التطوير', description: 'لم يتم ربط هذه الواجهة بعد.' });
+    if (!trip) return;
+    setIsSubmitting(true);
+    try {
+        await onConfirm(trip, data);
+    } catch(e) {
+        // Error toast is handled by the parent function
+    } finally {
+        setIsSubmitting(false);
+    }
   };
   
   return (
@@ -79,7 +87,7 @@ export function EditTripDialog({ isOpen, onOpenChange, trip }: EditTripDialogPro
         <DialogHeader>
           <DialogTitle>تعديل تفاصيل الرحلة</DialogTitle>
           <DialogDescription className="pt-2">
-            قم بتحديث تفاصيل رحلتك. التغييرات ستكون مرئية للمستخدمين.
+            قم بتحديث تفاصيل رحلتك. سيتم إعلام جميع المسافرين بالتغييرات فوراً.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -89,7 +97,7 @@ export function EditTripDialog({ isOpen, onOpenChange, trip }: EditTripDialogPro
               name="departureDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>تاريخ المغادرة</FormLabel>
+                  <FormLabel>تاريخ ووقت المغادرة</FormLabel>
                    <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -123,7 +131,7 @@ export function EditTripDialog({ isOpen, onOpenChange, trip }: EditTripDialogPro
               name="price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>سعر المقعد (بالدينار)</FormLabel>
+                  <FormLabel>سعر المقعد ({trip?.currency || 'د.أ'})</FormLabel>
                    <FormControl>
                     <Input type="number" {...field} />
                   </FormControl>
@@ -148,9 +156,9 @@ export function EditTripDialog({ isOpen, onOpenChange, trip }: EditTripDialogPro
               <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={isSubmitting}>إلغاء</Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
-                  <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جاري الحفظ...</>
+                  <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جاري الحفظ والإعلام...</>
                 ) : (
-                  <><Save className="ml-2 h-4 w-4" /> حفظ التغييرات</>
+                  <><Save className="ml-2 h-4 w-4" /> حفظ وإعلام المسافرين</>
                 )}
               </Button>
             </DialogFooter>
