@@ -58,7 +58,7 @@ export default function LoginPage() {
     
     toast({
       title: 'جاري تسجيل الدخول...',
-      description: 'الرجاء الانتظar.',
+      description: 'الرجاء الانتظار.',
     });
 
     const success = await initiateEmailSignIn(auth, data.email, data.password);
@@ -142,7 +142,7 @@ export default function LoginPage() {
     const adminEmail = 'admin@safar.com';
     const adminPassword = 'password123';
   
-    toast({ title: 'جاري التحقق من هوية المدير...', description: 'الرجاء الانتظar.' });
+    toast({ title: 'جاري التحقق من هوية المدير...', description: 'الرجاء الانتظار.' });
   
     const signInSuccess = await initiateEmailSignIn(auth, adminEmail, adminPassword);
   
@@ -270,6 +270,11 @@ export default function LoginPage() {
             <Link href="/signup" className="underline font-bold">
               أنشئ حساباً
             </Link>
+          </div>
+          <div className="mt-4 border-t pt-4">
+            <Button variant="link" size="sm" className="w-full" onClick={() => router.push('/admin')}>
+                دخول الإدارة (للمطورين)
+            </Button>
           </div>
         </Card>
       </div>
