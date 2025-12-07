@@ -62,12 +62,15 @@ export default function CarrierLayout({
 
     // Optimistic UI update
     toast({
-        title: `تم التبديل إلى واجهة ${newRole === 'carrier' ? 'الناقل' : 'المسافر'}`,
+        title: `جاري التبديل إلى واجهة ${newRole === 'carrier' ? 'الناقل' : 'المسافر'}...`,
+        description: "سيتم إعادة تحميل الصفحة.",
     });
     
-    // The error handler will catch permission issues, but we can handle UI state.
-    // We assume success for navigation and let the error boundary catch failures.
-    window.location.href = newRole === 'carrier' ? '/carrier' : '/dashboard';
+    // The error handler will catch permission issues.
+    // We add a small delay to allow the toast to show and then force a reload.
+    setTimeout(() => {
+        window.location.href = newRole === 'carrier' ? '/carrier' : '/dashboard';
+    }, 1500);
   }
 
 
