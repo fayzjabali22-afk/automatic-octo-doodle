@@ -1,22 +1,23 @@
 {
-  "name": "Safaryat",
-  "short_name": "Safaryat",
-  "description": "منصة safaryat لإدارة الرحلات والحجوزات بسهولة.",
+  "name": "Torasco",
+  "short_name": "Torasco",
+  "description": "منصة Torasco لإدارة الرحلات والحجوزات بسهولة.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#321118",
+  "theme_color": "#beae77",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ],
-  "theme_color": "#170813",
-  "background_color": "#170813",
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }

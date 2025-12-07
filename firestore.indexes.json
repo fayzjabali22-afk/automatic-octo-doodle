@@ -1,0 +1,54 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "trips",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "requestType", "order": "ASCENDING" },
+        { "fieldPath": "departureDate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "trips",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "carrierId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+        "collectionGroup": "bookings",
+        "queryScope": "COLLECTION",
+        "fields": [
+            { "fieldPath": "carrierId", "order": "ASCENDING" },
+            { "fieldPath": "status", "order": "ASCENDING" }
+        ]
+    },
+    {
+        "collectionGroup": "bookings",
+        "queryScope": "COLLECTION",
+        "fields": [
+            { "fieldPath": "userId", "order": "ASCENDING" },
+            { "fieldPath": "status", "order": "ASCENDING" }
+        ]
+    },
+    {
+        "collectionGroup": "trips",
+        "queryScope": "COLLECTION",
+        "fields": [
+            { "fieldPath": "userId", "order": "ASCENDING" },
+            { "fieldPath": "status", "order": "ASCENDING" }
+        ]
+    },
+    {
+        "collectionGroup": "bookings",
+        "queryScope": "COLLECTION",
+        "fields": [
+            { "fieldPath": "tripId", "order": "ASCENDING" },
+            { "fieldPath": "status", "order": "ASCENDING" }
+        ]
+    }
+  ],
+  "fieldOverrides": []
+}

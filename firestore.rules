@@ -57,7 +57,7 @@ service cloud.firestore {
       // --- Notifications Subcollection ---
       match /notifications/{notificationId} {
         // Only the owner of the parent user document can access their notifications.
-        allow read, write, create: if isOwner(userId);
+        allow read, write: if isOwner(userId);
       }
     }
 
@@ -77,6 +77,7 @@ service cloud.firestore {
             allow read: if isSignedIn();
             allow create: if isOwner(request.resource.data.carrierId);
             allow update: if isOwner(get(/databases/$(database)/documents/trips/$(tripId)).data.userId);
+            allow delete: if false;
         }
     }
 
@@ -114,7 +115,7 @@ service cloud.firestore {
         allow delete: if false;
     }
 
-    // --- Analytics Collection ---
+    // --- Analytics Collection (write-only) ---
     match /analytics_events/{eventId} {
         allow read, update, delete: if false;
         allow create: if true;
