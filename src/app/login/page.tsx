@@ -58,7 +58,7 @@ export default function LoginPage() {
     
     toast({
       title: 'جاري تسجيل الدخول...',
-      description: 'الرجاء الانتظار.',
+      description: 'الرجاء الانتظar.',
     });
 
     const success = await initiateEmailSignIn(auth, data.email, data.password);
@@ -142,7 +142,7 @@ export default function LoginPage() {
     const adminEmail = 'admin@safar.com';
     const adminPassword = 'password123';
   
-    toast({ title: 'جاري التحقق من هوية المدير...', description: 'الرجاء الانتظار.' });
+    toast({ title: 'جاري التحقق من هوية المدير...', description: 'الرجاء الانتظar.' });
   
     const signInSuccess = await initiateEmailSignIn(auth, adminEmail, adminPassword);
   
@@ -177,7 +177,7 @@ export default function LoginPage() {
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
       <div className="flex items-center justify-center p-6 xl:p-12">
-        <div className="mx-auto w-[350px] space-y-6">
+        <Card className="w-full max-w-md p-6 space-y-6 rounded-lg shadow-2xl border-2 border-primary/50">
           <div className="space-y-2 text-center">
             <Logo className="mb-4 justify-center" />
             <h1 className="text-3xl font-bold">أهلاً بعودتك</h1>
@@ -271,7 +271,7 @@ export default function LoginPage() {
               أنشئ حساباً
             </Link>
           </div>
-        </div>
+        </Card>
       </div>
        <div className="relative hidden bg-muted lg:block">
         {bgImage && (
