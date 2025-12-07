@@ -72,23 +72,17 @@ export function useDoc<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        // DEV-MODE: Temporarily disable contextual errors to prevent crashes.
-        console.error("Firestore Permission Error (useDoc):", err);
-        setError(err);
-        setData(null);
-        setIsLoading(false);
+        const contextualError = new FirestorePermissionError({
+          operation: 'get',
+          path: docRef.path,
+        })
 
-        // const contextualError = new FirestorePermissionError({
-        //   operation: 'get',
-        //   path: docRef.path,
-        // })
+        setError(contextualError)
+        setData(null)
+        setIsLoading(false)
 
-        // setError(contextualError)
-        // setData(null)
-        // setIsLoading(false)
-
-        // // trigger global error propagation
-        // errorEmitter.emit('permission-error', contextualError);
+        // trigger global error propagation
+        errorEmitter.emit('permission-error', contextualError);
       }
     );
 
