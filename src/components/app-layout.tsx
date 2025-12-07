@@ -216,16 +216,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <header 
           className={cn(
             "sticky top-0 z-50 flex h-16 items-center justify-between px-4 md:px-6",
-            "border-b border-white shadow-lg"
+            "border-b bg-card text-card-foreground shadow-lg"
           )}
-          style={{ backgroundColor: '#FEFFC2', color: '#000000' }}
         >
 
           <div className="flex items-center gap-2 md:hidden">
             {isMounted && !isCarrierPath && user && (
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-black/20 text-black">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                     <Menu className="h-5 w-5" />
                     <span className="sr-only">القائمة الرئيسية</span>
                   </Button>
@@ -262,7 +261,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="rounded-full hover:bg-black/20 relative text-black"
+                            className="rounded-full relative"
                             onClick={handleSwitchRole}
                             disabled={isSwitchingRole || isProfileLoading}
                         >
@@ -287,7 +286,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/20 relative text-black">
+                        <Button variant="ghost" size="icon" className="rounded-full relative">
                             <Bell className="h-5 w-5" />
                             {unreadCount > 0 && (
                                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
@@ -330,15 +329,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="hidden md:flex">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/20">
-                        <Avatar className="h-9 w-9 border-2 border-black/50">
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                        <Avatar className="h-9 w-9 border-2 border-border">
                         {user?.photoURL && (
                             <AvatarImage
                             src={user.photoURL}
                             alt={profile?.firstName || ''}
                             />
                         )}
-                        <AvatarFallback className={cn("bg-black/20 text-black")}>
+                        <AvatarFallback>
                             {profile?.firstName
                             ? profile.firstName.charAt(0)
                             : user?.email?.charAt(0).toUpperCase()}

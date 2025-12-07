@@ -88,13 +88,12 @@ export default function CarrierLayout({
     <TooltipProvider>
       <div className="flex min-h-screen w-full flex-col bg-background" dir="rtl">
         <header
-          className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-black/10 px-4 text-black shadow-lg md:px-6"
-          style={{ backgroundColor: '#FEFFC2' }}
+          className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-card px-4 text-card-foreground shadow-lg md:px-6"
         >
             <div className="flex items-center gap-2">
                  <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                     <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="hover:bg-black/10 md:hidden">
+                        <Button variant="ghost" size="icon" className="md:hidden">
                             <Menu className="h-6 w-6" />
                             <span className="sr-only">فتح القائمة</span>
                         </Button>
@@ -110,7 +109,7 @@ export default function CarrierLayout({
                             <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="rounded-full hover:bg-black/20 relative text-black"
+                                className="rounded-full relative"
                                 onClick={handleSwitchRole}
                                 disabled={isSwitchingRole || isLoading}
                             >
@@ -129,7 +128,7 @@ export default function CarrierLayout({
             </div>
 
             <div className="flex items-center gap-2">
-                <Button asChild variant="ghost" size="icon" className="hover:bg-black/10">
+                <Button asChild variant="ghost" size="icon">
                   <Link href="/carrier/profile">
                     <User className="h-6 w-6" />
                     <span className="sr-only">الملف الشخصي</span>
@@ -139,7 +138,7 @@ export default function CarrierLayout({
         </header>
         
         <div className="grid h-full flex-1 grid-cols-1 md:grid-cols-[240px_1fr]">
-            <aside className="hidden h-full border-e bg-card p-4 overflow-y-auto md:block">
+            <aside className="hidden h-full border-l bg-card p-4 overflow-y-auto md:block">
                 <Button className="mb-4 w-full" onClick={() => setIsAddTripDialogOpen(true)}>
                     <PlusCircle className="ml-2 h-4 w-4" />
                     تأسيس رحلة جديدة

@@ -96,7 +96,7 @@ export default function LoginPage() {
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
       <div className="flex items-center justify-center p-6 xl:p-12">
-        <Card className="w-full max-w-md p-6 space-y-6 rounded-lg shadow-2xl border-2 border-primary/50">
+        <Card className="w-full max-w-md p-6 space-y-6 rounded-lg shadow-2xl bg-card border-border">
           <div className="space-y-2 text-center">
             <Logo className="mb-4 justify-center" />
             <h1 className="text-3xl font-bold">أهلاً بعودتك</h1>
@@ -110,7 +110,7 @@ export default function LoginPage() {
                     <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
+                    <span className="bg-card px-2 text-muted-foreground">
                         أو سجل دخولك عبر
                     </span>
                 </div>
@@ -165,7 +165,7 @@ export default function LoginPage() {
                   <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
+                  <span className="bg-card px-2 text-muted-foreground">
                   أو أكمل باستخدام
                   </span>
               </div>

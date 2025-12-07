@@ -148,7 +148,7 @@ export default function SignupPage() {
         />
       )}
       <div className="absolute inset-0 -z-10 bg-black/60" />
-      <Card className="mx-auto max-w-sm bg-card/80 backdrop-blur-sm border-white/20">
+      <Card className="mx-auto max-w-sm bg-card/90 backdrop-blur-sm border-border">
         <CardHeader className="text-center">
           <Logo className="mb-4 justify-center" />
           <CardTitle className="text-2xl">إنشاء حساب جديد</CardTitle>
@@ -168,7 +168,7 @@ export default function SignupPage() {
                     <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card/80 px-2 text-muted-foreground">
+                    <span className="bg-card px-2 text-muted-foreground">
                         أو أنشئ حساباً
                     </span>
                 </div>
@@ -232,7 +232,7 @@ export default function SignupPage() {
                 )}
               />
              
-              <Button variant="secondary" type="submit" className="w-full">
+              <Button variant="default" type="submit" className="w-full">
                 إنشاء حساب
               </Button>
             </form>
@@ -242,7 +242,7 @@ export default function SignupPage() {
                 <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card/80 px-2 text-muted-foreground">
+                <span className="bg-card px-2 text-muted-foreground">
                 أو أكمل باستخدام
                 </span>
             </div>
