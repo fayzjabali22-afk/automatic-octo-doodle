@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from '../ui/button';
-import { EditTripDialog } from './edit-trip-dialog';
+import { EditTripDialog, EditTripFormValues } from './edit-trip-dialog';
 import { PassengersListDialog } from './passengers-list-dialog';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -124,9 +124,9 @@ function TripListItem({ trip, pendingBookings, onEdit, onManagePassengers, onIni
                                 <span>الوصول وإنهاء الرحلة</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => onEdit(trip)} disabled={!isPlanned}>
+                            <DropdownMenuItem onClick={() => onEdit(trip)} disabled>
                                 <Pencil className="ml-2 h-4 w-4" />
-                                <span>تعديل تفاصيل الرحلة</span>
+                                <span>تعديل تفاصيل الرحلة (معطل مؤقتاً)</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onManagePassengers(trip)}>
                                 <List className="ml-2 h-4 w-4" />
@@ -223,7 +223,7 @@ export function MyTripsList({ trips, pendingBookingsMap }: MyTripsListProps) {
         setIsEditDialogOpen(true);
     };
 
-    const handleConfirmEdit = async (trip: Trip, data: { price: number; availableSeats: number; departureDate: Date }) => {
+    const handleConfirmEdit = async (trip: Trip, data: EditTripFormValues) => {
         if (!firestore) return;
     
         const tripRef = doc(firestore, 'trips', trip.id);
@@ -236,7 +236,7 @@ export function MyTripsList({ trips, pendingBookingsMap }: MyTripsListProps) {
             batch.update(tripRef, { 
                 price: data.price,
                 availableSeats: data.availableSeats,
-                departureDate: data.departureDate.toISOString(), // Ensure it's a string for Firestore
+                departureDate: data.departureDate.toISOString(),
                 updatedAt: serverTimestamp()
             });
     
@@ -274,6 +274,7 @@ export function MyTripsList({ trips, pendingBookingsMap }: MyTripsListProps) {
                 title: 'فشل تحديث الرحلة',
                 description: 'حدث خطأ أثناء حفظ التغييرات وإرسال الإشعارات.',
             });
+            throw error; // Re-throw to prevent dialog from closing
         }
     };
 
