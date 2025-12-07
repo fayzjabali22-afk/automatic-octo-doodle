@@ -37,6 +37,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { Logo } from '@/components/logo';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useRouter } from 'next/navigation';
+import { GuideTrigger } from '@/components/ai/guide-trigger';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   // The useAdmin hook is now deactivated and will not trigger loading or redirects.
@@ -171,6 +172,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+      <GuideTrigger />
     </div>
   );
 }
