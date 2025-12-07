@@ -8,6 +8,7 @@ import {
   sendEmailVerification,
   GoogleAuthProvider,
   signInWithPopup,
+  UserCredential,
 } from 'firebase/auth';
 import { Firestore, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
@@ -32,7 +33,7 @@ export async function initiateAnonymousSignIn(authInstance: Auth): Promise<boole
 type UserProfileCreation = Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'>;
 
 
-/** Initiate email/password sign-up and create user profile document. Returns boolean for success. */
+/** Initiate email/password sign-up and create user profile document. Returns UserCredential on success. */
 export async function initiateEmailSignUp(
     auth: Auth, 
     firestore: Firestore,
@@ -40,38 +41,21 @@ export async function initiateEmailSignUp(
     password: string,
     profileData: UserProfileCreation,
     signOutAfter: boolean = true // This parameter is no longer used but kept for compatibility
-): Promise<boolean> {
-    let user;
+): Promise<UserCredential | null> {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        user = userCredential.user;
+        const user = userCredential.user;
 
         if (!user) {
              toast({
                 variant: "destructive",
-                title: "Account Creation Failed",
-                description: "No user data returned after creation.",
+                title: "فشل إنشاء الحساب",
+                description: "لم يتم إرجاع بيانات المستخدم بعد الإنشاء.",
             });
-            return false;
+            return null;
         }
-    } catch (authError: any) {
-        let description = "An unexpected error occurred during account creation.";
-        if (authError.code === 'auth/email-already-in-use') {
-            description = "This email is already registered. Please log in instead.";
-        } else if (authError.code === 'auth/weak-password') {
-            description = "The password is too weak. It must be at least 6 characters long."
-        }
-        toast({
-            variant: "destructive",
-            title: "Account Creation Failed",
-            description: description,
-        });
-        return false;
-    }
-
-    try {
+        
         const userRef = doc(firestore, 'users', user.uid);
-        // Use the role from profileData if it exists, otherwise default to traveler
         const finalProfileData = { 
             ...profileData, 
             role: profileData.role || 'traveler', 
@@ -79,41 +63,47 @@ export async function initiateEmailSignUp(
             updatedAt: serverTimestamp() 
         };
         await setDoc(userRef, finalProfileData);
-    } catch (firestoreError: any) {
+        
+        // The user is now signed in after creation.
+        return userCredential;
+
+    } catch (authError: any) {
+        let description = "حدث خطأ غير متوقع أثناء إنشاء الحساب.";
+        if (authError.code === 'auth/email-already-in-use') {
+            description = "هذا البريد الإلكتروني مسجل بالفعل. الرجاء تسجيل الدخول بدلاً من ذلك.";
+        } else if (authError.code === 'auth/weak-password') {
+            description = "كلمة المرور ضعيفة جدًا. يجب أن تتكون من 6 أحرف على الأقل."
+        }
         toast({
             variant: "destructive",
-            title: "Profile Save Failed",
-            description: firestoreError.message || "Could not save your profile data.",
+            title: "فشل إنشاء الحساب",
+            description: description,
         });
-        // Note: The user account was created, but profile failed. 
-        // Depending on requirements, you might want to delete the user here.
-        // For now, we'll let it be.
-        return false;
+        return null;
     }
-
-    // Email verification is removed.
-    
-    return true;
 }
 
 
-/** Initiate email/password sign-in (non-blocking). Returns a boolean indicating success. */
-export async function initiateEmailSignIn(authInstance: Auth, email: string, password: string): Promise<boolean> {
+/** Initiate email/password sign-in (non-blocking). Returns UserCredential on success, null on failure. */
+export async function initiateEmailSignIn(authInstance: Auth, email: string, password: string): Promise<UserCredential | null> {
   try {
-    await signInWithEmailAndPassword(authInstance, email, password);
-    return true;
+    const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
+    return userCredential;
   } catch (error: any) {
     if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-         // This is a common case for the dev login flow, so we don't show a toast.
-         // The calling function will handle the next step (e.g., creating the account).
+         toast({
+            variant: "destructive",
+            title: "فشل تسجيل الدخول",
+            description: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+        });
     } else {
         toast({
             variant: "destructive",
-            title: "Login Failed",
-            description: "An unexpected error occurred. Please try again.",
+            title: "فشل تسجيل الدخول",
+            description: "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.",
         });
     }
-    return false;
+    return null;
   }
 }
 

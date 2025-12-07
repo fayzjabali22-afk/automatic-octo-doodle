@@ -74,9 +74,9 @@ export default function SignupPage() {
         role: data.email === 'dev@safar.com' ? 'owner' : 'traveler'
     };
 
-    const success = await initiateEmailSignUp(auth, firestore, data.email, data.password, userProfile, false);
+    const userCredential = await initiateEmailSignUp(auth, firestore, data.email, data.password, userProfile, false);
 
-    if (success) {
+    if (userCredential) {
         toast({
           title: 'تم إنشاء الحساب بنجاح!',
           description: 'سيتم توجيهك إلى لوحة التحكم.',
@@ -108,15 +108,15 @@ export default function SignupPage() {
   
     toast({ title: 'جاري التحقق من هوية المطور...', description: 'الرجاء الانتظار.' });
   
-    const signInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
+    const signInCredential = await initiateEmailSignIn(auth, devEmail, devPassword);
   
-    if (signInSuccess) {
-      toast({ title: 'أهلاً بك أيها المطور', description: 'جاري التوجيه...' });
-      router.push('/admin');
+    if (signInCredential) {
+      toast({ title: 'أهلاً بعودتك أيها المطور الأعلى', description: 'جاري التوجيه...' });
+      router.push('/admin'); // Redirect to admin panel on successful sign-in
       return;
     }
   
-    // If sign-in fails, it might be the first time, so we try to create the account.
+    // If sign-in fails, it means the account doesn't exist yet. Create it.
     toast({ title: 'جاري إنشاء حساب المطور الأعلى...', description: 'لحظة من فضلك.' });
     const devProfile = {
       firstName: 'المطور',
@@ -126,18 +126,14 @@ export default function SignupPage() {
       role: 'owner' as const,
     };
   
-    const signUpSuccess = await initiateEmailSignUp(auth, firestore, devEmail, devPassword, devProfile, false);
+    const signUpCredential = await initiateEmailSignUp(auth, firestore, devEmail, devPassword, devProfile, false);
   
-    if (signUpSuccess) {
-      // After successful sign-up, try signing in again to establish the session.
-      const finalSignInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
-      if (finalSignInSuccess) {
-        toast({ title: 'أهلاً بك أيها المطور', description: 'جاري التوجيه...' });
-        router.push('/admin');
-      } else {
-        toast({ title: "فشل دخول المطور", description: "لم نتمكن من الدخول بعد إنشاء الحساب.", variant: "destructive"});
-      }
+    if (signUpCredential) {
+      // No need to sign in again, initiateEmailSignUp now handles the session.
+      toast({ title: 'تم إنشاء حسابك أيها المطور', description: 'جاري التوجيه...' });
+      router.push('/admin'); // Redirect to admin panel after creation.
     }
+    // initiateEmailSignUp will show its own error toast on failure.
   };
 
   return (

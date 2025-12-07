@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -54,28 +55,30 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    if (!auth) return;
+    if (!auth) {
+        toast({
+            variant: "destructive",
+            title: "خطأ",
+            description: "خدمات Firebase غير مهيأة.",
+        });
+        return;
+    };
     
     toast({
       title: 'جاري تسجيل الدخول...',
       description: 'الرجاء الانتظار.',
     });
 
-    const success = await initiateEmailSignIn(auth, data.email, data.password);
-
-    if (success) {
+    const userCredential = await initiateEmailSignIn(auth, data.email, data.password);
+    
+    if (userCredential) { // Check if userCredential is not null
       toast({
         title: 'تم تسجيل الدخول بنجاح!',
         description: 'سيتم توجيهك قريباً.',
       });
       router.push('/');
-    } else {
-        toast({
-            variant: "destructive",
-            title: "فشل تسجيل الدخول",
-            description: "الرجاء التحقق من بريدك الإلكتروني وكلمة المرور.",
-        });
     }
+    // No else block needed, initiateEmailSignIn handles failure toasts
   };
   
   const handleGoogleSignIn = async () => {
