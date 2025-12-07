@@ -68,7 +68,7 @@ export default function LoginPage() {
         title: 'تم تسجيل الدخول بنجاح!',
         description: 'سيتم توجيهك قريباً.',
       });
-      router.push('/dashboard');
+      router.push('/');
     } else {
         toast({
             variant: "destructive",
@@ -86,7 +86,7 @@ export default function LoginPage() {
         title: 'تم تسجيل الدخول بنجاح!',
         description: 'سيتم توجيهك قريباً.',
       });
-      router.push('/dashboard');
+      router.push('/');
     }
   };
 
@@ -186,18 +186,7 @@ export default function LoginPage() {
             </p>
           </div>
           
-           <div className="grid grid-cols-1 gap-2">
-              <Button type="button" variant="outline" size="lg" className="w-full" onClick={handleAdminSignIn}>
-                <Shield className="mr-2 h-5 w-5 text-primary" />
-                دخول فوري كمدير
-              </Button>
-               <Button type="button" variant="secondary" size="lg" className="w-full" onClick={handleDevSignIn}>
-                <TestTube2 className="mr-2 h-5 w-5" />
-                دخول فوري كمطور
-              </Button>
-            </div>
-
-            <div className="relative my-4">
+           <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />
                 </div>
