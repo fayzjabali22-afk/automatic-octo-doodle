@@ -4,10 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import type { Trip, UserProfile } from '@/lib/data';
+import type { Trip, UserProfile, TransferRequest } from '@/lib/data';
 import { Loader2, Send, Users, ArrowRight, UserCheck, Search } from 'lucide-react';
-import { useCollection, useFirestore, useUser } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useCollection, useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, serverTimestamp } from 'firebase/firestore';
 import { Input } from '../ui/input';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Skeleton } from '../ui/skeleton';
@@ -76,26 +76,52 @@ export function TransferRequestDialog({ isOpen, onOpenChange, trip }: TransferRe
     }, [availableCarriers, searchTerm, user]);
 
     const totalPassengers = useMemo(() => {
-        // This is a placeholder logic. A real implementation would fetch bookings.
         return trip?.bookingIds?.length || 0;
     }, [trip]);
 
 
     const handleSendRequest = async () => {
-        if (!selectedCarrier) {
+        if (!firestore || !user || !trip || !selectedCarrier) {
             toast({ title: 'خطأ', description: 'الرجاء اختيار ناقل لإرسال العرض إليه', variant: 'destructive'});
             return;
         }
         setIsSubmitting(true);
-        // Simulate API call for Phase 1
-        setTimeout(() => {
+        
+        try {
+            const transferRequestsCollection = collection(firestore, 'transferRequests');
+            
+            const newTransferRequest: Omit<TransferRequest, 'id'> = {
+                originalTripId: trip.id,
+                fromCarrierId: user.uid,
+                toCarrierId: selectedCarrier.id,
+                status: 'pending',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                tripDetails: {
+                    origin: trip.origin,
+                    destination: trip.destination,
+                    departureDate: trip.departureDate,
+                    passengerCount: totalPassengers
+                }
+            };
+            
+            await addDocumentNonBlocking(transferRequestsCollection, newTransferRequest);
+
             toast({
-                title: 'تم إرسال عرض النقل بنجاح (محاكاة)',
-                description: `تم إرسال عرض لنقل رحلتك إلى الناقل ${selectedCarrier.firstName}.`,
+                title: 'تم إرسال طلب النقل بنجاح!',
+                description: `تم إرسال طلب نقل الرحلة إلى الناقل ${selectedCarrier.firstName}.`,
             });
-            setIsSubmitting(false);
             onOpenChange(false);
-        }, 1500);
+            
+        } catch (error) {
+             toast({
+                title: 'فشل إرسال الطلب',
+                description: 'حدث خطأ أثناء إنشاء طلب النقل.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (

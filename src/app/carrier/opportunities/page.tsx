@@ -4,7 +4,7 @@ import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { PackageOpen, Settings, AlertTriangle, ListFilter, Armchair, UserCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trip, Offer } from '@/lib/data';
+import { Trip, Offer, TransferRequest } from '@/lib/data';
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -14,6 +14,7 @@ import { OfferDialog } from '@/components/carrier/offer-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { DirectRequestActionCard } from '@/components/carrier/direct-request-action-card';
+import { TransferRequestCard } from '@/components/carrier/transfer-request-card';
 
 // Dialogs and handlers will be consolidated here
 // For now, let's just get the combined query working.
@@ -70,53 +71,36 @@ export default function CarrierOpportunitiesPage() {
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
 
-  // --- Combined Query Logic ---
+  // --- QUERIES ---
   const opportunitiesQuery = useMemo(() => {
-    if (!firestore || !user || userProfile?.isDeactivated) return null; // Don't fetch if account is frozen
-
-    const baseConditions = [
-        where('status', 'in', ['Awaiting-Offers', 'Pending-Carrier-Confirmation']),
-    ];
+    if (!firestore || !user || userProfile?.isDeactivated) return null;
+    let generalQuery = query(collection(firestore, 'trips'), where('status', '==', 'Awaiting-Offers'), where('requestType', '==', 'General'));
+    let directQuery = query(collection(firestore, 'trips'), where('status', 'in', ['Awaiting-Offers', 'Pending-Carrier-Confirmation']), where('requestType', '==', 'Direct'), where('targetCarrierId', '==', user.uid));
     
-    const targetConditions = [
-        where('requestType', '==', 'Direct'),
-        where('targetCarrierId', '==', user.uid)
-    ];
-
-    const generalConditions = [
-        where('requestType', '==', 'General'),
-    ];
-
-    // This is a simplified client-side query combination.
-    // Firestore does not support logical OR on different fields in this manner.
-    // We will fetch two separate queries and merge them on the client.
-    
-    let generalQuery = query(collection(firestore, 'trips'), ...baseConditions, ...generalConditions);
-    let directQuery = query(collection(firestore, 'trips'), ...baseConditions, ...targetConditions);
-
     if (filterBySpecialization && userProfile?.primaryRoute?.origin && userProfile?.primaryRoute?.destination) {
-        generalQuery = query(generalQuery, where('origin', '==', userProfile.primaryRoute.origin));
-        generalQuery = query(generalQuery, where('destination', '==', userProfile.primaryRoute.destination));
-        directQuery = query(directQuery, where('origin', '==', userProfile.primaryRoute.origin));
-        directQuery = query(directQuery, where('destination', '==', userProfile.primaryRoute.destination));
+        generalQuery = query(generalQuery, where('origin', '==', userProfile.primaryRoute.origin), where('destination', '==', userProfile.primaryRoute.destination));
+        directQuery = query(directQuery, where('origin', '==', userProfile.primaryRoute.origin), where('destination', '==', userProfile.primaryRoute.destination));
     }
-    
     if (userProfile?.vehicleCapacity && userProfile.vehicleCapacity > 0) {
         generalQuery = query(generalQuery, where('passengers', '<=', userProfile.vehicleCapacity));
         directQuery = query(directQuery, where('passengers', '<=', userProfile.vehicleCapacity));
     }
-
     return { generalQuery, directQuery };
-
   }, [firestore, user, filterBySpecialization, userProfile]);
 
+  const transferRequestsQuery = useMemo(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'transferRequests'), where('toCarrierId', '==', user.uid), where('status', '==', 'pending'));
+  }, [firestore, user]);
+
+  // --- DATA FETCHING ---
   const { data: generalRequests, isLoading: isLoadingGeneral } = useCollection<Trip>(opportunitiesQuery?.generalQuery);
   const { data: directRequests, isLoading: isLoadingDirect } = useCollection<Trip>(opportunitiesQuery?.directQuery);
+  const { data: transferRequests, isLoading: isLoadingTransfers } = useCollection<TransferRequest>(transferRequestsQuery);
   
   const opportunities = useMemo(() => {
     const combined = [...(directRequests || []), ...(generalRequests || [])];
     const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
-    // Sort to show direct requests first, then by date
     return unique.sort((a, b) => {
         if (a.requestType === 'Direct' && b.requestType !== 'Direct') return -1;
         if (b.requestType === 'Direct' && a.requestType !== 'Direct') return 1;
@@ -124,20 +108,15 @@ export default function CarrierOpportunitiesPage() {
     });
   }, [generalRequests, directRequests]);
 
-  const isLoading = isLoadingProfile || isLoadingGeneral || isLoadingDirect;
+  const isLoading = isLoadingProfile || isLoadingGeneral || isLoadingDirect || isLoadingTransfers;
 
   const handleOfferClick = (trip: Trip) => {
     setSelectedTrip(trip);
-    // Here you can have a unified dialog or fork based on trip.requestType
-    if (trip.requestType === 'Direct') {
-        // For direct requests, maybe a simpler approval dialog is needed.
-        // For now, we use the same offer dialog.
-    }
     setIsOfferDialogOpen(true);
   };
-
+  
+  // --- HANDLERS (PLACEHOLDERS) ---
   const handleSendOffer = async (offerData: Omit<Offer, 'id' | 'tripId' | 'carrierId' | 'status' | 'createdAt'>): Promise<boolean> => {
-    // This function will need to be implemented, similar to the one in the old `requests/page.tsx`
      toast({ title: "وظيفة قيد الإنشاء", description: "سيتم ربط إرسال العروض قريبًا." });
     return false;
   };
@@ -150,17 +129,12 @@ export default function CarrierOpportunitiesPage() {
     return false;
   };
 
-
-  if (isLoading) {
-    return <LoadingState />;
-  }
+  if (isLoading) return <LoadingState />;
   
   const canFilter = !!(userProfile?.primaryRoute?.origin && userProfile?.primaryRoute?.destination);
   const hasCapacity = !!(userProfile?.vehicleCapacity && userProfile.vehicleCapacity > 0);
 
-  if (!canFilter || !hasCapacity) {
-    return <NoSpecializationState />;
-  }
+  if (!canFilter || !hasCapacity) return <NoSpecializationState />;
   
   if (userProfile?.isDeactivated) {
       return (
@@ -179,6 +153,9 @@ export default function CarrierOpportunitiesPage() {
       </div>
       )
   }
+  
+  const hasOpportunities = opportunities && opportunities.length > 0;
+  const hasTransferRequests = transferRequests && transferRequests.length > 0;
 
   return (
     <>
@@ -203,24 +180,40 @@ export default function CarrierOpportunitiesPage() {
             </div>
         </div>
 
-        {opportunities && opportunities.length > 0 ? (
-            <div className="space-y-3">
-                {opportunities.map(req => (
-                    req.requestType === 'Direct' ? (
-                       <DirectRequestActionCard 
-                            key={req.id} 
-                            tripRequest={req}
-                            onApprove={handleApproveDirect}
-                            onReject={handleRejectDirect}
-                        />
-                    ) : (
-                       <RequestCard key={req.id} tripRequest={req} onOffer={handleOfferClick} />
-                    )
-                ))}
-            </div>
-        ) : (
-            <NoOpportunitiesState isFiltered={filterBySpecialization && canFilter} />
-        )}
+        <div className="space-y-6">
+            {hasTransferRequests && (
+                <div>
+                    <h2 className="text-lg font-bold mb-3">عروض نقل من زملاء</h2>
+                    <div className="space-y-3">
+                        {transferRequests.map(req => (
+                            <TransferRequestCard key={req.id} request={req} />
+                        ))}
+                    </div>
+                </div>
+            )}
+            
+            {hasOpportunities ? (
+                <div>
+                    {hasTransferRequests && <h2 className="text-lg font-bold mb-3 mt-6 border-t pt-4">طلبات من المسافرين</h2>}
+                    <div className="space-y-3">
+                        {opportunities.map(req => (
+                            req.requestType === 'Direct' ? (
+                               <DirectRequestActionCard 
+                                    key={req.id} 
+                                    tripRequest={req}
+                                    onApprove={handleApproveDirect}
+                                    onReject={handleRejectDirect}
+                                />
+                            ) : (
+                               <RequestCard key={req.id} tripRequest={req} onOffer={handleOfferClick} />
+                            )
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                !hasTransferRequests && <NoOpportunitiesState isFiltered={filterBySpecialization && canFilter} />
+            )}
+        </div>
     </div>
     {selectedTrip && (
         <OfferDialog

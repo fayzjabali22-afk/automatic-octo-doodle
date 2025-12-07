@@ -174,4 +174,20 @@ export type Message = {
   timestamp: any;
 };
 
+export type TransferRequest = {
+  id: string;
+  originalTripId: string;
+  fromCarrierId: string;
+  toCarrierId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: any;
+  updatedAt: any;
+  // Denormalized data for easy display
+  tripDetails: {
+      origin: string;
+      destination: string;
+      departureDate: string;
+      passengerCount: number;
+  };
+};
     

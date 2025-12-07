@@ -34,6 +34,7 @@
           "enum": ["traveler", "carrier", "admin"],
           "description": "The user's role in the system."
         },
+        "isDeactivated": { "type": "boolean", "description": "If true, the carrier's account is temporarily frozen." },
         "averageRating": { "type": "number", "description": "The carrier's average rating, from 0 to 5.", "minimum": 0, "maximum": 5 },
         "totalRatings": { "type": "number", "description": "The total number of ratings a carrier has received." },
         "vehicleType": { "type": "string", "description": "The primary vehicle type used by the carrier (e.g., GMC Yukon 2023)." },
@@ -465,6 +466,32 @@
         "timestamp": { "type": "string", "format": "date-time", "description": "The timestamp when the message was sent." }
       },
       "required": ["id", "senderId", "content", "timestamp"]
+    },
+    "TransferRequest": {
+      "title": "TransferRequest",
+      "type": "object",
+      "description": "Represents a request from one carrier to another to take over a trip and its passengers.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the transfer request." },
+        "originalTripId": { "type": "string", "description": "ID of the trip being transferred." },
+        "fromCarrierId": { "type": "string", "description": "ID of the carrier initiating the transfer." },
+        "toCarrierId": { "type": "string", "description": "ID of the carrier receiving the transfer request." },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"], "description": "The current status of the transfer request." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the request was created." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp when the request was last updated." },
+        "tripDetails": {
+          "type": "object",
+          "description": "Denormalized trip data for quick display.",
+          "properties": {
+            "origin": { "type": "string" },
+            "destination": { "type": "string" },
+            "departureDate": { "type": "string", "format": "date-time" },
+            "passengerCount": { "type": "number" }
+          },
+          "required": ["origin", "destination", "departureDate", "passengerCount"]
+        }
+      },
+      "required": ["id", "originalTripId", "fromCarrierId", "toCarrierId", "status", "createdAt", "tripDetails"]
     }
   },
   "auth": {
@@ -592,6 +619,14 @@
           "entityName": "Message",
           "schema": { "$ref": "#/backend/entities/Message" },
           "description": "Stores all messages for a specific chat channel."
+        }
+      },
+       {
+        "path": "/transferRequests/{transferRequestId}",
+        "definition": {
+          "entityName": "TransferRequest",
+          "schema": { "$ref": "#/backend/entities/TransferRequest" },
+          "description": "Stores requests from one carrier to another to take over a trip."
         }
       }
     ]
