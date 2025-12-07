@@ -23,7 +23,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useAuth, initiateEmailSignIn, useFirestore, initiateGoogleSignIn, initiateEmailSignUp } from '@/firebase';
@@ -132,7 +131,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-4 py-8 md:px-0">
+    <div className="w-full h-screen">
       {bgImage && (
         <Image
           src={bgImage.imageUrl}
@@ -143,95 +142,97 @@ export default function LoginPage() {
         />
       )}
       <div className="absolute inset-0 -z-10 bg-black/60" />
-      <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm border-white/20">
-        <CardHeader className="text-center">
-          <Logo className="mb-4 justify-center" />
-          <CardTitle className="text-2xl">أهلاً بعودتك</CardTitle>
-          <CardDescription>
-            استخدم زر المطور للدخول الفوري، أو سجل دخولك بشكل طبيعي.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-           <Button type="button" size="lg" className="w-full mb-4" onClick={handleDevSignIn}>
+      <div className="flex h-full w-full items-center justify-center p-4">
+        <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm border-white/20">
+          <CardHeader className="text-center">
+            <Logo className="mb-4 justify-center" />
+            <CardTitle className="text-2xl">أهلاً بعودتك</CardTitle>
+            <CardDescription>
+              استخدم زر المطور للدخول الفوري، أو سجل دخولك بشكل طبيعي.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button type="button" size="lg" className="w-full mb-4" onClick={handleDevSignIn}>
               <TestTube2 className="mr-2 h-5 w-5" />
               دخول فوري للمطور
             </Button>
+            <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card/80 px-2 text-muted-foreground">
+                        أو سجل دخولك عبر
+                    </span>
+                </div>
+            </div>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem className="grid gap-2">
+                      <FormLabel>البريد الإلكتروني</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="m@example.com"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem className="grid gap-2">
+                      <div className="flex items-center">
+                        <FormLabel>كلمة المرور</FormLabel>
+                        <Link
+                          href="#"
+                          className="mr-auto inline-block text-sm underline"
+                        >
+                          هل نسيت كلمة المرور؟
+                        </Link>
+                      </div>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full">
+                  تسجيل الدخول
+                </Button>
+              </form>
+            </Form>
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-card/80 px-2 text-muted-foreground">
-                  أو سجل دخولك عبر
+                  أو أكمل باستخدام
                   </span>
               </div>
             </div>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem className="grid gap-2">
-                    <FormLabel>البريد الإلكتروني</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="m@example.com"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem className="grid gap-2">
-                    <div className="flex items-center">
-                      <FormLabel>كلمة المرور</FormLabel>
-                      <Link
-                        href="#"
-                        className="mr-auto inline-block text-sm underline"
-                      >
-                        هل نسيت كلمة المرور؟
-                      </Link>
-                    </div>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full">
-                تسجيل الدخول
-              </Button>
-            </form>
-          </Form>
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+              تسجيل الدخول باستخدام جوجل
+            </Button>
+            <div className="mt-4 text-center text-sm">
+              ليس لديك حساب؟{' '}
+              <Link href="/signup" className="underline">
+                أنشئ حساباً
+              </Link>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card/80 px-2 text-muted-foreground">
-                أو أكمل باستخدام
-                </span>
-            </div>
-          </div>
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-            تسجيل الدخول باستخدام جوجل
-          </Button>
-          <div className="mt-4 text-center text-sm">
-            ليس لديك حساب؟{' '}
-            <Link href="/signup" className="underline">
-              أنشئ حساباً
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
