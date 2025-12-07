@@ -73,6 +73,7 @@ export default function SignupPage() {
         lastName: lastNameParts.join(' '),
         email: data.email,
         phoneNumber: data.phoneNumber,
+        role: data.email === 'dev@safar.com' ? 'owner' : 'traveler'
     };
 
     const success = await initiateEmailSignUp(auth, firestore, data.email, data.password, userProfile);

@@ -71,8 +71,13 @@ export async function initiateEmailSignUp(
 
     try {
         const userRef = doc(firestore, 'users', user.uid);
-        // All new users, including dev, default to traveler
-        const finalProfileData = { ...profileData, role: 'traveler', createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+        // Use the role from profileData if it exists, otherwise default to traveler
+        const finalProfileData = { 
+            ...profileData, 
+            role: profileData.role || 'traveler', 
+            createdAt: serverTimestamp(), 
+            updatedAt: serverTimestamp() 
+        };
         await setDoc(userRef, finalProfileData);
     } catch (firestoreError: any) {
         toast({
