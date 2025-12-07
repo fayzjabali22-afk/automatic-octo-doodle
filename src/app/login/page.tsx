@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -99,39 +100,42 @@ export default function LoginPage() {
     const devEmail = 'dev@safar.com';
     const devPassword = 'password123';
   
-    toast({ title: 'جاري الدخول كمطور...', description: 'الرجاء الانتظار.' });
+    toast({ title: 'جاري التحقق من هوية المدير...', description: 'الرجاء الانتظار.' });
   
     const signInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
   
     if (signInSuccess) {
-      toast({ title: 'تم الدخول كمطور', description: 'جاري التوجيه...' });
-      router.push('/dev-switch');
+      toast({ title: 'أهلاً بك سيادة المدير', description: 'جاري التوجيه إلى قلعة المشرف...' });
+      router.push('/admin'); // <-- DIRECT REDIRECT TO ADMIN
       return;
     }
   
-    toast({ title: 'جاري إنشاء حساب المطور...', description: 'لحظة من فضلك.' });
+    // If sign-in fails, it might be the first time, so we try to create the account.
+    toast({ title: 'جاري إنشاء حساب المدير الأعلى...', description: 'لحظة من فضلك.' });
     const devProfile = {
-      firstName: 'Sovereign',
-      lastName: 'Developer',
+      firstName: 'المدير',
+      lastName: 'الأعلى',
       email: devEmail,
       phoneNumber: '000-000-0000',
+      role: 'owner' as const,
     };
   
     const signUpSuccess = await initiateEmailSignUp(auth, firestore, devEmail, devPassword, devProfile, false);
   
     if (signUpSuccess) {
+      // After successful sign-up, try signing in again to establish the session.
       const finalSignInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
       if (finalSignInSuccess) {
-        toast({ title: 'تم الدخول كمطور', description: 'جاري التوجيه...' });
-        router.push('/dev-switch');
+        toast({ title: 'أهلاً بك سيادة المدير', description: 'جاري التوجيه إلى قلعة المشرف...' });
+        router.push('/admin'); // <-- DIRECT REDIRECT TO ADMIN
       } else {
-        toast({ title: "فشل دخول المطور", description: "لم نتمكن من الدخول بعد إنشاء الحساب.", variant: "destructive"});
+        toast({ title: "فشل دخول المدير", description: "لم نتمكن من الدخول بعد إنشاء الحساب.", variant: "destructive"});
       }
     }
   };
 
   return (
-    <div className="w-full h-screen">
+    <div className="w-full min-h-screen p-4 flex items-center justify-center">
       {bgImage && (
         <Image
           src={bgImage.imageUrl}
@@ -142,7 +146,7 @@ export default function LoginPage() {
         />
       )}
       <div className="absolute inset-0 -z-10 bg-black/60" />
-      <div className="flex h-full w-full items-center justify-center p-4">
+      <div className="w-full flex items-center justify-center">
         <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm border-white/20">
           <CardHeader className="text-center">
             <Logo className="mb-4 justify-center" />
