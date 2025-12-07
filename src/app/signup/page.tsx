@@ -27,9 +27,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useFirestore, initiateEmailSignUp, useAuth, initiateGoogleSignIn } from '@/firebase';
+import { useFirestore, initiateEmailSignUp, useAuth, initiateGoogleSignIn, initiateEmailSignIn } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { MailCheck } from 'lucide-react';
+import { MailCheck, Shield, TestTube2 } from 'lucide-react';
 
 const signupFormSchema = z.object({
   fullName: z.string().min(2, 'الاسم الكامل يجب أن يتكون من حرفين على الأقل.'),
@@ -97,6 +97,90 @@ export default function SignupPage() {
     }
   };
 
+  const handleDevSignIn = async () => {
+    if (!auth || !firestore) {
+      toast({ title: "خطأ", description: "Firebase not initialized.", variant: "destructive" });
+      return;
+    }
+  
+    const devEmail = 'dev@safar.com';
+    const devPassword = 'password123';
+  
+    toast({ title: 'جاري التحقق من هوية المطور...', description: 'الرجاء الانتظار.' });
+  
+    const signInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
+  
+    if (signInSuccess) {
+      toast({ title: 'أهلاً بك أيها المطور', description: 'جاري التوجيه...' });
+      router.push('/admin');
+      return;
+    }
+  
+    // If sign-in fails, it might be the first time, so we try to create the account.
+    toast({ title: 'جاري إنشاء حساب المطور الأعلى...', description: 'لحظة من فضلك.' });
+    const devProfile = {
+      firstName: 'المطور',
+      lastName: 'الأعلى',
+      email: devEmail,
+      phoneNumber: '000-000-0000',
+      role: 'owner' as const,
+    };
+  
+    const signUpSuccess = await initiateEmailSignUp(auth, firestore, devEmail, devPassword, devProfile, false);
+  
+    if (signUpSuccess) {
+      // After successful sign-up, try signing in again to establish the session.
+      const finalSignInSuccess = await initiateEmailSignIn(auth, devEmail, devPassword);
+      if (finalSignInSuccess) {
+        toast({ title: 'أهلاً بك أيها المطور', description: 'جاري التوجيه...' });
+        router.push('/admin');
+      } else {
+        toast({ title: "فشل دخول المطور", description: "لم نتمكن من الدخول بعد إنشاء الحساب.", variant: "destructive"});
+      }
+    }
+  };
+
+  const handleAdminSignIn = async () => {
+    if (!auth || !firestore) {
+      toast({ title: "خطأ", description: "Firebase not initialized.", variant: "destructive" });
+      return;
+    }
+  
+    const adminEmail = 'admin@safar.com';
+    const adminPassword = 'password123';
+  
+    toast({ title: 'جاري التحقق من هوية المدير...', description: 'الرجاء الانتظار.' });
+  
+    const signInSuccess = await initiateEmailSignIn(auth, adminEmail, adminPassword);
+  
+    if (signInSuccess) {
+      toast({ title: 'أهلاً بك أيها المدير', description: 'جاري التوجيه...' });
+      router.push('/admin');
+      return;
+    }
+  
+    toast({ title: 'جاري إنشاء حساب المدير...', description: 'لحظة من فضلك.' });
+    const adminProfile = {
+      firstName: 'المدير',
+      lastName: 'العام',
+      email: adminEmail,
+      phoneNumber: '111-111-1111',
+      role: 'admin' as const,
+    };
+  
+    const signUpSuccess = await initiateEmailSignUp(auth, firestore, adminEmail, adminPassword, adminProfile, false);
+  
+    if (signUpSuccess) {
+      const finalSignInSuccess = await initiateEmailSignIn(auth, adminEmail, adminPassword);
+      if (finalSignInSuccess) {
+        toast({ title: 'أهلاً بك أيها المدير', description: 'جاري التوجيه...' });
+        router.push('/admin');
+      } else {
+        toast({ title: "فشل دخول المدير", description: "لم نتمكن من الدخول بعد إنشاء الحساب.", variant: "destructive"});
+      }
+    }
+  };
+
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-4 py-8 md:px-0">
       {bgImage && (
@@ -118,6 +202,26 @@ export default function SignupPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="grid grid-cols-1 gap-2 mb-4">
+              <Button type="button" variant="outline" size="lg" className="w-full" onClick={handleAdminSignIn}>
+                <Shield className="mr-2 h-5 w-5 text-primary" />
+                زر الطوارئ (مدير)
+              </Button>
+               <Button type="button" variant="secondary" size="lg" className="w-full" onClick={handleDevSignIn}>
+                <TestTube2 className="mr-2 h-5 w-5" />
+                زر الطوارئ (مطور)
+              </Button>
+            </div>
+            <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card/80 px-2 text-muted-foreground">
+                        أو أنشئ حساباً
+                    </span>
+                </div>
+            </div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
               <FormField
