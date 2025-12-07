@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -223,7 +222,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         >
 
           <div className="flex items-center gap-2 md:hidden">
-            {isMounted && !isCarrierPath && (
+            {isMounted && !isCarrierPath && user && (
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-black/20 text-black">
@@ -257,7 +256,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </SheetContent>
               </Sheet>
             )}
-             {isDevUser && (
+             {isDevUser && user && (
                  <Tooltip>
                     <TooltipTrigger asChild>
                         <Button 
@@ -353,14 +352,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </DropdownMenu>
                 </div>
                 </>
-            ) : (
-                 <Button variant="ghost" size="sm" asChild>
-                    <Link href="/admin/login">
-                      <Shield className="ml-2 h-4 w-4" />
-                      دخول الإدارة
-                    </Link>
-                </Button>
-            )}
+            ) : null }
           </div>
         </header>
 
