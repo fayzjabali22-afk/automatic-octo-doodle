@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Auth,
@@ -10,7 +9,7 @@ import {
   signInWithPopup,
   UserCredential,
 } from 'firebase/auth';
-import { Firestore, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { Firestore, doc, setDoc, getDoc, serverTimestamp, getDocs, collection } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/lib/data';
 import { actionCodeSettings } from './config';
@@ -40,9 +39,16 @@ export async function initiateEmailSignUp(
     email: string, 
     password: string,
     profileData: UserProfileCreation,
-    signOutAfter: boolean = true // This parameter is no longer used but kept for compatibility
+    signOutAfter: boolean = true
 ): Promise<UserCredential | null> {
     try {
+        // --- SOVEREIGN PROTOCOL: OWNER ASSIGNMENT ---
+        // 1. Check if any user exists.
+        const usersCollectionRef = collection(firestore, 'users');
+        const existingUsersSnapshot = await getDocs(usersCollectionRef);
+        const isFirstUser = existingUsersSnapshot.empty;
+
+        // 2. Create the user in Auth.
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
@@ -55,16 +61,17 @@ export async function initiateEmailSignUp(
             return null;
         }
         
+        // 3. Prepare profile data, assigning 'owner' role if it's the first user.
         const userRef = doc(firestore, 'users', user.uid);
         const finalProfileData = { 
             ...profileData, 
-            role: profileData.role || 'traveler', 
+            role: isFirstUser ? 'owner' : (profileData.role || 'traveler'),
             createdAt: serverTimestamp(), 
             updatedAt: serverTimestamp() 
         };
         await setDoc(userRef, finalProfileData);
         
-        // The user is now signed in after creation.
+        // 4. The user is now signed in.
         return userCredential;
 
     } catch (authError: any) {

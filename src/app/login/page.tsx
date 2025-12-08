@@ -99,9 +99,9 @@ export default function LoginPage() {
         <Card className="w-full max-w-md p-6 space-y-6 rounded-lg shadow-2xl bg-card border-border">
           <div className="space-y-2 text-center">
             <Logo className="mb-4 justify-center" />
-            <h1 className="text-3xl font-bold">أهلاً بعودتك</h1>
+            <h1 className="text-3xl font-bold">أهلاً بالقائد</h1>
             <p className="text-muted-foreground">
-              ادخل بياناتك للمتابعة إلى حسابك
+              الخطوة الأولى هي تأمين هويتك كمالك للنظام.
             </p>
           </div>
           
@@ -109,74 +109,21 @@ export default function LoginPage() {
                 <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
+                 <div className="relative flex justify-center text-xs uppercase">
                     <span className="bg-card px-2 text-muted-foreground">
-                        أو سجل دخولك عبر
+                        أنشئ حساب المالك الآن
                     </span>
                 </div>
             </div>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>البريد الإلكتروني</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="m@example.com"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center">
-                      <FormLabel>كلمة المرور</FormLabel>
-                      <Link
-                        href="#"
-                        className="ml-auto inline-block text-sm underline"
-                      >
-                        نسيت كلمة المرور؟
-                      </Link>
-                    </div>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full">
-                تسجيل الدخول
-              </Button>
-            </form>
-          </Form>
-           <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">
-                  أو أكمل باستخدام
-                  </span>
-              </div>
-            </div>
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-              تسجيل الدخول باستخدام جوجل
+
+            <Button variant="default" className="w-full" size="lg" onClick={() => router.push('/signup')}>
+              إنشاء حساب المدير الأعلى
             </Button>
+        
           <div className="mt-6 text-center text-sm">
-            ليس لديك حساب؟{' '}
-            <Link href="/signup" className="underline font-bold">
-              أنشئ حساباً
+            هل تملك حساباً بالفعل؟{' '}
+            <Link href="/login-form" className="underline font-bold">
+              سجل دخولك من هنا
             </Link>
           </div>
         </Card>
