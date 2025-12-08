@@ -1,8 +1,9 @@
+
 # This file is used by Firebase App Hosting to manage your Next.js application.
 # Learn more at https://firebase.google.com/docs/hosting/frameworks/nextjs
 
 # Specifies the command to run to build your app.
-buildCommand: npm run build
+buildCommand: npm run deploy
 # Specifies the command to run to start your app.
 startCommand: npm run start
 # Specifies the location of the built assets.

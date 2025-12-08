@@ -9,6 +9,7 @@
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
+    "deploy": "rm -rf .next out && npm run build && firebase deploy --only hosting",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
