@@ -1,15 +1,23 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: 'export',
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  // لاحظ: تم حذف سطر output: 'export' تماماً
+
   images: {
     unoptimized: true,
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
-      { protocol: 'https', hostname: 'picsum.photos' },
-      { protocol: 'https', hostname: 'i.postimg.cc' },
+      { protocol: 'https', hostname: 'firebasestorage.googleapis.com' }
     ],
   },
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
+  
+  // تفعيل بروتوكول الطوارئ لتجاوز التدقيقات الشكلية
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  }
 };
-module.exports = nextConfig;
+
+export default nextConfig;
